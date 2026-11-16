@@ -89,6 +89,13 @@ input:focus{outline:none;border-color:var(--g);box-shadow:0 0 0 3px rgba(34,122,
 .tbl{width:100%;border-collapse:collapse;font-size:.84rem}
 .tbl th{text-align:left;padding:8px 10px;background:#eef4f0;color:#2f4236;font-weight:800;border-bottom:2px solid #d5e2da}
 .tbl td{padding:8px 10px;border-bottom:1px solid #e6eee9}
+.stat-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(165px,1fr));gap:8px}
+.stat-card{background:#f7faf8;border:1px solid #d6e4dc;border-radius:9px;padding:10px 12px;display:flex;flex-direction:column;gap:3px}
+.stat-top{display:flex;justify-content:space-between;align-items:baseline}
+.stat-c{font-family:'Oswald',sans-serif;font-size:1.25rem;font-weight:700;color:#1b3828}
+.stat-n{font-size:.75rem;font-weight:800;color:#52665a;background:#e4ede8;padding:1px 7px;border-radius:10px}
+.stat-sc{font-family:'Oswald',sans-serif;font-size:1.1rem;font-weight:700;color:#1f2923}
+.stat-sub{font-size:.73rem;font-weight:700;color:#4f6357;display:flex;justify-content:space-between}
 </style>
 </head>
 <body>
@@ -212,6 +219,18 @@ input:focus{outline:none;border-color:var(--g);box-shadow:0 0 0 3px rgba(34,122,
 
   <section class="pnl">
     <div class="pnl-t">
+      <span>譜面定数別 平均スコア統計</span>
+      <span style="font-size:.76rem;color:#52665a;font-weight:700" id="statMeta">対象対象：対象枠（BEST30＋NEW20）</span>
+    </div>
+    <div class="btns" style="margin-bottom:10px" id="statScope">
+      <button type="button" class="cb on" data-sc="top">対象枠のみ（BEST30＋NEW20）</button>
+      <button type="button" class="cb" data-sc="all">登録済み全曲</button>
+    </div>
+    <div class="stat-grid" id="statGrid"></div>
+  </section>
+
+  <section class="pnl">
+    <div class="pnl-t">
       <span>登録済みの譜面（<span id="rCnt">0</span>件）</span>
       <div class="btns">
         <button type="button" class="bs" id="uBtn" disabled>↩ 元に戻す</button>
@@ -245,7 +264,7 @@ document.addEventListener('DOMContentLoaded', () => {
   $('sAdj').innerHTML = [-1000,-100,-10,-1,1,10,100,1000].map(n => `<button type="button" class="adj" data-sd="${n}">${n>0?'+'+n:n}</button>`).join('');
   $('sPre').innerHTML = [['理論値',1010000],['SSS+',1009000],['SSS',1007500],['SS+',1005000],['SS',1000000],['S+',990000],['S',975000]].map(([l,v]) => `<button type="button" class="adj pre" data-ss="${v}">${l}</button>`).join('');
 
-  let db = [], dbMap = new Map(), sel = null, edId = null, diff = 'MASTER', lamp = 'NONE', jkt = '', hist = [];
+  let db = [], dbMap = new Map(), sel = null, edId = null, diff = 'MASTER', lamp = 'NONE', jkt = '', hist = [], statScope = 'top';
   let st = { playerName:'', creditName:'CHUNITHM', showLamp:true, songs:[] };
 
   const save = () => { try { localStorage.setItem(KEY, JSON.stringify(st)); } catch {} };
@@ -354,7 +373,7 @@ document.addEventListener('DOMContentLoaded', () => {
       const im = s.imageName || s.image || '';
       const img = im ? (im.startsWith('http') ? im : `https://dp4p6x0xfi5o9.cloudfront.net/chunithm/img/cover/${im}`) : '';
       const key = norm(t);
-      if (!songMap.has(key)) songMap.set(key, { t, ch, isNew: !!s.isNew, img, latest: false });
+      if (!songMap.has(key)) songMap.set(key, { t, ch, isNew: !!s.isNew, img });
     });
 
     let latestCount = 0;
@@ -379,8 +398,7 @@ document.addEventListener('DOMContentLoaded', () => {
           t: prev?.t || t,
           ch: { ...(prev?.ch || {}), ...ch },
           isNew: prev?.isNew || false,
-          img: prev?.img || '',
-          latest: true
+          img: prev?.img || ''
         });
       });
     }
@@ -395,7 +413,6 @@ document.addEventListener('DOMContentLoaded', () => {
         const key = norm(t);
         const prev = songMap.get(key) || { t, ch: {}, isNew: false, img: '' };
         prev.ch[d] = v;
-        prev.latest = true;
         songMap.set(key, prev);
       });
     }
@@ -503,6 +520,42 @@ document.addEventListener('DOMContentLoaded', () => {
     save(); rst(); render();
   };
 
+  $('statScope').onclick = e => {
+    const sc = e.target.dataset.sc;
+    if (!sc) return;
+    statScope = sc;
+    document.querySelectorAll('#statScope .cb').forEach(b => b.classList.toggle('on', b.dataset.sc === sc));
+    render();
+  };
+
+  function renderStats(targetSongs) {
+    $('statMeta').textContent = `集計対象：${statScope === 'top' ? '対象枠（BEST30＋NEW20）' : '登録済み全曲'}（${targetSongs.length}曲）`;
+    if (!targetSongs.length) {
+      $('statGrid').innerHTML = '<div style="grid-column:1/-1;text-align:center;color:#607066;padding:12px;font-size:.84rem">譜面を登録すると定数ごとの平均スコアが表示されます。</div>';
+      return;
+    }
+    const groups = new Map();
+    targetSongs.forEach(s => {
+      const k = s.const.toFixed(1);
+      const g = groups.get(k) || { c: s.const, count: 0, sumScore: 0, sumRate: 0 };
+      g.count++;
+      g.sumScore += s.score;
+      g.sumRate += s.rt;
+      groups.set(k, g);
+    });
+    const sorted = Array.from(groups.values()).sort((a, b) => b.c - a.c);
+    $('statGrid').innerHTML = sorted.map(g => {
+      const avgScore = Math.round(g.sumScore / g.count);
+      const avgRate = (g.sumRate / g.count).toFixed(3);
+      const rk = rank(avgScore);
+      return `<div class="stat-card">
+        <div class="stat-top"><span class="stat-c">定数 ${g.c.toFixed(1)}</span><span class="stat-n">${g.count}曲</span></div>
+        <div class="stat-sc">${avgScore.toLocaleString()} <span style="font-size:.78rem;color:#227a4b">(${rk.l})</span></div>
+        <div class="stat-sub"><span>平均レート</span><strong>${avgRate}</strong></div>
+      </div>`;
+    }).join('');
+  }
+
   const tile = (s, i) => {
     const rk = rank(s.score);
     const ji = s.jacket ? `<img src="${s.jacket}" crossorigin="anonymous" />` : `<div class="tl-p" style="background:linear-gradient(135deg,${DBG[s.diff]},#1f2937)">${esc(s.title)}</div>`;
@@ -535,6 +588,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
     $('gB').innerHTML = best.length ? best.map((s,i) => tile(s,i+1)).join('') : '<div class="emp">対象曲がありません。</div>';
     $('gN').innerHTML = news.length ? news.map((s,i) => tile(s,i+1)).join('') : '<div class="emp">新曲枠の対象曲がありません。</div>';
+
+    renderStats(statScope === 'top' ? [...best, ...news] : all);
+
     $('rCnt').textContent = all.length;
     $('rBd').innerHTML = all.length ? all.map(s => `<tr><td>${s.isNew?'<span class="bm" style="background:#e67e22">NEW</span>':'BEST'}</td><td style="font-weight:800">${esc(s.title)}</td><td><span class="bm bg-${s.diff}">${s.diff}</span></td><td>${s.const.toFixed(1)}</td><td>${s.score.toLocaleString()}</td><td>${s.lamp==='NONE'?'-':s.lamp}</td><td style="font-weight:800;color:var(--g)">${s.rt.toFixed(3)}</td><td style="white-space:nowrap">${s.isNew?`<button type="button" class="bw" data-mv="${s.id}" style="padding:4px 8px;font-size:.72rem">BESTへ</button> `:''}<button type="button" class="bs" data-ed="${s.id}" style="padding:4px 8px;font-size:.72rem">編集</button> <button type="button" class="bd" data-dl="${s.id}" style="padding:4px 8px;font-size:.72rem">削除</button></td></tr>`).join('') : '<tr><td colspan="8" style="text-align:center;color:#607066;padding:18px">登録された譜面はまだありません。</td></tr>';
     requestAnimationFrame(fit);
