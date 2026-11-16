@@ -1,1675 +1,582 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>CHUNITHM レート対象曲 手動入力式画像ジェネレーター</title>
-  <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=M+PLUS+1p:wght@500;700;800;900&family=Oswald:wght@600;700&display=swap" rel="stylesheet" />
-  <style>
-    :root {
-      --bg-page: #f4f7f5;
-      --bg-card: #ffffff;
-      --border-light: #dce4de;
-      --text-main: #1f2923;
-      --text-muted: #607066;
-      --accent-green: #227a4b;
-      --accent-green-hover: #1a613b;
-      --diff-basic: #2ecc71;
-      --diff-advanced: #f39c12;
-      --diff-expert: #e74c3c;
-      --diff-master: #9b59b6;
-      --diff-ultima: #1e272e;
-    }
-
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-
-    body {
-      font-family: 'M PLUS 1p', -apple-system, BlinkMacSystemFont, sans-serif;
-      background-color: var(--bg-page);
-      color: var(--text-main);
-      line-height: 1.5;
-      padding-bottom: 40px;
-      overflow-x: hidden;
-    }
-
-    .app-header {
-      background: linear-gradient(135deg, #1b3828 0%, #2b583e 100%);
-      color: #fff;
-      padding: 14px 18px;
-      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
-    }
-    .app-header-inner {
-      max-width: 1120px;
-      margin: 0 auto;
-      display: flex;
-      flex-wrap: wrap;
-      align-items: center;
-      justify-content: space-between;
-      gap: 10px;
-    }
-    .app-title { font-size: 1.1rem; font-weight: 800; }
-    .app-subtitle { font-size: 0.76rem; color: #bce3cc; }
-
-    .db-status-badge {
-      display: inline-block;
-      padding: 3px 8px;
-      border-radius: 6px;
-      font-size: 0.72rem;
-      font-weight: 800;
-      background: rgba(255, 255, 255, 0.16);
-      color: #ffeaa7;
-    }
-    .db-status-badge.ready {
-      background: #27ae60;
-      color: #fff;
-    }
-
-    .container {
-      max-width: 1120px;
-      margin: 16px auto;
-      padding: 0 12px;
-      display: flex;
-      flex-direction: column;
-      gap: 16px;
-    }
-
-    .panel {
-      background: var(--bg-card);
-      border: 1px solid var(--border-light);
-      border-radius: 12px;
-      padding: 16px;
-      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04);
-    }
-    .panel-title {
-      font-size: 0.98rem;
-      font-weight: 800;
-      color: #1b3828;
-      margin-bottom: 12px;
-      padding-bottom: 8px;
-      border-bottom: 2px solid #e4ede7;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      flex-wrap: wrap;
-      gap: 8px;
-    }
-
-    .form-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-      gap: 14px;
-    }
-    .form-group { display: flex; flex-direction: column; gap: 6px; position: relative; }
-    .form-label { font-size: 0.82rem; font-weight: 700; color: #36453c; }
-
-    input[type="text"], input[type="number"] {
-      width: 100%;
-      padding: 9px 12px;
-      border: 1px solid #c5d1c9;
-      border-radius: 8px;
-      font-size: 0.95rem;
-      font-family: inherit;
-      font-weight: 700;
-      color: var(--text-main);
-      background: #fff;
-    }
-    input[type="text"]:focus, input[type="number"]:focus {
-      outline: none;
-      border-color: var(--accent-green);
-      box-shadow: 0 0 0 3px rgba(34, 122, 75, 0.15);
-    }
-
-    /* Autocomplete Dropdown */
-    .autocomplete-list {
-      position: absolute;
-      top: 100%;
-      left: 0;
-      right: 0;
-      z-index: 999;
-      background: #fff;
-      border: 1.5px solid var(--accent-green);
-      border-radius: 8px;
-      margin-top: 4px;
-      max-height: 260px;
-      overflow-y: auto;
-      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.16);
-      display: none;
-    }
-    .autocomplete-item {
-      padding: 8px 10px;
-      border-bottom: 1px solid #edf2ef;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      transition: background 0.1s;
-    }
-    .autocomplete-item:last-child { border-bottom: none; }
-    .autocomplete-item:hover { background: #eef7f1; }
-    .ac-thumb {
-      width: 38px;
-      height: 38px;
-      border-radius: 4px;
-      object-fit: cover;
-      background: #2b2e2c;
-      flex-shrink: 0;
-    }
-    .ac-info { flex: 1; min-width: 0; }
-    .ac-title {
-      font-size: 0.85rem;
-      font-weight: 800;
-      color: #1f2923;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
-    .ac-meta {
-      font-size: 0.72rem;
-      color: #54665b;
-      font-weight: 700;
-      display: flex;
-      flex-wrap: wrap;
-      gap: 5px;
-      margin-top: 2px;
-    }
-    .ac-diff-chip {
-      padding: 0 5px;
-      border-radius: 3px;
-      color: #fff;
-      font-size: 0.68rem;
-      font-weight: 800;
-    }
-
-    .form-jacket-preview-row {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      margin-top: 4px;
-    }
-    .form-jacket-thumb {
-      width: 48px;
-      height: 48px;
-      border-radius: 6px;
-      object-fit: cover;
-      border: 1px solid #c5d1c9;
-      background: #2b2e2c;
-      display: none;
-    }
-
-    .btn-group { display: flex; flex-wrap: wrap; gap: 6px; }
-    .choice-btn {
-      padding: 7px 11px;
-      border-radius: 7px;
-      border: 1.5px solid #cbd6cf;
-      background: #f8faf9;
-      color: #44544a;
-      font-size: 0.78rem;
-      font-weight: 800;
-      cursor: pointer;
-      user-select: none;
-    }
-    .choice-btn:hover { background: #edf3ef; }
-
-    .choice-btn[data-diff="BASIC"].active { background: var(--diff-basic); border-color: var(--diff-basic); color: #fff; }
-    .choice-btn[data-diff="ADVANCED"].active { background: var(--diff-advanced); border-color: var(--diff-advanced); color: #fff; }
-    .choice-btn[data-diff="EXPERT"].active { background: var(--diff-expert); border-color: var(--diff-expert); color: #fff; }
-    .choice-btn[data-diff="MASTER"].active { background: var(--diff-master); border-color: var(--diff-master); color: #fff; }
-    .choice-btn[data-diff="ULTIMA"].active { background: var(--diff-ultima); border-color: #ff4757; color: #fff; }
-
-    .choice-btn[data-lamp].active { background: #227a4b; border-color: #227a4b; color: #fff; }
-    .choice-btn[data-lamp="AJ"].active { background: linear-gradient(135deg, #f39c12, #e67e22); border-color: #d35400; color: #fff; }
-    .choice-btn[data-lamp="AJC"].active {
-      background: linear-gradient(135deg, #ff6b81, #f39c12, #2ed573, #1e90ff);
-      border-color: #1e272e;
-      color: #fff;
-      text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6);
-    }
-
-    .adjust-row { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 2px; }
-    .adj-btn {
-      padding: 5px 8px;
-      font-size: 0.75rem;
-      font-weight: 800;
-      border: 1px solid #c5d1c9;
-      background: #f1f6f3;
-      color: #26382d;
-      border-radius: 6px;
-      cursor: pointer;
-      user-select: none;
-    }
-    .adj-btn:hover { background: #e1ece5; }
-    .adj-btn.preset { background: #eef5ff; border-color: #bcd3f5; color: #1e4b8f; }
-    .adj-btn.preset:hover { background: #dceafe; }
-
-    .checkbox-row {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      padding: 8px 10px;
-      background: #f4f9f6;
-      border: 1px solid #d5e6dc;
-      border-radius: 8px;
-      cursor: pointer;
-      font-size: 0.85rem;
-      font-weight: 700;
-      user-select: none;
-    }
-    .checkbox-row input { width: 17px; height: 17px; accent-color: var(--accent-green); cursor: pointer; }
-
-    .live-calc-box {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      background: #1e2d24;
-      color: #fff;
-      padding: 10px 14px;
-      border-radius: 8px;
-      margin-top: 4px;
-    }
-    .live-calc-label { font-size: 0.78rem; color: #a9c7b5; font-weight: 700; }
-    .live-calc-val { font-family: 'Oswald', sans-serif; font-size: 1.35rem; font-weight: 700; color: #ffeaa7; }
-
-    .primary-btn {
-      width: 100%;
-      padding: 12px 18px;
-      background: var(--accent-green);
-      color: #fff;
-      border: none;
-      border-radius: 9px;
-      font-size: 0.98rem;
-      font-weight: 800;
-      cursor: pointer;
-      box-shadow: 0 3px 8px rgba(34, 122, 75, 0.25);
-    }
-    .primary-btn:hover { background: var(--accent-green-hover); }
-
-    .secondary-btn {
-      padding: 7px 12px;
-      background: #fff;
-      color: #2d4236;
-      border: 1px solid #c2d1c8;
-      border-radius: 7px;
-      font-size: 0.78rem;
-      font-weight: 700;
-      cursor: pointer;
-    }
-    .secondary-btn:hover { background: #f0f5f2; }
-    .danger-btn {
-      padding: 7px 12px;
-      background: #fff5f5;
-      color: #c0392b;
-      border: 1px solid #f5c6cb;
-      border-radius: 7px;
-      font-size: 0.78rem;
-      font-weight: 700;
-      cursor: pointer;
-    }
-    .danger-btn:hover { background: #ffe3e6; }
-
-    .save-png-bar { display: flex; flex-direction: column; align-items: center; gap: 10px; }
-    .save-png-btn {
-      background: #237a4b;
-      color: #fff;
-      border: none;
-      border-radius: 10px;
-      padding: 13px 32px;
-      font-size: 1.05rem;
-      font-weight: 800;
-      cursor: pointer;
-      box-shadow: 0 4px 12px rgba(35, 122, 75, 0.3);
-    }
-    .save-png-btn:hover { background: #1b633c; }
-
-    #generatedImgModal {
-      display: none;
-      margin-top: 12px;
-      padding: 14px;
-      background: #eef6f1;
-      border: 2px solid #237a4b;
-      border-radius: 10px;
-      text-align: center;
-      width: 100%;
-    }
-    #generatedImgModal img {
-      max-width: 100%;
-      height: auto;
-      border: 1px solid #ccc;
-      border-radius: 6px;
-      margin-top: 8px;
-    }
-
-    /* Fit-to-screen Preview Wrapper */
-    .preview-fit-outer {
-      width: 100%;
-      overflow: hidden;
-      display: flex;
-      justify-content: center;
-      align-items: flex-start;
-    }
-
-    .preview-scale-box { position: relative; }
-
-    #captureArea {
-      width: 920px;
-      min-width: 920px;
-      padding: 20px 22px 18px;
-      color: #203122;
-      background-color: #e4f1d8;
-      background-image: repeating-linear-gradient(
-        -45deg,
-        rgba(255, 255, 255, 0.42) 0px,
-        rgba(255, 255, 255, 0.42) 18px,
-        rgba(198, 226, 174, 0.35) 18px,
-        rgba(198, 226, 174, 0.35) 36px
-      );
-      border: 1px solid #c3d9b4;
-      transform-origin: top left;
-    }
-
-    .img-header { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; margin-bottom: 12px; }
-    .img-header-left { flex: 1; display: flex; flex-direction: column; gap: 6px; }
-    .img-main-title {
-      font-size: 25px;
-      font-weight: 900;
-      color: #227a43;
-      letter-spacing: -0.02em;
-      line-height: 1.15;
-      display: flex;
-      align-items: baseline;
-      gap: 10px;
-    }
-    .img-main-title span.by-tag { font-size: 16px; font-weight: 800; color: #2e8b52; }
-    .img-player-label { font-size: 12px; font-weight: 800; color: #4f6353; letter-spacing: 0.04em; margin-top: 2px; }
-    .img-player-box {
-      background: rgba(255, 255, 255, 0.65);
-      border-radius: 6px;
-      padding: 7px 14px;
-      font-size: 18px;
-      font-weight: 800;
-      color: #3a4a3d;
-      text-align: center;
-      min-height: 40px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
-
-    .img-header-right { width: 470px; display: flex; flex-direction: column; gap: 4px; }
-    .img-top-meta { display: flex; justify-content: space-between; align-items: center; font-size: 12px; font-weight: 800; color: #4f6353; }
-    .img-timestamp { font-family: 'Oswald', sans-serif; font-size: 13px; color: #4f6353; }
-    .img-rating-box {
-      background: rgba(255, 255, 255, 0.85);
-      border-radius: 6px;
-      padding: 6px 16px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      min-height: 50px;
-    }
-    .img-rating-value {
-      font-family: 'Oswald', sans-serif;
-      font-size: 35px;
-      font-weight: 700;
-      line-height: 1;
-      letter-spacing: 0.02em;
-    }
-
-    /* =====================================================================
-       CHUNITHM RATING COLOR TIERS (0.00〜16.00+)
-       ===================================================================== */
-    /* 0.00〜3.99: 緑 */
-    .rate-green { color: #16a34a; }
-    /* 4.00〜6.99: 橙 */
-    .rate-orange { color: #ea580c; }
-    /* 7.00〜9.99: 赤 */
-    .rate-red { color: #dc2626; }
-    /* 10.00〜11.99: 紫 */
-    .rate-purple { color: #7e22ce; }
-    /* 12.00〜13.24: 銅 */
-    .rate-bronze { color: #a16207; }
-    /* 13.25〜14.49: 銀 */
-    .rate-silver { color: #64748b; }
-    /* 14.50〜15.24: 金 */
-    .rate-gold { color: #ca8a04; text-shadow: 0 1px 1px rgba(0, 0, 0, 0.12); }
-    /* 15.25〜15.99: 鉑 (プラチナ) */
-    .rate-platinum { color: #6366f1; text-shadow: 0 1px 2px rgba(99, 102, 241, 0.25); }
-    /* 16.00〜: 虹 (全16.00以上統一) */
-    .rate-rainbow {
-      background: linear-gradient(90deg, #ff2a5f 0%, #ff8c00 22%, #eab308 42%, #10b981 62%, #0ea5e9 82%, #a855f7 100%);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-    }
-    /* html2canvasキャプチャ時の虹色フォールバック（background-clip:text非対応対策） */
-    .capturing .rate-rainbow {
-      background: none !important;
-      -webkit-text-fill-color: initial !important;
-      color: #e11d48 !important;
-      text-shadow: -1.5px 0 0 #0ea5e9, 1.5px 0 0 #10b981, 0 1.5px 0 #eab308;
-    }
-
-    .img-substats-box {
-      background: rgba(255, 255, 255, 0.55);
-      border-radius: 5px;
-      padding: 4px 12px;
-      text-align: center;
-      font-size: 12.5px;
-      font-weight: 800;
-      color: #2c3a2e;
-    }
-    .img-substats-box span.num { font-family: 'Oswald', sans-serif; font-size: 13.5px; margin-left: 3px; margin-right: 12px; }
-
-    .img-section-title { font-size: 18px; font-weight: 900; color: #222823; margin: 10px 0 6px; }
-
-    .img-grid-container {
-      background-color: #7c7e7c;
-      border-radius: 4px;
-      padding: 8px;
-      display: grid;
-      grid-template-columns: repeat(5, 1fr);
-      gap: 6px;
-      min-height: 80px;
-    }
-    .img-grid-empty { grid-column: 1 / -1; color: #e6eae6; font-size: 13px; font-weight: 700; text-align: center; padding: 24px 0; }
-
-    .song-tile {
-      background: linear-gradient(180deg, #989a98 0%, #7d7f7d 100%);
-      border: 1px solid #636563;
-      border-radius: 4px;
-      padding: 4px 5px 4px;
-      display: flex;
-      flex-direction: column;
-      justify-content: space-between;
-      overflow: hidden;
-    }
-    .song-tile-top { display: flex; align-items: stretch; gap: 4px; height: 86px; }
-    .song-tile-stats {
-      width: 52px;
-      flex-shrink: 0;
-      display: flex;
-      flex-direction: column;
-      justify-content: space-between;
-      align-items: center;
-      text-align: center;
-      padding: 1px 0;
-    }
-    .tile-rank { font-family: 'Oswald', sans-serif; font-size: 14px; font-weight: 700; color: #fff; line-height: 1; text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5); }
-    .tile-stat-group { display: flex; flex-direction: column; align-items: center; line-height: 1.05; }
-    .tile-stat-lbl { font-size: 8.5px; font-weight: 800; color: #e2e6e2; }
-    .tile-stat-num { font-family: 'Oswald', sans-serif; font-size: 13.5px; font-weight: 700; color: #fff; text-shadow: 0 1px 2px rgba(0, 0, 0, 0.45); }
-    .tile-stat-num.rate-highlight { color: #ffeaa7; }
-
-    .song-tile-jacket-wrap {
-      flex: 1;
-      position: relative;
-      border-radius: 3px;
-      overflow: hidden;
-      background: #2b2e2c;
-      border: 1px solid rgba(0, 0, 0, 0.35);
-    }
-    .song-tile-jacket-img { width: 100%; height: 100%; object-fit: cover; display: block; }
-    .song-tile-jacket-placeholder {
-      width: 100%;
-      height: 100%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      padding: 4px;
-      text-align: center;
-      font-size: 10px;
-      font-weight: 800;
-      color: rgba(255, 255, 255, 0.85);
-      line-height: 1.2;
-      word-break: break-all;
-    }
-
-    .tile-diff-badge {
-      position: absolute;
-      top: 3px;
-      right: 3px;
-      width: 15px;
-      height: 15px;
-      border-radius: 3px;
-      transform: rotate(45deg);
-      border: 1.5px solid #fff;
-      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.6);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
-    .tile-diff-badge span { transform: rotate(-45deg); font-size: 8px; font-weight: 900; color: #fff; line-height: 1; }
-    .diff-bg-BASIC { background: var(--diff-basic); }
-    .diff-bg-ADVANCED { background: var(--diff-advanced); }
-    .diff-bg-EXPERT { background: var(--diff-expert); }
-    .diff-bg-MASTER { background: var(--diff-master); }
-    .diff-bg-ULTIMA { background: #111; border-color: #ff4757; }
-
-    .tile-lamps { position: absolute; bottom: 17px; right: 2px; display: flex; gap: 2px; }
-    .tile-lamp-pill {
-      padding: 1px 4px;
-      border-radius: 2px;
-      font-size: 8.5px;
-      font-weight: 900;
-      line-height: 1.1;
-      color: #fff;
-      background: rgba(15, 18, 16, 0.88);
-      border: 1px solid rgba(255, 255, 255, 0.55);
-    }
-    .tile-lamp-pill.lamp-FC { color: #7bed9f; border-color: #7bed9f; }
-    .tile-lamp-pill.lamp-AJ { color: #ffd32a; border-color: #ffd32a; }
-    .tile-lamp-pill.lamp-AJC {
-      background: linear-gradient(90deg, #ff4757, #ffa502, #2ed573, #1e90ff);
-      color: #fff;
-      border-color: #fff;
-    }
-
-    .tile-score-bar {
-      position: absolute;
-      bottom: 0;
-      left: 0;
-      right: 0;
-      height: 16px;
-      background: rgba(10, 12, 11, 0.9);
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 0 4px;
-    }
-    .tile-score-num { font-family: 'Oswald', sans-serif; font-size: 11px; font-weight: 700; color: #fff; }
-    .tile-rank-badge { font-family: 'Oswald', sans-serif; font-size: 10px; font-weight: 700; line-height: 1; padding: 1px 3px; border-radius: 2px; }
-    .rank-SSSP { color: #fffa65; }
-    .rank-SSS { color: #ffd32a; }
-    .rank-SSP, .rank-SS { color: #ff9f43; }
-    .rank-SP, .rank-S { color: #ff6b6b; }
-    .rank-AAA, .rank-AA, .rank-A { color: #54a0ff; }
-    .rank-OTHER { color: #c8d6e5; }
-
-    .song-tile-title {
-      margin-top: 3px;
-      font-size: 11px;
-      font-weight: 800;
-      color: #fff;
-      text-align: center;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      text-shadow: 0 1px 2px rgba(0, 0, 0, 0.65);
-      line-height: 1.25;
-    }
-
-    .img-disclaimer { margin-top: 14px; text-align: center; font-size: 10.5px; font-weight: 700; color: #465749; line-height: 1.5; }
-
-    .song-list-table { width: 100%; border-collapse: collapse; font-size: 0.84rem; }
-    .song-list-table th { text-align: left; padding: 8px 10px; background: #eef4f0; color: #2f4236; font-weight: 800; border-bottom: 2px solid #d5e2da; }
-    .song-list-table td { padding: 8px 10px; border-bottom: 1px solid #e6eee9; vertical-align: middle; }
-    .badge-mini { display: inline-block; padding: 2px 6px; border-radius: 4px; font-size: 0.72rem; font-weight: 800; color: #fff; }
-    .badge-new { background: #e67e22; color: #fff; padding: 2px 6px; border-radius: 4px; font-size: 0.7rem; font-weight: 800; }
-    .table-scroll { overflow-x: auto; }
-  </style>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>CHUNITHM レート対象曲 画像ジェネレーター</title>
+<script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=M+PLUS+1p:wght@700;800;900&family=Oswald:wght@700&display=swap" rel="stylesheet" />
+<style>
+:root{--green:#227a4b;--basic:#2ecc71;--adv:#f39c12;--exp:#e74c3c;--mas:#9b59b6;--ult:#1e272e}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'M PLUS 1p',sans-serif;background:#f4f7f5;color:#1f2923;line-height:1.5;padding-bottom:40px;overflow-x:hidden}
+.header{background:linear-gradient(135deg,#1b3828,#2b583e);color:#fff;padding:14px 18px;box-shadow:0 2px 8px rgba(0,0,0,.15)}
+.header-in{max-width:1120px;margin:0 auto;display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px}
+.badge-db{padding:3px 8px;border-radius:6px;font-size:.72rem;font-weight:800;background:rgba(255,255,255,.16);color:#ffeaa7}
+.badge-db.ready{background:#27ae60;color:#fff}
+.container{max-width:1120px;margin:16px auto;padding:0 12px;display:flex;flex-direction:column;gap:16px}
+.panel{background:#fff;border:1px solid #dce4de;border-radius:12px;padding:16px;box-shadow:0 2px 6px rgba(0,0,0,.04)}
+.panel-title{font-size:.98rem;font-weight:800;color:#1b3828;margin-bottom:12px;padding-bottom:8px;border-bottom:2px solid #e4ede7;display:flex;align-items:center;justify-content:space-between;gap:8px}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:14px}
+.col{display:flex;flex-direction:column;gap:12px}
+.fg{display:flex;flex-direction:column;gap:6px;position:relative}
+.lbl{font-size:.82rem;font-weight:700;color:#36453c}
+input[type="text"],input[type="number"]{width:100%;padding:9px 12px;border:1px solid #c5d1c9;border-radius:8px;font-size:.95rem;font-family:inherit;font-weight:700;background:#fff}
+input:focus{outline:none;border-color:var(--green);box-shadow:0 0 0 3px rgba(34,122,75,.15)}
+.ac-list{position:absolute;top:100%;left:0;right:0;z-index:999;background:#fff;border:1.5px solid var(--green);border-radius:8px;margin-top:4px;max-height:260px;overflow-y:auto;box-shadow:0 8px 20px rgba(0,0,0,.16);display:none}
+.ac-item{padding:8px 10px;border-bottom:1px solid #edf2ef;cursor:pointer;display:flex;align-items:center;gap:10px}
+.ac-item:hover{background:#eef7f1}
+.ac-thumb{width:38px;height:38px;border-radius:4px;object-fit:cover;background:#2b2e2c;flex-shrink:0}
+.ac-title{font-size:.85rem;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ac-chip{padding:0 5px;border-radius:3px;color:#fff;font-size:.68rem;font-weight:800;margin-right:4px}
+.thumb-sm{width:48px;height:48px;border-radius:6px;object-fit:cover;border:1px solid #c5d1c9;display:none}
+.btns{display:flex;flex-wrap:wrap;gap:6px}
+.c-btn{padding:7px 11px;border-radius:7px;border:1.5px solid #cbd6cf;background:#f8faf9;color:#44544a;font-size:.78rem;font-weight:800;cursor:pointer}
+.c-btn[data-diff="BASIC"].active{background:var(--basic);border-color:var(--basic);color:#fff}
+.c-btn[data-diff="ADVANCED"].active{background:var(--adv);border-color:var(--adv);color:#fff}
+.c-btn[data-diff="EXPERT"].active{background:var(--exp);border-color:var(--exp);color:#fff}
+.c-btn[data-diff="MASTER"].active{background:var(--mas);border-color:var(--mas);color:#fff}
+.c-btn[data-diff="ULTIMA"].active{background:var(--ult);border-color:#ff4757;color:#fff}
+.c-btn[data-lamp].active{background:var(--green);border-color:var(--green);color:#fff}
+.c-btn[data-lamp="AJ"].active{background:linear-gradient(135deg,#f39c12,#e67e22);border-color:#d35400;color:#fff}
+.c-btn[data-lamp="AJC"].active{background:linear-gradient(135deg,#ff6b81,#f39c12,#2ed573,#1e90ff);border-color:#1e272e;color:#fff}
+.adj{padding:5px 8px;font-size:.75rem;font-weight:800;border:1px solid #c5d1c9;background:#f1f6f3;color:#26382d;border-radius:6px;cursor:pointer}
+.adj.pre{background:#eef5ff;border-color:#bcd3f5;color:#1e4b8f}
+.chk-row{display:flex;align-items:center;gap:8px;padding:8px 10px;background:#f4f9f6;border:1px solid #d5e6dc;border-radius:8px;cursor:pointer;font-size:.85rem;font-weight:700}
+.chk-row input{width:17px;height:17px;accent-color:var(--green)}
+.calc-box{display:flex;align-items:center;justify-content:space-between;background:#1e2d24;color:#fff;padding:10px 14px;border-radius:8px;margin-top:4px}
+.calc-val{font-family:'Oswald',sans-serif;font-size:1.35rem;font-weight:700;color:#ffeaa7}
+.btn-pri{width:100%;padding:12px;background:var(--green);color:#fff;border:none;border-radius:9px;font-size:.98rem;font-weight:800;cursor:pointer}
+.btn-sec{padding:7px 12px;background:#fff;color:#2d4236;border:1px solid #c2d1c8;border-radius:7px;font-size:.78rem;font-weight:700;cursor:pointer}
+.btn-del{padding:7px 12px;background:#fff5f5;color:#c0392b;border:1px solid #f5c6cb;border-radius:7px;font-size:.78rem;font-weight:700;cursor:pointer}
+.btn-png{background:#237a4b;color:#fff;border:none;border-radius:10px;padding:13px 32px;font-size:1.05rem;font-weight:800;cursor:pointer;box-shadow:0 4px 12px rgba(35,122,75,.3)}
+#imgModal{display:none;margin-top:12px;padding:14px;background:#eef6f1;border:2px solid #237a4b;border-radius:10px;text-align:center;width:100%}
+#imgModal img{max-width:100%;border:1px solid #ccc;border-radius:6px;margin-top:8px}
+.fit-outer{width:100%;overflow:hidden;display:flex;justify-content:center;align-items:flex-start}
+#captureArea{width:920px;min-width:920px;padding:20px 22px 18px;color:#203122;background-color:#e4f1d8;background-image:repeating-linear-gradient(-45deg,rgba(255,255,255,.42) 0,rgba(255,255,255,.42) 18px,rgba(198,226,174,.35) 18px,rgba(198,226,174,.35) 36px);border:1px solid #c3d9b4;transform-origin:top left}
+.img-hd{display:flex;justify-content:space-between;align-items:flex-start;gap:16px;margin-bottom:12px}
+.img-title{font-size:25px;font-weight:900;color:#227a43;line-height:1.15;display:flex;align-items:baseline;gap:10px}
+.img-pbox{background:rgba(255,255,255,.65);border-radius:6px;padding:7px 14px;font-size:18px;font-weight:800;color:#3a4a3d;text-align:center;min-height:40px;display:flex;align-items:center;justify-content:center}
+.img-rbox{background:rgba(255,255,255,.85);border-radius:6px;padding:6px 16px;display:flex;align-items:center;justify-content:center;min-height:50px}
+.img-rval{font-family:'Oswald',sans-serif;font-size:35px;font-weight:700;line-height:1}
+.rate-green{color:#16a34a}.rate-orange{color:#ea580c}.rate-red{color:#dc2626}.rate-purple{color:#7e22ce}
+.rate-bronze{color:#a16207}.rate-silver{color:#64748b}.rate-gold{color:#ca8a04}.rate-platinum{color:#6366f1}
+.rate-rainbow{background:linear-gradient(90deg,#ff2a5f,#ff8c00,#eab308,#10b981,#0ea5e9,#a855f7);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.capturing .rate-rainbow{background:none!important;-webkit-text-fill-color:initial!important;color:#e11d48!important;text-shadow:-1.5px 0 0 #0ea5e9,1.5px 0 0 #10b981,0 1.5px 0 #eab308}
+.img-sub{background:rgba(255,255,255,.55);border-radius:5px;padding:4px 12px;text-align:center;font-size:12.5px;font-weight:800;color:#2c3a2e}
+.img-sub span{font-family:'Oswald',sans-serif;font-size:13.5px;margin:0 12px 0 3px}
+.sec-ttl{font-size:18px;font-weight:900;color:#222823;margin:10px 0 6px}
+.tile-grid{background:#7c7e7c;border-radius:4px;padding:8px;display:grid;grid-template-columns:repeat(5,1fr);gap:6px;min-height:80px}
+.grid-empty{grid-column:1/-1;color:#e6eae6;font-size:13px;font-weight:700;text-align:center;padding:24px 0}
+.tile{background:linear-gradient(180deg,#989a98,#7d7f7d);border:1px solid #636563;border-radius:4px;padding:4px 5px;display:flex;flex-direction:column;justify-content:space-between;overflow:hidden}
+.tile-top{display:flex;gap:4px;height:86px}
+.tile-st{width:52px;flex-shrink:0;display:flex;flex-direction:column;justify-content:space-between;align-items:center;text-align:center}
+.tile-rk{font-family:'Oswald',sans-serif;font-size:14px;font-weight:700;color:#fff;line-height:1}
+.tile-lbl{font-size:8.5px;font-weight:800;color:#e2e6e2;display:block;line-height:1.05}
+.tile-num{font-family:'Oswald',sans-serif;font-size:13.5px;font-weight:700;color:#fff;line-height:1.05}
+.tile-jwrap{flex:1;position:relative;border-radius:3px;overflow:hidden;background:#2b2e2c;border:1px solid rgba(0,0,0,.35)}
+.tile-jwrap img{width:100%;height:100%;object-fit:cover;display:block}
+.tile-jph{width:100%;height:100%;display:flex;align-items:center;justify-content:center;padding:4px;text-align:center;font-size:10px;font-weight:800;color:#fff;line-height:1.2;word-break:break-all}
+.tile-diff{position:absolute;top:3px;right:3px;width:15px;height:15px;border-radius:3px;transform:rotate(45deg);border:1.5px solid #fff;display:flex;align-items:center;justify-content:center}
+.tile-diff span{transform:rotate(-45deg);font-size:8px;font-weight:900;color:#fff;line-height:1}
+.bg-BASIC{background:var(--basic)}.bg-ADVANCED{background:var(--adv)}.bg-EXPERT{background:var(--exp)}.bg-MASTER{background:var(--mas)}.bg-ULTIMA{background:#111;border-color:#ff4757}
+.tile-lamp{position:absolute;bottom:17px;right:2px;padding:1px 4px;border-radius:2px;font-size:8.5px;font-weight:900;line-height:1.1;color:#fff;background:rgba(15,18,16,.88);border:1px solid rgba(255,255,255,.55)}
+.lamp-FC{color:#7bed9f;border-color:#7bed9f}.lamp-AJ{color:#ffd32a;border-color:#ffd32a}
+.lamp-AJC{background:linear-gradient(90deg,#ff4757,#ffa502,#2ed573,#1e90ff);color:#fff;border-color:#fff}
+.tile-sbar{position:absolute;bottom:0;left:0;right:0;height:16px;background:rgba(10,12,11,.9);display:flex;align-items:center;justify-content:space-between;padding:0 4px;font-family:'Oswald',sans-serif;font-weight:700}
+.tile-ttl{margin-top:3px;font-size:11px;font-weight:800;color:#fff;text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-shadow:0 1px 2px rgba(0,0,0,.65)}
+.tbl{width:100%;border-collapse:collapse;font-size:.84rem}
+.tbl th{text-align:left;padding:8px 10px;background:#eef4f0;color:#2f4236;font-weight:800;border-bottom:2px solid #d5e2da}
+.tbl td{padding:8px 10px;border-bottom:1px solid #e6eee9}
+.b-mini{display:inline-block;padding:2px 6px;border-radius:4px;font-size:.72rem;font-weight:800;color:#fff}
+</style>
 </head>
 <body>
 
-  <header class="app-header">
-    <div class="app-header-inner">
-      <div>
-        <div class="app-title">CHUNITHM レート対象曲 手動入力式画像ジェネレーター</div>
-        <div class="app-subtitle">BEST枠（上位30曲・6割）＋ NEW枠（上位20曲・4割） 自動集計・PNG画像出力ツール</div>
-      </div>
-      <div class="btn-group" style="align-items:center;">
-        <span class="db-status-badge" id="dbStatusBadge">楽曲DB読込中...</span>
-        <button type="button" class="secondary-btn" id="btnExportJson">JSON保存</button>
-        <button type="button" class="secondary-btn" id="btnImportJson">JSON読込</button>
-        <input type="file" id="jsonFileInput" accept=".json" style="display:none" />
-      </div>
+<header class="header">
+  <div class="header-in">
+    <div>
+      <div style="font-size:1.1rem;font-weight:800">CHUNITHM レート対象曲 手動入力式画像ジェネレーター</div>
+      <div style="font-size:.76rem;color:#bce3cc">BEST枠（上位30曲）＋ NEW枠（上位20曲） 自動集計・PNG出力</div>
     </div>
-  </header>
+    <div class="btns" style="align-items:center">
+      <span class="badge-db" id="dbBadge">楽曲DB読込中...</span>
+      <button type="button" class="btn-sec" id="btnExport">JSON保存</button>
+      <button type="button" class="btn-sec" id="btnImport">JSON読込</button>
+      <input type="file" id="jsonFile" accept=".json" hidden />
+    </div>
+  </div>
+</header>
 
-  <main class="container">
-
-    <!-- 1. 譜面登録・更新フォーム -->
-    <section class="panel">
-      <div class="panel-title">
-        <span id="formModeTitle">譜面を登録・更新</span>
-        <button type="button" class="secondary-btn" id="btnResetForm" style="display:none;">新規登録モードに戻す</button>
+<main class="container">
+  <section class="panel">
+    <div class="panel-title">
+      <span id="formTitle">譜面を登録・更新</span>
+      <button type="button" class="btn-sec" id="btnReset" style="display:none">新規登録に戻す</button>
+    </div>
+    <div class="grid">
+      <div class="col">
+        <div class="fg">
+          <label class="lbl">楽曲名（文字入力で候補から定数＆ジャケット自動入力） *</label>
+          <input type="text" id="inTitle" autocomplete="off" placeholder="例: Titania / 混沌を越えし / 祈" />
+          <div class="ac-list" id="acList"></div>
+        </div>
+        <div class="fg">
+          <label class="lbl">難易度</label>
+          <div class="btns" id="diffGroup">
+            <button type="button" class="c-btn" data-diff="BASIC">BASIC</button>
+            <button type="button" class="c-btn" data-diff="ADVANCED">ADVANCED</button>
+            <button type="button" class="c-btn" data-diff="EXPERT">EXPERT</button>
+            <button type="button" class="c-btn active" data-diff="MASTER">MASTER</button>
+            <button type="button" class="c-btn" data-diff="ULTIMA">ULTIMA</button>
+          </div>
+        </div>
+        <div class="fg">
+          <label class="lbl">譜面定数 (1.0 〜 16.0)</label>
+          <div style="display:flex;gap:6px">
+            <input type="number" id="inConst" step="0.1" min="1.0" max="16.0" value="14.5" />
+            <button type="button" class="adj" data-cd="-0.1">-0.1</button>
+            <button type="button" class="adj" data-cd="0.1">+0.1</button>
+          </div>
+        </div>
+        <label class="chk-row"><input type="checkbox" id="inNew" /><span>新曲枠（NEW枠）の対象にする（※BEST枠には入りません）</span></label>
       </div>
 
-      <div class="form-grid">
-        <div style="display:flex; flex-direction:column; gap:12px;">
-          <div class="form-group">
-            <label class="form-label" for="inputTitle">楽曲名（文字入力で候補から定数＆ジャケット自動入力） <span style="color:#e74c3c;">*</span></label>
-            <input type="text" id="inputTitle" autocomplete="off" placeholder="例: Titania / 宿星審判" />
-            <div class="autocomplete-list" id="autocompleteList"></div>
+      <div class="col">
+        <div class="fg">
+          <label class="lbl">スコア (0 〜 1,010,000)</label>
+          <input type="number" id="inScore" min="0" max="1010000" value="1007500" />
+          <div class="btns" style="gap:5px">
+            <button type="button" class="adj" data-sd="-1000">-1000</button>
+            <button type="button" class="adj" data-sd="-100">-100</button>
+            <button type="button" class="adj" data-sd="-10">-10</button>
+            <button type="button" class="adj" data-sd="-1">-1</button>
+            <button type="button" class="adj" data-sd="1">+1</button>
+            <button type="button" class="adj" data-sd="10">+10</button>
+            <button type="button" class="adj" data-sd="100">+100</button>
+            <button type="button" class="adj" data-sd="1000">+1000</button>
           </div>
-
-          <div class="form-group">
-            <label class="form-label">難易度</label>
-            <div class="btn-group" id="diffBtnGroup">
-              <button type="button" class="choice-btn" data-diff="BASIC">BASIC</button>
-              <button type="button" class="choice-btn" data-diff="ADVANCED">ADVANCED</button>
-              <button type="button" class="choice-btn" data-diff="EXPERT">EXPERT</button>
-              <button type="button" class="choice-btn active" data-diff="MASTER">MASTER</button>
-              <button type="button" class="choice-btn" data-diff="ULTIMA">ULTIMA</button>
-            </div>
-          </div>
-
-          <div class="form-group">
-            <label class="form-label" for="inputConst">譜面定数 (1.0 〜 16.0)</label>
-            <div style="display:flex; gap:6px; align-items:center;">
-              <input type="number" id="inputConst" step="0.1" min="1.0" max="16.0" value="14.5" />
-              <button type="button" class="adj-btn" data-const-delta="-0.1">-0.1</button>
-              <button type="button" class="adj-btn" data-const-delta="0.1">+0.1</button>
-            </div>
-          </div>
-
-          <label class="checkbox-row">
-            <input type="checkbox" id="inputIsNew" />
-            <span>新曲枠（NEW枠）の対象にする</span>
-          </label>
-        </div>
-
-        <div style="display:flex; flex-direction:column; gap:12px;">
-          <div class="form-group">
-            <label class="form-label" for="inputScore">スコア (0 〜 1,010,000)</label>
-            <input type="number" id="inputScore" min="0" max="1010000" value="1007500" />
-            <div class="adjust-row">
-              <button type="button" class="adj-btn" data-score-delta="-1000">-1000</button>
-              <button type="button" class="adj-btn" data-score-delta="-100">-100</button>
-              <button type="button" class="adj-btn" data-score-delta="-10">-10</button>
-              <button type="button" class="adj-btn" data-score-delta="-1">-1</button>
-              <button type="button" class="adj-btn" data-score-delta="1">+1</button>
-              <button type="button" class="adj-btn" data-score-delta="10">+10</button>
-              <button type="button" class="adj-btn" data-score-delta="100">+100</button>
-              <button type="button" class="adj-btn" data-score-delta="1000">+1000</button>
-            </div>
-            <div class="adjust-row">
-              <button type="button" class="adj-btn preset" data-score-set="1010000">理論値</button>
-              <button type="button" class="adj-btn preset" data-score-set="1009000">SSS+</button>
-              <button type="button" class="adj-btn preset" data-score-set="1007500">SSS</button>
-              <button type="button" class="adj-btn preset" data-score-set="1005000">SS+</button>
-              <button type="button" class="adj-btn preset" data-score-set="1000000">SS</button>
-              <button type="button" class="adj-btn preset" data-score-set="990000">S+</button>
-              <button type="button" class="adj-btn preset" data-score-set="975000">S</button>
-            </div>
-          </div>
-
-          <div class="form-group">
-            <label class="form-label">ランプ（クリア状況）</label>
-            <div class="btn-group" id="lampBtnGroup">
-              <button type="button" class="choice-btn active" data-lamp="NONE">なし</button>
-              <button type="button" class="choice-btn" data-lamp="FC">FULL COMBO</button>
-              <button type="button" class="choice-btn" data-lamp="AJ">ALL JUSTICE</button>
-              <button type="button" class="choice-btn" data-lamp="AJC">AJ CRITICAL</button>
-            </div>
-          </div>
-
-          <div class="form-group">
-            <label class="form-label" for="inputJacket">ジャケット画像（候補選択で自動設定／手動変更も可）</label>
-            <div class="form-jacket-preview-row">
-              <img id="formJacketThumb" class="form-jacket-thumb" src="" alt="" />
-              <input type="file" id="inputJacket" accept="image/*" style="font-size:0.8rem;" />
-              <button type="button" class="secondary-btn" id="btnClearJacket">クリア</button>
-            </div>
+          <div class="btns" style="gap:5px">
+            <button type="button" class="adj pre" data-ss="1010000">理論値</button>
+            <button type="button" class="adj pre" data-ss="1009000">SSS+</button>
+            <button type="button" class="adj pre" data-ss="1007500">SSS</button>
+            <button type="button" class="adj pre" data-ss="1005000">SS+</button>
+            <button type="button" class="adj pre" data-ss="1000000">SS</button>
+            <button type="button" class="adj pre" data-ss="990000">S+</button>
+            <button type="button" class="adj pre" data-ss="975000">S</button>
           </div>
         </div>
-      </div>
-
-      <div style="margin-top:16px; display:flex; flex-direction:column; gap:10px;">
-        <div class="live-calc-box">
-          <div>
-            <div class="live-calc-label">現在の入力内容の単曲レート / ランク</div>
-            <div style="font-size:0.75rem; color:#cde3d6;" id="liveFormulaHint">1,007,500 (SSS) = 定数 + 2.00</div>
+        <div class="fg">
+          <label class="lbl">ランプ</label>
+          <div class="btns" id="lampGroup">
+            <button type="button" class="c-btn active" data-lamp="NONE">なし</button>
+            <button type="button" class="c-btn" data-lamp="FC">FULL COMBO</button>
+            <button type="button" class="c-btn" data-lamp="AJ">ALL JUSTICE</button>
+            <button type="button" class="c-btn" data-lamp="AJC">AJ CRITICAL</button>
           </div>
-          <div class="live-calc-val" id="liveSingleRate">16.500 (SSS)</div>
         </div>
-
-        <button type="button" class="primary-btn" id="btnSaveSong">この譜面を登録する</button>
-      </div>
-    </section>
-
-    <!-- 2. プレイヤー設定 & PNG保存ボタン -->
-    <section class="panel">
-      <div class="panel-title">
-        <span>画像設定・PNG出力</span>
-      </div>
-      <div class="form-grid" style="align-items:end;">
-        <div class="form-group">
-          <label class="form-label" for="inputPlayerName">PLAYER NAME</label>
-          <input type="text" id="inputPlayerName" placeholder="未設定" maxlength="20" />
-        </div>
-        <div class="form-group">
-          <label class="form-label" for="inputCreditName">クレジット表記（右上 by ○○）</label>
-          <input type="text" id="inputCreditName" value="CHUNITHM" maxlength="20" />
-        </div>
-        <div class="form-group">
-          <label class="checkbox-row">
-            <input type="checkbox" id="chkShowLamp" checked />
-            <span>ジャケットにFC/AJランプを表示</span>
-          </label>
-        </div>
-      </div>
-
-      <div class="save-png-bar" style="margin-top:18px;">
-        <button type="button" class="save-png-btn" id="btnDownloadPng">選択した画像をPNGで保存</button>
-        <div style="font-size:0.78rem; color:var(--text-muted);">※自動保存されない環境では、下に生成される画像を長押しして保存できます。</div>
-
-        <div id="generatedImgModal">
-          <div style="display:flex; justify-content:space-between; align-items:center;">
-            <strong style="font-size:0.88rem; color:#1b3828;">画像を生成しました（長押しまたは右クリックで保存できます）</strong>
-            <button type="button" class="secondary-btn" id="btnCloseGeneratedImg">閉じる</button>
-          </div>
-          <img id="generatedImgPreview" src="" alt="生成されたレート画像" />
-        </div>
-      </div>
-    </section>
-
-    <!-- 3. 生成画像プレビュー -->
-    <div class="preview-fit-outer" id="previewFitOuter">
-      <div class="preview-scale-box" id="previewScaleBox">
-        <div id="captureArea">
-          <div class="img-header">
-            <div class="img-header-left">
-              <div class="img-main-title">
-                ベスト枠・新曲枠対象楽曲 <span class="by-tag" id="viewCredit">by CHUNITHM</span>
-              </div>
-              <div class="img-player-label">PLAYER NAME</div>
-              <div class="img-player-box" id="viewPlayerName">未設定</div>
-            </div>
-
-            <div class="img-header-right">
-              <div class="img-top-meta">
-                <span>RATING</span>
-                <span class="img-timestamp" id="viewTimestamp">2026/11/15 21:00</span>
-              </div>
-              <div class="img-rating-box">
-                <div class="img-rating-value rate-green" id="viewTotalRating">0.000</div>
-              </div>
-              <div class="img-substats-box">
-                BEST<span class="num" id="viewBestAvg">0.000</span>
-                NEW<span class="num" id="viewNewAvg">0.000</span>
-                MAX<span class="num" id="viewMaxReach">0.000</span>
-              </div>
-            </div>
-          </div>
-
-          <div class="img-section-title">BEST枠（上位30曲）</div>
-          <div class="img-grid-container" id="gridBest">
-            <div class="img-grid-empty">対象曲がありません。上のフォームから譜面を登録してください。</div>
-          </div>
-
-          <div class="img-section-title">NEW枠（上位20曲）</div>
-          <div class="img-grid-container" id="gridNew">
-            <div class="img-grid-empty">新曲枠の対象曲がありません。</div>
-          </div>
-
-          <div class="img-disclaimer">
-            ※掲載されている楽曲ジャケット画像等の著作権・各種権利は、各権利者に帰属します。<br />
-            ※本ツールは非公式のファン制作物であり、株式会社セガおよび各権利者とは一切関係ありません。
+        <div class="fg">
+          <label class="lbl">ジャケット画像（候補選択で自動設定／手動変更も可）</label>
+          <div style="display:flex;align-items:center;gap:10px">
+            <img id="jThumb" class="thumb-sm" src="" alt="" />
+            <input type="file" id="inJacket" accept="image/*" style="font-size:.8rem" />
+            <button type="button" class="btn-sec" id="btnClrJ">クリア</button>
           </div>
         </div>
       </div>
     </div>
 
-    <!-- 4. 登録済み譜面一覧 -->
-    <section class="panel">
-      <div class="panel-title">
-        <span>登録済みの譜面（<span id="registeredCount">0</span>件）</span>
-        <button type="button" class="danger-btn" id="btnClearAll">すべて削除</button>
+    <div class="col" style="margin-top:14px">
+      <div class="calc-box">
+        <div>
+          <div style="font-size:.78rem;color:#a9c7b5;font-weight:700">単曲レート / ランク</div>
+          <div style="font-size:.75rem;color:#cde3d6" id="liveHint">1,007,500 (SSS) = 定数 14.5 +2.00</div>
+        </div>
+        <div class="calc-val" id="liveRate">16.500 (SSS)</div>
       </div>
-      <div class="table-scroll">
-        <table class="song-list-table">
-          <thead>
-            <tr>
-              <th>枠</th>
-              <th>楽曲名</th>
-              <th>難易度</th>
-              <th>定数</th>
-              <th>スコア</th>
-              <th>ランプ</th>
-              <th>単曲レート</th>
-              <th>操作</th>
-            </tr>
-          </thead>
-          <tbody id="registeredTableBody">
-            <tr>
-              <td colspan="8" style="text-align:center; color:#607066; padding:18px;">登録された譜面はまだありません。</td>
-            </tr>
-          </tbody>
-        </table>
+      <button type="button" class="btn-pri" id="btnSave">この譜面を登録する</button>
+    </div>
+  </section>
+
+  <section class="panel">
+    <div class="panel-title"><span>画像設定・PNG出力</span></div>
+    <div class="grid" style="align-items:end">
+      <div class="fg"><label class="lbl">PLAYER NAME</label><input type="text" id="inPlayer" placeholder="未設定" maxlength="20" /></div>
+      <div class="fg"><label class="lbl">クレジット表記（右上 by ○○）</label><input type="text" id="inCredit" value="CHUNITHM" maxlength="20" /></div>
+      <label class="chk-row"><input type="checkbox" id="chkLamp" checked /><span>ジャケットにFC/AJランプを表示</span></label>
+    </div>
+    <div style="margin-top:18px;display:flex;flex-direction:column;align-items:center;gap:10px">
+      <button type="button" class="btn-png" id="btnPng">選択した画像をPNGで保存</button>
+      <div id="imgModal">
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <strong style="font-size:.88rem;color:#1b3828">画像を生成しました（長押しまたは右クリックで保存できます）</strong>
+          <button type="button" class="btn-sec" id="btnCloseModal">閉じる</button>
+        </div>
+        <img id="imgPrev" src="" alt="" />
       </div>
-    </section>
+    </div>
+  </section>
 
-  </main>
+  <div class="fit-outer" id="fitOuter">
+    <div id="scaleBox" style="position:relative">
+      <div id="captureArea">
+        <div class="img-hd">
+          <div style="flex:1;display:flex;flex-direction:column;gap:6px">
+            <div class="img-title">ベスト枠・新曲枠対象楽曲 <span style="font-size:16px;font-weight:800;color:#2e8b52" id="vCredit">by CHUNITHM</span></div>
+            <div style="font-size:12px;font-weight:800;color:#4f6353">PLAYER NAME</div>
+            <div class="img-pbox" id="vPlayer">未設定</div>
+          </div>
+          <div style="width:470px;display:flex;flex-direction:column;gap:4px">
+            <div style="display:flex;justify-content:space-between;font-size:12px;font-weight:800;color:#4f6353">
+              <span>RATING</span><span style="font-family:'Oswald',sans-serif;font-size:13px" id="vTime"></span>
+            </div>
+            <div class="img-rbox"><div class="img-rval rate-green" id="vTotal">0.000</div></div>
+            <div class="img-sub">BEST<span id="vBest">0.000</span>NEW<span id="vNew">0.000</span>MAX<span id="vMax">0.000</span></div>
+          </div>
+        </div>
+        <div class="sec-ttl">BEST枠（上位30曲）</div>
+        <div class="tile-grid" id="gridBest"></div>
+        <div class="sec-ttl">NEW枠（上位20曲）</div>
+        <div class="tile-grid" id="gridNew"></div>
+        <div style="margin-top:14px;text-align:center;font-size:10.5px;font-weight:700;color:#465749">
+          ※掲載されている楽曲ジャケット画像等の著作権・各種権利は、各権利者に帰属します。本ツールは非公式のファン制作物です。
+        </div>
+      </div>
+    </div>
+  </div>
 
-  <script>
-    document.addEventListener('DOMContentLoaded', () => {
-      const STORAGE_KEY = 'chunithm_miig_style_rating_v1';
-      const BASE_CAPTURE_WIDTH = 920;
+  <section class="panel">
+    <div class="panel-title">
+      <span>登録済みの譜面（<span id="regCount">0</span>件）</span>
+      <button type="button" class="btn-del" id="btnClrAll">すべて削除</button>
+    </div>
+    <div style="overflow-x:auto">
+      <table class="tbl">
+        <thead><tr><th>枠</th><th>楽曲名</th><th>難易度</th><th>定数</th><th>スコア</th><th>ランプ</th><th>単曲レート</th><th>操作</th></tr></thead>
+        <tbody id="regBody"></tbody>
+      </table>
+    </div>
+  </section>
+</main>
 
-      const SONG_DB_URLS = [
-        'https://reiwa.f5.si/chunithm_record.json',
-        'https://raw.githubusercontent.com/zetaraku/arcade-songs-fetch/master/data/chunithm/songs.json'
-      ];
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+  const KEY = 'chunithm_miig_style_rating_v1';
+  const DB_URLS = [
+    'https://reiwa.f5.si/chunithm_record.json',
+    'https://raw.githubusercontent.com/zetaraku/arcade-songs-fetch/master/data/chunithm/songs.json'
+  ];
+  const DIFF_BG = { BASIC: '#2ecc71', ADVANCED: '#f39c12', EXPERT: '#e74c3c', MASTER: '#8e44ad', ULTIMA: '#1e272e' };
+  const $ = id => document.getElementById(id);
+  const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  const norm = s => String(s || '').toLowerCase().replace(/[！-～]/g, c => String.fromCharCode(c.charCodeAt(0) - 0xFEE0)).replace(/\s+/g, '');
 
-      let songDatabase = [];
-      let selectedDbSong = null;
+  let db = [], selSong = null, editId = null, diff = 'MASTER', lamp = 'NONE', jacket = '';
+  let state = { playerName: '', creditName: 'CHUNITHM', showLamp: true, songs: [] };
 
-      let state = {
-        playerName: '',
-        creditName: 'CHUNITHM',
-        showLamp: true,
-        songs: []
+  const save = () => { try { localStorage.setItem(KEY, JSON.stringify(state)); } catch {} };
+  const setThumb = src => { $('jThumb').src = src || ''; $('jThumb').style.display = src ? 'block' : 'none'; };
+
+  function calcRate(c, s) {
+    c = +c || 0; s = Math.max(0, Math.min(1010000, +s || 0));
+    if (s < 800000) return 0;
+    const b = s >= 1009000 ? 2.15
+      : s >= 1007500 ? 2 + Math.floor((s - 1007500) / 100) * .01
+      : s >= 1005000 ? 1.5 + Math.floor((s - 1005000) / 50) * .01
+      : s >= 1000000 ? 1 + Math.floor((s - 1000000) / 100) * .01
+      : s >= 975000 ? Math.floor((s - 975000) / 250) * .01
+      : s >= 925000 ? -3 + ((s - 925000) / 50000) * 3
+      : s >= 900000 ? -5 + ((s - 900000) / 25000) * 2
+      : ((c - 5) / 2) - c + ((s - 800000) / 100000) * ((c - 5) / 2);
+    return Math.max(0, Math.floor((c + b) * 1000 + 1e-6) / 1000);
+  }
+
+  function getRank(s) {
+    const t = [[1009000,'SSS+','#fffa65'],[1007500,'SSS','#ffd32a'],[1005000,'SS+','#ff9f43'],[1000000,'SS','#ff9f43'],[990000,'S+','#ff6b6b'],[975000,'S','#ff6b6b'],[950000,'AAA','#54a0ff'],[925000,'AA','#54a0ff'],[900000,'A','#54a0ff']];
+    for (const [min, label, color] of t) if (s >= min) return { label, color };
+    return { label: 'BBB', color: '#c8d6e5' };
+  }
+
+  function rateClass(r) {
+    return r >= 16 ? 'rate-rainbow' : r >= 15.25 ? 'rate-platinum' : r >= 14.5 ? 'rate-gold' : r >= 13.25 ? 'rate-silver' : r >= 12 ? 'rate-bronze' : r >= 10 ? 'rate-purple' : r >= 7 ? 'rate-red' : r >= 4 ? 'rate-orange' : 'rate-green';
+  }
+
+  function updateLive() {
+    const c = parseFloat($('inConst').value) || 0, s = parseInt($('inScore').value, 10) || 0;
+    const r = calcRate(c, s), rk = getRank(s), d = (r - c).toFixed(2);
+    $('liveRate').textContent = `${r.toFixed(3)} (${rk.label})`;
+    $('liveHint').textContent = `${s.toLocaleString()} (${rk.label}) = 定数 ${c.toFixed(1)} ${d >= 0 ? '+' : ''}${d}`;
+  }
+
+  function setDiff(d) {
+    diff = d;
+    document.querySelectorAll('#diffGroup .c-btn').forEach(b => b.classList.toggle('active', b.dataset.diff === d));
+    if (selSong && selSong.title === $('inTitle').value.trim() && selSong.charts[d] !== undefined) {
+      $('inConst').value = selSong.charts[d].toFixed(1);
+      updateLive();
+    }
+  }
+
+  function setLamp(l) {
+    lamp = l;
+    document.querySelectorAll('#lampGroup .c-btn').forEach(b => b.classList.toggle('active', b.dataset.lamp === l));
+  }
+
+  function fitPreview() {
+    const w = $('fitOuter').clientWidth;
+    if (!w) return;
+    const sc = Math.min(1, w / 920), cap = $('captureArea');
+    cap.style.transform = `scale(${sc})`;
+    $('scaleBox').style.width = `${920 * sc}px`;
+    $('scaleBox').style.height = `${cap.offsetHeight * sc}px`;
+  }
+  window.addEventListener('resize', fitPreview);
+
+  async function toDataUrl(url) {
+    if (!url || url.startsWith('data:')) return url || '';
+    return new Promise(res => {
+      const img = new Image();
+      img.crossOrigin = 'anonymous';
+      img.onload = () => {
+        try {
+          const cv = document.createElement('canvas');
+          cv.width = cv.height = 180;
+          cv.getContext('2d').drawImage(img, 0, 0, 180, 180);
+          res(cv.toDataURL('image/jpeg', .85));
+        } catch { res(url); }
       };
-
-      let editingId = null;
-      let currentDiff = 'MASTER';
-      let currentLamp = 'NONE';
-      let currentJacketDataUrl = '';
-
-      const inputTitle = document.getElementById('inputTitle');
-      const autocompleteList = document.getElementById('autocompleteList');
-      const inputConst = document.getElementById('inputConst');
-      const inputScore = document.getElementById('inputScore');
-      const inputIsNew = document.getElementById('inputIsNew');
-      const inputJacket = document.getElementById('inputJacket');
-      const formJacketThumb = document.getElementById('formJacketThumb');
-      const inputPlayerName = document.getElementById('inputPlayerName');
-      const inputCreditName = document.getElementById('inputCreditName');
-      const chkShowLamp = document.getElementById('chkShowLamp');
-      const dbStatusBadge = document.getElementById('dbStatusBadge');
-
-      const liveSingleRate = document.getElementById('liveSingleRate');
-      const liveFormulaHint = document.getElementById('liveFormulaHint');
-      const btnSaveSong = document.getElementById('btnSaveSong');
-      const btnResetForm = document.getElementById('btnResetForm');
-      const formModeTitle = document.getElementById('formModeTitle');
-
-      const previewFitOuter = document.getElementById('previewFitOuter');
-      const previewScaleBox = document.getElementById('previewScaleBox');
-      const captureArea = document.getElementById('captureArea');
-
-      function fetchImageAsDataUrl(rawUrl) {
-        return new Promise((resolve) => {
-          if (!rawUrl) return resolve('');
-          if (rawUrl.startsWith('data:')) return resolve(rawUrl);
-
-          const proxiedUrl = `https://wsrv.nl/?url=${encodeURIComponent(rawUrl)}&w=180&h=180&fit=cover&output=jpg`;
-          const img = new Image();
-          img.crossOrigin = 'anonymous';
-          img.onload = () => {
-            try {
-              const canvas = document.createElement('canvas');
-              canvas.width = 180;
-              canvas.height = 180;
-              const ctx = canvas.getContext('2d');
-              ctx.drawImage(img, 0, 0, 180, 180);
-              resolve(canvas.toDataURL('image/jpeg', 0.85));
-            } catch (e) {
-              resolve(rawUrl);
-            }
-          };
-          img.onerror = () => resolve(rawUrl);
-          img.src = proxiedUrl;
-        });
-      }
-
-      async function loadSongDatabase() {
-        for (const url of SONG_DB_URLS) {
-          try {
-            const res = await fetch(url);
-            if (!res.ok) continue;
-            const data = await res.json();
-
-            if (data && Array.isArray(data.songs)) {
-              const parsed = [];
-              for (const s of data.songs) {
-                if (!s.title || !Array.isArray(s.sheets)) continue;
-                const charts = {};
-                for (const sh of s.sheets) {
-                  const d = (sh.difficulty || '').toUpperCase();
-                  const val = parseFloat(sh.internalLevelValue || sh.internalLevel || sh.levelValue);
-                  if (d && !isNaN(val) && val > 0) {
-                    charts[d] = val;
-                  }
-                }
-                const imgUrl = s.imageName
-                  ? (s.imageName.startsWith('http') ? s.imageName : `https://dp4p6x0xfi5o9.cloudfront.net/chunithm/img/cover/${s.imageName}`)
-                  : '';
-                parsed.push({
-                  title: s.title,
-                  imageUrl: imgUrl,
-                  charts,
-                  isNew: !!s.isNew
-                });
-              }
-              if (parsed.length > 100) {
-                songDatabase = parsed;
-                dbStatusBadge.textContent = `楽曲DB読込済 (${songDatabase.length}曲)`;
-                dbStatusBadge.classList.add('ready');
-                return;
-              }
-            }
-
-            if (Array.isArray(data)) {
-              const parsed = [];
-              for (const s of data) {
-                const title = s.title || s.name;
-                if (!title) continue;
-                const charts = {};
-                if (s.const) {
-                  if (s.const.BAS) charts.BASIC = parseFloat(s.const.BAS);
-                  if (s.const.ADV) charts.ADVANCED = parseFloat(s.const.ADV);
-                  if (s.const.EXP) charts.EXPERT = parseFloat(s.const.EXP);
-                  if (s.const.MAS) charts.MASTER = parseFloat(s.const.MAS);
-                  if (s.const.ULT) charts.ULTIMA = parseFloat(s.const.ULT);
-                }
-                const imgUrl = s.image ? `https://new.chunithm-net.com/chuni-mobile/html/mobile/img/${s.image}` : '';
-                parsed.push({
-                  title,
-                  imageUrl: imgUrl,
-                  charts,
-                  isNew: false
-                });
-              }
-              if (parsed.length > 100) {
-                songDatabase = parsed;
-                dbStatusBadge.textContent = `楽曲DB読込済 (${songDatabase.length}曲)`;
-                dbStatusBadge.classList.add('ready');
-                return;
-              }
-            }
-          } catch (e) {
-            console.warn('DB fetch failed for', url, e);
-          }
-        }
-        dbStatusBadge.textContent = '手動入力モード（DB未接続）';
-      }
-
-      function normalizeQuery(str) {
-        return String(str || '')
-          .toLowerCase()
-          .replace(/[！-～]/g, ch => String.fromCharCode(ch.charCodeAt(0) - 0xFEE0))
-          .replace(/\s+/g, '');
-      }
-
-      function updateFormJacketThumb(src) {
-        if (src) {
-          formJacketThumb.src = src;
-          formJacketThumb.style.display = 'block';
-        } else {
-          formJacketThumb.src = '';
-          formJacketThumb.style.display = 'none';
-        }
-      }
-
-      inputTitle.addEventListener('input', () => {
-        const q = normalizeQuery(inputTitle.value);
-        if (!q || songDatabase.length === 0) {
-          autocompleteList.style.display = 'none';
-          return;
-        }
-
-        const matches = songDatabase
-          .filter(item => normalizeQuery(item.title).includes(q))
-          .slice(0, 25);
-
-        if (matches.length === 0) {
-          autocompleteList.style.display = 'none';
-          return;
-        }
-
-        const diffColors = {
-          BASIC: '#2ecc71',
-          ADVANCED: '#f39c12',
-          EXPERT: '#e74c3c',
-          MASTER: '#9b59b6',
-          ULTIMA: '#1e272e'
-        };
-
-        autocompleteList.innerHTML = matches.map((song, idx) => {
-          const chips = ['BASIC', 'ADVANCED', 'EXPERT', 'MASTER', 'ULTIMA']
-            .filter(d => song.charts[d] !== undefined)
-            .map(d => `<span class="ac-diff-chip" style="background:${diffColors[d]}">${d.slice(0, 3)} ${song.charts[d].toFixed(1)}</span>`)
-            .join('');
-
-          const thumbSrc = song.imageUrl
-            ? `https://wsrv.nl/?url=${encodeURIComponent(song.imageUrl)}&w=80&h=80&fit=cover`
-            : '';
-
-          return `
-            <div class="autocomplete-item" data-match-idx="${idx}">
-              ${thumbSrc ? `<img class="ac-thumb" src="${thumbSrc}" alt="" />` : `<div class="ac-thumb"></div>`}
-              <div class="ac-info">
-                <div class="ac-title">${escapeHtml(song.title)}</div>
-                <div class="ac-meta">${chips || '定数データなし'}</div>
-              </div>
-            </div>
-          `;
-        }).join('');
-
-        autocompleteList._currentMatches = matches;
-        autocompleteList.style.display = 'block';
-      });
-
-      autocompleteList.addEventListener('click', async (e) => {
-        const itemEl = e.target.closest('[data-match-idx]');
-        if (!itemEl || !autocompleteList._currentMatches) return;
-
-        const idx = parseInt(itemEl.dataset.matchIdx, 10);
-        const song = autocompleteList._currentMatches[idx];
-        if (!song) return;
-
-        selectedDbSong = song;
-        inputTitle.value = song.title;
-        autocompleteList.style.display = 'none';
-
-        if (song.charts[currentDiff] !== undefined) {
-          inputConst.value = song.charts[currentDiff].toFixed(1);
-        } else if (song.charts.MASTER !== undefined) {
-          setDifficulty('MASTER');
-          inputConst.value = song.charts.MASTER.toFixed(1);
-        } else if (song.charts.ULTIMA !== undefined) {
-          setDifficulty('ULTIMA');
-          inputConst.value = song.charts.ULTIMA.toFixed(1);
-        } else if (song.charts.EXPERT !== undefined) {
-          setDifficulty('EXPERT');
-          inputConst.value = song.charts.EXPERT.toFixed(1);
-        }
-
-        if (song.isNew) {
-          inputIsNew.checked = true;
-        }
-
-        updateLiveCalc();
-
-        if (song.imageUrl) {
-          const proxiedThumb = `https://wsrv.nl/?url=${encodeURIComponent(song.imageUrl)}&w=180&h=180&fit=cover`;
-          updateFormJacketThumb(proxiedThumb);
-          const dataUrl = await fetchImageAsDataUrl(song.imageUrl);
-          currentJacketDataUrl = dataUrl;
-          updateFormJacketThumb(dataUrl);
-        }
-      });
-
-      document.addEventListener('click', (e) => {
-        if (!e.target.closest('#inputTitle') && !e.target.closest('#autocompleteList')) {
-          autocompleteList.style.display = 'none';
-        }
-      });
-
-      function fitPreviewToScreen() {
-        const availableWidth = previewFitOuter.clientWidth;
-        if (!availableWidth) return;
-
-        const scale = Math.min(1, availableWidth / BASE_CAPTURE_WIDTH);
-        captureArea.style.transform = `scale(${scale})`;
-
-        const naturalHeight = captureArea.offsetHeight;
-        previewScaleBox.style.width = `${BASE_CAPTURE_WIDTH * scale}px`;
-        previewScaleBox.style.height = `${naturalHeight * scale}px`;
-      }
-
-      window.addEventListener('resize', fitPreviewToScreen);
-
-      function calcChunithmRating(chartConst, score) {
-        const c = Number(chartConst) || 0;
-        const s = Math.max(0, Math.min(1010000, Number(score) || 0));
-        let bonus = 0;
-
-        if (s >= 1009000) {
-          bonus = 2.15;
-        } else if (s >= 1007500) {
-          bonus = 2.00 + Math.floor((s - 1007500) / 100) * 0.01;
-        } else if (s >= 1005000) {
-          bonus = 1.50 + Math.floor((s - 1005000) / 50) * 0.01;
-        } else if (s >= 1000000) {
-          bonus = 1.00 + Math.floor((s - 1000000) / 100) * 0.01;
-        } else if (s >= 975000) {
-          bonus = Math.floor((s - 975000) / 250) * 0.01;
-        } else if (s >= 925000) {
-          bonus = -3.00 + ((s - 925000) / 50000) * 3.00;
-        } else if (s >= 900000) {
-          bonus = -5.00 + ((s - 900000) / 25000) * 2.00;
-        } else if (s >= 800000) {
-          bonus = ((c - 5.0) / 2) - c + ((s - 800000) / 100000) * (c - 5.0 - ((c - 5.0) / 2));
-        } else {
-          return 0;
-        }
-
-        const raw = c + bonus;
-        return Math.max(0, Math.floor(raw * 1000 + 1e-6) / 1000);
-      }
-
-      function getScoreRank(score) {
-        const s = Number(score) || 0;
-        if (s >= 1009000) return { label: 'SSS+', cls: 'rank-SSSP' };
-        if (s >= 1007500) return { label: 'SSS', cls: 'rank-SSS' };
-        if (s >= 1005000) return { label: 'SS+', cls: 'rank-SSP' };
-        if (s >= 1000000) return { label: 'SS', cls: 'rank-SS' };
-        if (s >= 990000) return { label: 'S+', cls: 'rank-SP' };
-        if (s >= 975000) return { label: 'S', cls: 'rank-S' };
-        if (s >= 950000) return { label: 'AAA', cls: 'rank-AAA' };
-        if (s >= 925000) return { label: 'AA', cls: 'rank-AA' };
-        if (s >= 900000) return { label: 'A', cls: 'rank-A' };
-        return { label: 'BBB', cls: 'rank-OTHER' };
-      }
-
-      function formatNumberWithCommas(num) {
-        return Number(num).toLocaleString('en-US');
-      }
-
-      function escapeHtml(str) {
-        return String(str)
-          .replace(/&/g, '&amp;')
-          .replace(/</g, '&lt;')
-          .replace(/>/g, '&gt;')
-          .replace(/"/g, '&quot;');
-      }
-
-      function updateLiveCalc() {
-        const c = parseFloat(inputConst.value) || 0;
-        const s = parseInt(inputScore.value, 10) || 0;
-        const rate = calcChunithmRating(c, s);
-        const rank = getScoreRank(s);
-        const diffBonus = (rate - c).toFixed(2);
-        const sign = Number(diffBonus) >= 0 ? '+' : '';
-
-        liveSingleRate.textContent = `${rate.toFixed(3)} (${rank.label})`;
-        liveFormulaHint.textContent = `${formatNumberWithCommas(s)} (${rank.label}) = 定数 ${c.toFixed(1)} ${sign}${diffBonus}`;
-      }
-
-      function setDifficulty(diff) {
-        currentDiff = diff;
-        document.querySelectorAll('#diffBtnGroup .choice-btn').forEach(btn => {
-          btn.classList.toggle('active', btn.dataset.diff === diff);
-        });
-        if (selectedDbSong && selectedDbSong.title === inputTitle.value.trim()) {
-          if (selectedDbSong.charts[diff] !== undefined) {
-            inputConst.value = selectedDbSong.charts[diff].toFixed(1);
-            updateLiveCalc();
-          }
-        }
-      }
-
-      function setLamp(lamp) {
-        currentLamp = lamp;
-        document.querySelectorAll('#lampBtnGroup .choice-btn').forEach(btn => {
-          btn.classList.toggle('active', btn.dataset.lamp === lamp);
-        });
-      }
-
-      document.querySelectorAll('[data-score-delta]').forEach(btn => {
-        btn.addEventListener('click', () => {
-          const delta = parseInt(btn.dataset.scoreDelta, 10);
-          const current = parseInt(inputScore.value, 10) || 0;
-          inputScore.value = Math.max(0, Math.min(1010000, current + delta));
-          updateLiveCalc();
-        });
-      });
-
-      document.querySelectorAll('[data-score-set]').forEach(btn => {
-        btn.addEventListener('click', () => {
-          inputScore.value = parseInt(btn.dataset.scoreSet, 10);
-          updateLiveCalc();
-        });
-      });
-
-      document.querySelectorAll('[data-const-delta]').forEach(btn => {
-        btn.addEventListener('click', () => {
-          const delta = parseFloat(btn.dataset.constDelta);
-          const current = parseFloat(inputConst.value) || 1.0;
-          const next = Math.max(1.0, Math.min(16.0, Math.round((current + delta) * 10) / 10));
-          inputConst.value = next.toFixed(1);
-          updateLiveCalc();
-        });
-      });
-
-      document.getElementById('diffBtnGroup').addEventListener('click', (e) => {
-        const btn = e.target.closest('[data-diff]');
-        if (btn) setDifficulty(btn.dataset.diff);
-      });
-
-      document.getElementById('lampBtnGroup').addEventListener('click', (e) => {
-        const btn = e.target.closest('[data-lamp]');
-        if (btn) setLamp(btn.dataset.lamp);
-      });
-
-      inputConst.addEventListener('input', updateLiveCalc);
-      inputScore.addEventListener('input', updateLiveCalc);
-
-      inputJacket.addEventListener('change', (e) => {
-        const file = e.target.files[0];
-        if (!file) return;
-        const reader = new FileReader();
-        reader.onload = (ev) => {
-          const img = new Image();
-          img.onload = () => {
-            const canvas = document.createElement('canvas');
-            const size = 180;
-            canvas.width = size;
-            canvas.height = size;
-            const ctx = canvas.getContext('2d');
-            const minSide = Math.min(img.width, img.height);
-            const sx = (img.width - minSide) / 2;
-            const sy = (img.height - minSide) / 2;
-            ctx.drawImage(img, sx, sy, minSide, minSide, 0, 0, size, size);
-            currentJacketDataUrl = canvas.toDataURL('image/jpeg', 0.82);
-            updateFormJacketThumb(currentJacketDataUrl);
-          };
-          img.src = ev.target.result;
-        };
-        reader.readAsDataURL(file);
-      });
-
-      document.getElementById('btnClearJacket').addEventListener('click', () => {
-        inputJacket.value = '';
-        currentJacketDataUrl = '';
-        updateFormJacketThumb('');
-      });
-
-      function resetForm() {
-        editingId = null;
-        selectedDbSong = null;
-        inputTitle.value = '';
-        inputConst.value = '14.5';
-        inputScore.value = '1007500';
-        inputIsNew.checked = false;
-        inputJacket.value = '';
-        currentJacketDataUrl = '';
-        updateFormJacketThumb('');
-        setDifficulty('MASTER');
-        setLamp('NONE');
-        formModeTitle.textContent = '譜面を登録・更新';
-        btnSaveSong.textContent = 'この譜面を登録する';
-        btnResetForm.style.display = 'none';
-        updateLiveCalc();
-      }
-
-      btnResetForm.addEventListener('click', resetForm);
-
-      btnSaveSong.addEventListener('click', () => {
-        const title = inputTitle.value.trim();
-        if (!title) {
-          alert('楽曲名を入力してください。');
-          inputTitle.focus();
-          return;
-        }
-        const chartConst = Math.max(1.0, Math.min(16.0, Math.round((parseFloat(inputConst.value) || 1.0) * 10) / 10));
-        const score = Math.max(0, Math.min(1010000, parseInt(inputScore.value, 10) || 0));
-        const isNew = inputIsNew.checked;
-
-        if (editingId) {
-          const idx = state.songs.findIndex(s => s.id === editingId);
-          if (idx !== -1) {
-            state.songs[idx] = {
-              ...state.songs[idx],
-              title,
-              diff: currentDiff,
-              const: chartConst,
-              score,
-              lamp: currentLamp,
-              isNew,
-              jacket: currentJacketDataUrl || state.songs[idx].jacket
-            };
-          }
-        } else {
-          state.songs.push({
-            id: 'song_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6),
-            title,
-            diff: currentDiff,
-            const: chartConst,
-            score,
-            lamp: currentLamp,
-            isNew,
-            jacket: currentJacketDataUrl
-          });
-        }
-
-        saveToStorage();
-        resetForm();
-        renderAll();
-      });
-
-      inputPlayerName.addEventListener('input', () => {
-        state.playerName = inputPlayerName.value;
-        saveToStorage();
-        renderPreviewHeader();
-        fitPreviewToScreen();
-      });
-
-      inputCreditName.addEventListener('input', () => {
-        state.creditName = inputCreditName.value;
-        saveToStorage();
-        renderPreviewHeader();
-        fitPreviewToScreen();
-      });
-
-      chkShowLamp.addEventListener('change', () => {
-        state.showLamp = chkShowLamp.checked;
-        saveToStorage();
-        renderAll();
-      });
-
-      function updateTimestamp() {
-        const now = new Date();
-        const y = now.getFullYear();
-        const m = String(now.getMonth() + 1).padStart(2, '0');
-        const d = String(now.getDate()).padStart(2, '0');
-        const hh = String(now.getHours()).padStart(2, '0');
-        const mm = String(now.getMinutes()).padStart(2, '0');
-        document.getElementById('viewTimestamp').textContent = `${y}/${m}/${d} ${hh}:${mm}`;
-      }
-
-      // レート色分け判定 (0.00〜16.00+)
-      function getRatingColorClass(rate) {
-        if (rate >= 16.00) return 'rate-rainbow';
-        if (rate >= 15.25) return 'rate-platinum';
-        if (rate >= 14.50) return 'rate-gold';
-        if (rate >= 13.25) return 'rate-silver';
-        if (rate >= 12.00) return 'rate-bronze';
-        if (rate >= 10.00) return 'rate-purple';
-        if (rate >= 7.00) return 'rate-red';
-        if (rate >= 4.00) return 'rate-orange';
-        return 'rate-green';
-      }
-
-      function renderPreviewHeader(bestList = [], newList = []) {
-        document.getElementById('viewPlayerName').textContent = state.playerName.trim() || '未設定';
-        document.getElementById('viewCredit').textContent = state.creditName.trim() ? `by ${state.creditName.trim()}` : '';
-
-        const bestSum = bestList.reduce((acc, item) => acc + item.rating, 0);
-        const newSum = newList.reduce((acc, item) => acc + item.rating, 0);
-
-        const bestAvg = bestList.length > 0 ? bestSum / 30 : 0;
-        const newAvg = newList.length > 0 ? newSum / 20 : 0;
-        const totalRating = (bestSum + newSum) / 50;
-
-        const topSingle = bestList.length > 0 ? bestList[0].rating : (newList.length > 0 ? newList[0].rating : 0);
-        const maxReach = totalRating > 0 ? Math.max(totalRating, (bestSum + newSum + Math.max(0, 50 - bestList.length - newList.length) * topSingle) / 50) : 0;
-
-        const ratingEl = document.getElementById('viewTotalRating');
-        ratingEl.textContent = totalRating.toFixed(3);
-        ratingEl.className = `img-rating-value ${getRatingColorClass(totalRating)}`;
-
-        document.getElementById('viewBestAvg').textContent = bestAvg.toFixed(3);
-        document.getElementById('viewNewAvg').textContent = newAvg.toFixed(3);
-        document.getElementById('viewMaxReach').textContent = maxReach.toFixed(3);
-      }
-
-      function createSongTileHtml(song, rankIndex) {
-        const rankInfo = getScoreRank(song.score);
-        const diffInitial = song.diff.charAt(0);
-        const diffColorMap = {
-          BASIC: '#2ecc71',
-          ADVANCED: '#f39c12',
-          EXPERT: '#e74c3c',
-          MASTER: '#8e44ad',
-          ULTIMA: '#1e272e'
-        };
-
-        let jacketHtml = '';
-        if (song.jacket) {
-          jacketHtml = `<img class="song-tile-jacket-img" src="${song.jacket}" alt="" />`;
-        } else {
-          const bg = diffColorMap[song.diff] || '#4b5563';
-          jacketHtml = `<div class="song-tile-jacket-placeholder" style="background:linear-gradient(135deg, ${bg} 0%, #1f2937 100%);">${escapeHtml(song.title)}</div>`;
-        }
-
-        let lampHtml = '';
-        if (state.showLamp && song.lamp && song.lamp !== 'NONE') {
-          lampHtml = `<div class="tile-lamps"><span class="tile-lamp-pill lamp-${song.lamp}">${song.lamp}</span></div>`;
-        }
-
-        return `
-          <div class="song-tile">
-            <div class="song-tile-top">
-              <div class="song-tile-stats">
-                <div class="tile-rank">#${rankIndex}</div>
-                <div class="tile-stat-group">
-                  <span class="tile-stat-lbl">CONST</span>
-                  <span class="tile-stat-num">${song.const.toFixed(1)}</span>
-                </div>
-                <div class="tile-stat-group">
-                  <span class="tile-stat-lbl">RATE</span>
-                  <span class="tile-stat-num rate-highlight">${song.rating.toFixed(3)}</span>
-                </div>
-              </div>
-
-              <div class="song-tile-jacket-wrap">
-                ${jacketHtml}
-                <div class="tile-diff-badge diff-bg-${song.diff}"><span>${diffInitial}</span></div>
-                ${lampHtml}
-                <div class="tile-score-bar">
-                  <span class="tile-score-num">${formatNumberWithCommas(song.score)}</span>
-                  <span class="tile-rank-badge ${rankInfo.cls}">${rankInfo.label}</span>
-                </div>
-              </div>
-            </div>
-            <div class="song-tile-title" title="${escapeHtml(song.title)}">${escapeHtml(song.title)}</div>
-          </div>
-        `;
-      }
-
-      function renderAll() {
-        updateTimestamp();
-
-        const enriched = state.songs.map(s => ({
-          ...s,
-          rating: calcChunithmRating(s.const, s.score)
-        }));
-
-        const sorter = (a, b) => (b.rating - a.rating) || (b.score - a.score);
-
-        const bestTop30 = [...enriched].sort(sorter).slice(0, 30);
-        const newTop20 = enriched.filter(s => s.isNew).sort(sorter).slice(0, 20);
-
-        renderPreviewHeader(bestTop30, newTop20);
-
-        const gridBest = document.getElementById('gridBest');
-        gridBest.innerHTML = bestTop30.length === 0
-          ? `<div class="img-grid-empty">対象曲がありません。上のフォームから譜面を登録してください。</div>`
-          : bestTop30.map((s, idx) => createSongTileHtml(s, idx + 1)).join('');
-
-        const gridNew = document.getElementById('gridNew');
-        gridNew.innerHTML = newTop20.length === 0
-          ? `<div class="img-grid-empty">新曲枠の対象曲がありません。</div>`
-          : newTop20.map((s, idx) => createSongTileHtml(s, idx + 1)).join('');
-
-        document.getElementById('registeredCount').textContent = enriched.length;
-        const tbody = document.getElementById('registeredTableBody');
-        if (enriched.length === 0) {
-          tbody.innerHTML = `<tr><td colspan="8" style="text-align:center; color:#607066; padding:18px;">登録された譜面はまだありません。</td></tr>`;
-        } else {
-          const allSorted = [...enriched].sort(sorter);
-          tbody.innerHTML = allSorted.map(s => `
-            <tr>
-              <td>${s.isNew ? '<span class="badge-new">NEW</span>' : '<span style="font-size:0.75rem;color:#607066;font-weight:700;">BEST</span>'}</td>
-              <td style="font-weight:800;">${escapeHtml(s.title)}</td>
-              <td><span class="badge-mini diff-bg-${s.diff}">${s.diff}</span></td>
-              <td style="font-family:'Oswald',sans-serif;font-weight:700;">${s.const.toFixed(1)}</td>
-              <td style="font-family:'Oswald',sans-serif;font-weight:700;">${formatNumberWithCommas(s.score)}</td>
-              <td style="font-weight:800;font-size:0.78rem;">${s.lamp === 'NONE' ? '-' : s.lamp}</td>
-              <td style="font-family:'Oswald',sans-serif;font-weight:700;color:#227a4b;">${s.rating.toFixed(3)}</td>
-              <td>
-                <div style="display:flex;gap:4px;">
-                  <button type="button" class="secondary-btn" data-edit-id="${s.id}">編集</button>
-                  <button type="button" class="danger-btn" data-del-id="${s.id}">削除</button>
-                </div>
-              </td>
-            </tr>
-          `).join('');
-        }
-
-        requestAnimationFrame(fitPreviewToScreen);
-      }
-
-      document.getElementById('registeredTableBody').addEventListener('click', (e) => {
-        const editBtn = e.target.closest('[data-edit-id]');
-        if (editBtn) {
-          const target = state.songs.find(s => s.id === editBtn.dataset.editId);
-          if (!target) return;
-          editingId = target.id;
-          inputTitle.value = target.title;
-          inputConst.value = target.const.toFixed(1);
-          inputScore.value = target.score;
-          inputIsNew.checked = !!target.isNew;
-          currentJacketDataUrl = target.jacket || '';
-          updateFormJacketThumb(currentJacketDataUrl);
-          setDifficulty(target.diff);
-          setLamp(target.lamp || 'NONE');
-          formModeTitle.textContent = `譜面を編集中：${target.title}`;
-          btnSaveSong.textContent = '変更を更新する';
-          btnResetForm.style.display = 'inline-block';
-          updateLiveCalc();
-          window.scrollTo({ top: 0, behavior: 'smooth' });
-          return;
-        }
-
-        const delBtn = e.target.closest('[data-del-id]');
-        if (delBtn) {
-          const id = delBtn.dataset.delId;
-          state.songs = state.songs.filter(s => s.id !== id);
-          if (editingId === id) resetForm();
-          saveToStorage();
-          renderAll();
-        }
-      });
-
-      document.getElementById('btnClearAll').addEventListener('click', () => {
-        if (state.songs.length === 0) return;
-        if (confirm('登録されているすべての譜面データを削除しますか？')) {
-          state.songs = [];
-          resetForm();
-          saveToStorage();
-          renderAll();
-        }
-      });
-
-      document.getElementById('btnDownloadPng').addEventListener('click', async () => {
-        const btn = document.getElementById('btnDownloadPng');
-        const originalText = btn.textContent;
-        btn.textContent = '画像を生成中...';
-        btn.disabled = true;
-
-        const prevTransform = captureArea.style.transform;
-        try {
-          updateTimestamp();
-          captureArea.style.transform = 'none';
-          captureArea.classList.add('capturing');
-
-          const canvas = await html2canvas(captureArea, {
-            scale: 2,
-            useCORS: true,
-            backgroundColor: '#e4f1d8'
-          });
-
-          const dataUrl = canvas.toDataURL('image/png');
-
-          const modal = document.getElementById('generatedImgModal');
-          const previewImg = document.getElementById('generatedImgPreview');
-          previewImg.src = dataUrl;
-          modal.style.display = 'block';
-
-          const link = document.createElement('a');
-          const now = new Date();
-          const stamp = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}_${String(now.getHours()).padStart(2, '0')}${String(now.getMinutes()).padStart(2, '0')}`;
-          link.download = `chunithm_rating_${stamp}.png`;
-          link.href = dataUrl;
-          link.click();
-        } catch (err) {
-          alert('画像の生成に失敗しました: ' + err.message);
-        } finally {
-          captureArea.classList.remove('capturing');
-          captureArea.style.transform = prevTransform;
-          fitPreviewToScreen();
-          btn.textContent = originalText;
-          btn.disabled = false;
-        }
-      });
-
-      document.getElementById('btnCloseGeneratedImg').addEventListener('click', () => {
-        document.getElementById('generatedImgModal').style.display = 'none';
-      });
-
-      document.getElementById('btnExportJson').addEventListener('click', () => {
-        const blob = new Blob([JSON.stringify(state, null, 2)], { type: 'application/json' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = 'chunithm_rating_backup.json';
-        a.click();
-        URL.revokeObjectURL(url);
-      });
-
-      document.getElementById('btnImportJson').addEventListener('click', () => {
-        document.getElementById('jsonFileInput').click();
-      });
-
-      document.getElementById('jsonFileInput').addEventListener('change', (e) => {
-        const file = e.target.files[0];
-        if (!file) return;
-        const reader = new FileReader();
-        reader.onload = (ev) => {
-          try {
-            const parsed = JSON.parse(ev.target.result);
-            if (Array.isArray(parsed.songs)) {
-              state = {
-                playerName: parsed.playerName || '',
-                creditName: parsed.creditName || 'CHUNITHM',
-                showLamp: parsed.showLamp !== false,
-                songs: parsed.songs
-              };
-              syncInputsFromState();
-              saveToStorage();
-              renderAll();
-              alert('データを読み込みました！');
-            } else {
-              alert('無効なJSONフォーマットです。');
-            }
-          } catch (err) {
-            alert('JSONの読み込みに失敗しました。');
-          }
-        };
-        reader.readAsText(file);
-        e.target.value = '';
-      });
-
-      function saveToStorage() {
-        try {
-          localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-        } catch (e) {}
-      }
-
-      function loadFromStorage() {
-        try {
-          const raw = localStorage.getItem(STORAGE_KEY);
-          if (raw) {
-            const parsed = JSON.parse(raw);
-            if (parsed && Array.isArray(parsed.songs)) {
-              state = {
-                playerName: parsed.playerName || '',
-                creditName: parsed.creditName || 'CHUNITHM',
-                showLamp: parsed.showLamp !== false,
-                songs: parsed.songs
-              };
-            }
-          }
-        } catch (e) {}
-      }
-
-      function syncInputsFromState() {
-        inputPlayerName.value = state.playerName;
-        inputCreditName.value = state.creditName;
-        chkShowLamp.checked = state.showLamp;
-      }
-
-      loadFromStorage();
-      syncInputsFromState();
-      updateLiveCalc();
-      renderAll();
-      loadSongDatabase();
+      img.onerror = () => res(url);
+      img.src = `https://wsrv.nl/?url=${encodeURIComponent(url)}&w=180&h=180&fit=cover&output=jpg`;
     });
-  </script>
+  }
+
+  async function loadDB() {
+    for (const url of DB_URLS) {
+      try {
+        const data = await (await fetch(url)).json();
+        const list = Array.isArray(data?.songs) ? data.songs : Array.isArray(data) ? data : [];
+        const parsed = list.map(s => {
+          const title = s.title || s.name;
+          if (!title) return null;
+          const charts = {};
+          if (Array.isArray(s.sheets)) {
+            s.sheets.forEach(sh => {
+              const v = parseFloat(sh.internalLevelValue || sh.internalLevel || sh.levelValue);
+              if (sh.difficulty && v > 0) charts[sh.difficulty.toUpperCase()] = v;
+            });
+          } else if (s.const) {
+            [['BAS','BASIC'],['ADV','ADVANCED'],['EXP','EXPERT'],['MAS','MASTER'],['ULT','ULTIMA']].forEach(([k, d]) => {
+              if (s.const[k]) charts[d] = parseFloat(s.const[k]);
+            });
+          }
+          const imageUrl = s.imageName ? (s.imageName.startsWith('http') ? s.imageName : `https://dp4p6x0xfi5o9.cloudfront.net/chunithm/img/cover/${s.imageName}`)
+            : s.image ? `https://new.chunithm-net.com/chuni-mobile/html/mobile/img/${s.image}` : '';
+          return { title, imageUrl, charts, isNew: !!s.isNew };
+        }).filter(Boolean);
+        if (parsed.length > 100) {
+          db = parsed;
+          $('dbBadge').textContent = `楽曲DB読込済 (${db.length}曲)`;
+          $('dbBadge').classList.add('ready');
+          return;
+        }
+      } catch {}
+    }
+    $('dbBadge').textContent = '手動入力モード';
+  }
+
+  $('inTitle').addEventListener('input', () => {
+    const q = norm($('inTitle').value), listEl = $('acList');
+    if (!q || !db.length) return (listEl.style.display = 'none');
+    const matches = db.filter(s => norm(s.title).includes(q)).slice(0, 25);
+    if (!matches.length) return (listEl.style.display = 'none');
+    listEl._m = matches;
+    listEl.innerHTML = matches.map((s, i) => {
+      const chips = ['BASIC','ADVANCED','EXPERT','MASTER','ULTIMA'].filter(d => s.charts[d] !== undefined)
+        .map(d => `<span class="ac-chip" style="background:${DIFF_BG[d]}">${d.slice(0,3)} ${s.charts[d].toFixed(1)}</span>`).join('');
+      const th = s.imageUrl ? `<img class="ac-thumb" src="https://wsrv.nl/?url=${encodeURIComponent(s.imageUrl)}&w=80&h=80&fit=cover" />` : `<div class="ac-thumb"></div>`;
+      return `<div class="ac-item" data-idx="${i}">${th}<div style="min-width:0;flex:1"><div class="ac-title">${esc(s.title)}</div><div style="margin-top:2px">${chips}</div></div></div>`;
+    }).join('');
+    listEl.style.display = 'block';
+  });
+
+  $('acList').addEventListener('click', async e => {
+    const item = e.target.closest('[data-idx]');
+    if (!item) return;
+    const s = $('acList')._m[+item.dataset.idx];
+    selSong = s;
+    $('inTitle').value = s.title;
+    $('acList').style.display = 'none';
+    const targetDiff = s.charts[diff] !== undefined ? diff : ['MASTER','ULTIMA','EXPERT','ADVANCED','BASIC'].find(d => s.charts[d] !== undefined);
+    if (targetDiff) { setDiff(targetDiff); $('inConst').value = s.charts[targetDiff].toFixed(1); }
+    if (s.isNew) $('inNew').checked = true;
+    updateLive();
+    if (s.imageUrl) {
+      setThumb(`https://wsrv.nl/?url=${encodeURIComponent(s.imageUrl)}&w=180&h=180&fit=cover`);
+      jacket = await toDataUrl(s.imageUrl);
+      setThumb(jacket);
+    }
+  });
+
+  document.addEventListener('click', e => {
+    if (!e.target.closest('#inTitle') && !e.target.closest('#acList')) $('acList').style.display = 'none';
+  });
+
+  document.querySelectorAll('[data-sd]').forEach(b => b.onclick = () => { $('inScore').value = Math.max(0, Math.min(1010000, (+$('inScore').value || 0) + +b.dataset.sd)); updateLive(); });
+  document.querySelectorAll('[data-ss]').forEach(b => b.onclick = () => { $('inScore').value = +b.dataset.ss; updateLive(); });
+  document.querySelectorAll('[data-cd]').forEach(b => b.onclick = () => { $('inConst').value = Math.max(1, Math.min(16, Math.round(((+$('inConst').value || 1) + +b.dataset.cd) * 10) / 10)).toFixed(1); updateLive(); });
+  $('diffGroup').onclick = e => e.target.dataset.diff && setDiff(e.target.dataset.diff);
+  $('lampGroup').onclick = e => e.target.dataset.lamp && setLamp(e.target.dataset.lamp);
+  $('inConst').oninput = $('inScore').oninput = updateLive;
+
+  $('inJacket').onchange = e => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const r = new FileReader();
+    r.onload = ev => {
+      const img = new Image();
+      img.onload = () => {
+        const cv = document.createElement('canvas');
+        cv.width = cv.height = 180;
+        const m = Math.min(img.width, img.height);
+        cv.getContext('2d').drawImage(img, (img.width - m) / 2, (img.height - m) / 2, m, m, 0, 0, 180, 180);
+        jacket = cv.toDataURL('image/jpeg', .82);
+        setThumb(jacket);
+      };
+      img.src = ev.target.result;
+    };
+    r.readAsDataURL(file);
+  };
+
+  $('btnClrJ').onclick = () => { $('inJacket').value = ''; jacket = ''; setThumb(''); };
+
+  function resetForm() {
+    editId = selSong = null;
+    $('inTitle').value = ''; $('inConst').value = '14.5'; $('inScore').value = '1007500';
+    $('inNew').checked = false; $('inJacket').value = ''; jacket = ''; setThumb('');
+    setDiff('MASTER'); setLamp('NONE');
+    $('formTitle').textContent = '譜面を登録・更新';
+    $('btnSave').textContent = 'この譜面を登録する';
+    $('btnReset').style.display = 'none';
+    updateLive();
+  }
+  $('btnReset').onclick = resetForm;
+
+  $('btnSave').onclick = () => {
+    const title = $('inTitle').value.trim();
+    if (!title) return alert('楽曲名を入力してください。');
+    const obj = {
+      id: editId || 's_' + Date.now() + Math.random().toString(36).slice(2, 5),
+      title, diff,
+      const: Math.max(1, Math.min(16, Math.round((+$('inConst').value || 1) * 10) / 10)),
+      score: Math.max(0, Math.min(1010000, parseInt($('inScore').value, 10) || 0)),
+      lamp, isNew: $('inNew').checked,
+      jacket: jacket || (editId ? state.songs.find(s => s.id === editId)?.jacket || '' : '')
+    };
+    if (editId) state.songs = state.songs.map(s => s.id === editId ? obj : s);
+    else state.songs.push(obj);
+    save(); resetForm(); render();
+  };
+
+  function tileHtml(s, idx) {
+    const rk = getRank(s.score);
+    const jImg = s.jacket ? `<img src="${s.jacket}" />` : `<div class="tile-jph" style="background:linear-gradient(135deg,${DIFF_BG[s.diff]},#1f2937)">${esc(s.title)}</div>`;
+    const lmp = state.showLamp && s.lamp !== 'NONE' ? `<span class="tile-lamp lamp-${s.lamp}">${s.lamp}</span>` : '';
+    return `<div class="tile"><div class="tile-top"><div class="tile-st"><div class="tile-rk">#${idx}</div><div><span class="tile-lbl">CONST</span><span class="tile-num">${s.const.toFixed(1)}</span></div><div><span class="tile-lbl">RATE</span><span class="tile-num" style="color:#ffeaa7">${s.rating.toFixed(3)}</span></div></div><div class="tile-jwrap">${jImg}<div class="tile-diff bg-${s.diff}"><span>${s.diff[0]}</span></div>${lmp}<div class="tile-sbar"><span style="font-size:11px;color:#fff">${s.score.toLocaleString()}</span><span style="font-size:10px;color:${rk.color}">${rk.label}</span></div></div></div><div class="tile-ttl">${esc(s.title)}</div></div>`;
+  }
+
+  function render() {
+    const now = new Date();
+    $('vTime').textContent = `${now.getFullYear()}/${String(now.getMonth()+1).padStart(2,'0')}/${String(now.getDate()).padStart(2,'0')} ${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
+    $('vPlayer').textContent = state.playerName.trim() || '未設定';
+    $('vCredit').textContent = state.creditName.trim() ? `by ${state.creditName.trim()}` : '';
+
+    const all = state.songs.map(s => ({ ...s, rating: calcRate(s.const, s.score) })).sort((a, b) => (b.rating - a.rating) || (b.score - a.score));
+    const best = all.filter(s => !s.isNew).slice(0, 30);
+    const news = all.filter(s => s.isNew).slice(0, 20);
+
+    const bSum = best.reduce((a, b) => a + b.rating, 0), nSum = news.reduce((a, b) => a + b.rating, 0);
+    const total = (bSum + nSum) / 50;
+    const top = best[0]?.rating || news[0]?.rating || 0;
+    const maxR = total > 0 ? Math.max(total, (bSum + nSum + Math.max(0, 50 - best.length - news.length) * top) / 50) : 0;
+
+    $('vTotal').textContent = total.toFixed(3);
+    $('vTotal').className = `img-rval ${rateClass(total)}`;
+    $('vBest').textContent = (best.length ? bSum / 30 : 0).toFixed(3);
+    $('vNew').textContent = (news.length ? nSum / 20 : 0).toFixed(3);
+    $('vMax').textContent = maxR.toFixed(3);
+
+    $('gridBest').innerHTML = best.length ? best.map((s, i) => tileHtml(s, i + 1)).join('') : '<div class="grid-empty">対象曲がありません。</div>';
+    $('gridNew').innerHTML = news.length ? news.map((s, i) => tileHtml(s, i + 1)).join('') : '<div class="grid-empty">新曲枠の対象曲がありません。</div>';
+
+    $('regCount').textContent = all.length;
+    $('regBody').innerHTML = all.length ? all.map(s => `<tr><td>${s.isNew ? '<span class="b-mini" style="background:#e67e22">NEW</span>' : 'BEST'}</td><td style="font-weight:800">${esc(s.title)}</td><td><span class="b-mini bg-${s.diff}">${s.diff}</span></td><td>${s.const.toFixed(1)}</td><td>${s.score.toLocaleString()}</td><td>${s.lamp === 'NONE' ? '-' : s.lamp}</td><td style="font-weight:800;color:var(--green)">${s.rating.toFixed(3)}</td><td><button type="button" class="btn-sec" data-ed="${s.id}">編集</button> <button type="button" class="btn-del" data-dl="${s.id}">削除</button></td></tr>`).join('') : '<tr><td colspan="8" style="text-align:center;color:#607066;padding:18px">登録された譜面はまだありません。</td></tr>';
+    requestAnimationFrame(fitPreview);
+  }
+
+  $('regBody').onclick = e => {
+    const ed = e.target.dataset.ed, dl = e.target.dataset.dl;
+    if (ed) {
+      const t = state.songs.find(s => s.id === ed);
+      if (!t) return;
+      editId = t.id; $('inTitle').value = t.title; $('inConst').value = t.const.toFixed(1); $('inScore').value = t.score;
+      $('inNew').checked = !!t.isNew; jacket = t.jacket || ''; setThumb(jacket);
+      setDiff(t.diff); setLamp(t.lamp || 'NONE');
+      $('formTitle').textContent = `編集中：${t.title}`; $('btnSave').textContent = '変更を更新する'; $('btnReset').style.display = 'inline-block';
+      updateLive(); window.scrollTo({ top: 0, behavior: 'smooth' });
+    } else if (dl) {
+      state.songs = state.songs.filter(s => s.id !== dl);
+      if (editId === dl) resetForm();
+      save(); render();
+    }
+  };
+
+  $('btnClrAll').onclick = () => { if (state.songs.length && confirm('すべて削除しますか？')) { state.songs = []; resetForm(); save(); render(); } };
+  $('inPlayer').oninput = e => { state.playerName = e.target.value; save(); render(); };
+  $('inCredit').oninput = e => { state.creditName = e.target.value; save(); render(); };
+  $('chkLamp').onchange = e => { state.showLamp = e.target.checked; save(); render(); };
+
+  $('btnPng').onclick = async () => {
+    const btn = $('btnPng'), cap = $('captureArea'), prev = cap.style.transform;
+    btn.textContent = '生成中...'; btn.disabled = true;
+    try {
+      cap.style.transform = 'none'; cap.classList.add('capturing');
+      const url = (await html2canvas(cap, { scale: 2, useCORS: true, backgroundColor: '#e4f1d8' })).toDataURL('image/png');
+      $('imgPrev').src = url; $('imgModal').style.display = 'block';
+      const a = document.createElement('a'); a.download = `chunithm_rating_${Date.now()}.png`; a.href = url; a.click();
+    } catch (e) { alert('画像生成失敗: ' + e.message); }
+    finally { cap.classList.remove('capturing'); cap.style.transform = prev; fitPreview(); btn.textContent = '選択した画像をPNGで保存'; btn.disabled = false; }
+  };
+
+  $('btnCloseModal').onclick = () => $('imgModal').style.display = 'none';
+  $('btnExport').onclick = () => {
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(new Blob([JSON.stringify(state)], { type: 'application/json' }));
+    a.download = 'chunithm_rating.json'; a.click();
+  };
+  $('btnImport').onclick = () => $('jsonFile').click();
+  $('jsonFile').onchange = e => {
+    const f = e.target.files[0]; if (!f) return;
+    const r = new FileReader();
+    r.onload = ev => {
+      try {
+        const p = JSON.parse(ev.target.result);
+        if (Array.isArray(p.songs)) {
+          state = { playerName: p.playerName || '', creditName: p.creditName || 'CHUNITHM', showLamp: p.showLamp !== false, songs: p.songs };
+          $('inPlayer').value = state.playerName; $('inCredit').value = state.creditName; $('chkLamp').checked = state.showLamp;
+          save(); render(); alert('読み込みました！');
+        }
+      } catch { alert('JSON読込失敗'); }
+    };
+    r.readAsText(f); e.target.value = '';
+  };
+
+  try {
+    const p = JSON.parse(localStorage.getItem(KEY));
+    if (Array.isArray(p?.songs)) state = { playerName: p.playerName || '', creditName: p.creditName || 'CHUNITHM', showLamp: p.showLamp !== false, songs: p.songs };
+  } catch {}
+  $('inPlayer').value = state.playerName; $('inCredit').value = state.creditName; $('chkLamp').checked = state.showLamp;
+  updateLive(); render(); loadDB();
+});
+</script>
 </body>
 </html>
