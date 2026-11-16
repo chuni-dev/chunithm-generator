@@ -24,13 +24,13 @@ body{font-family:'M PLUS 1p',sans-serif;background:#f4f7f5;color:#1f2923;line-he
 .lbl{font-size:.82rem;font-weight:700;color:#36453c}
 input[type="text"],input[type="number"]{width:100%;padding:9px 12px;border:1px solid #c5d1c9;border-radius:8px;font-size:.95rem;font-family:inherit;font-weight:700;background:#fff}
 input:focus{outline:none;border-color:var(--green);box-shadow:0 0 0 3px rgba(34,122,75,.15)}
-.ac-list{position:absolute;top:100%;left:0;right:0;z-index:999;background:#fff;border:1.5px solid var(--green);border-radius:8px;margin-top:4px;max-height:260px;overflow-y:auto;box-shadow:0 8px 20px rgba(0,0,0,.16);display:none}
+.ac-list{position:absolute;top:100%;left:0;right:0;z-index:999;background:#fff;border:1.5px solid var(--green);border-radius:8px;margin-top:4px;max-height:280px;overflow-y:auto;box-shadow:0 8px 20px rgba(0,0,0,.16);display:none}
 .ac-item{padding:8px 10px;border-bottom:1px solid #edf2ef;cursor:pointer;display:flex;align-items:center;gap:10px}
 .ac-item:hover,.ac-item:active{background:#eef7f1}
-.ac-thumb{width:40px;height:40px;border-radius:4px;object-fit:cover;background:#2b2e2c;flex-shrink:0}
+.ac-thumb{width:42px;height:42px;border-radius:4px;object-fit:cover;background:#2b2e2c;flex-shrink:0}
 .ac-title{font-size:.85rem;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.ac-chip{padding:0 5px;border-radius:3px;color:#fff;font-size:.68rem;font-weight:800;margin-right:4px;display:inline-block}
-.thumb-sm{width:48px;height:48px;border-radius:6px;object-fit:cover;border:1px solid #c5d1c9;display:none}
+.ac-chip{padding:2px 6px;border-radius:4px;color:#fff;font-size:.7rem;font-weight:800;margin-right:4px;margin-top:2px;display:inline-block}
+.thumb-sm{width:52px;height:52px;border-radius:6px;object-fit:cover;border:1px solid #c5d1c9;display:none;background:#2b2e2c}
 .btns{display:flex;flex-wrap:wrap;gap:6px}
 .c-btn{padding:7px 11px;border-radius:7px;border:1.5px solid #cbd6cf;background:#f8faf9;color:#44544a;font-size:.78rem;font-weight:800;cursor:pointer}
 .c-btn[data-diff="BASIC"].active{background:var(--basic);border-color:var(--basic);color:#fff}
@@ -119,7 +119,7 @@ input:focus{outline:none;border-color:var(--green);box-shadow:0 0 0 3px rgba(34,
       <div class="col">
         <div class="fg">
           <label class="lbl">楽曲名（文字入力で候補から定数＆ジャケット自動入力） *</label>
-          <input type="text" id="inTitle" autocomplete="off" placeholder="例: Titania / 宿星審判" />
+          <input type="text" id="inTitle" autocomplete="off" placeholder="例: Titania /宿星審判" />
           <div class="ac-list" id="acList"></div>
         </div>
         <div class="fg">
@@ -263,13 +263,18 @@ input:focus{outline:none;border-color:var(--green);box-shadow:0 0 0 3px rgba(34,
 <script>
 document.addEventListener('DOMContentLoaded', () => {
   const KEY = 'chunithm_miig_style_rating_v1';
-  // CORS許可された確実につながるCDN・GitHub rawデータソース
   const DB_URLS = [
-    'https://cdn.jsdelivr.net/gh/zetaraku/arcade-songs-fetch@master/data/chunithm/songs.json',
-    'https://raw.githubusercontent.com/zetaraku/arcade-songs-fetch/master/data/chunithm/songs.json',
-    'https://dp4p6x0xfi5o9.cloudfront.net/chunithm/data.json'
+    'https://dp4p6x0xfi5o9.cloudfront.net/chunithm/data.json',
+    'https://cdn.jsdelivr.net/gh/zetaraku/arcade-songs-fetch@master/data/chunithm/songs.json'
   ];
   const DIFF_BG = { BASIC: '#2ecc71', ADVANCED: '#f39c12', EXPERT: '#e74c3c', MASTER: '#8e44ad', ULTIMA: '#1e272e' };
+  const DIFF_MAP = {
+    bas: 'BASIC', basic: 'BASIC',
+    adv: 'ADVANCED', advanced: 'ADVANCED',
+    exp: 'EXPERT', expert: 'EXPERT',
+    mas: 'MASTER', master: 'MASTER',
+    ult: 'ULTIMA', ultima: 'ULTIMA'
+  };
   const $ = id => document.getElementById(id);
   const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
   const norm = s => String(s || '').toLowerCase().replace(/[！-～]/g, c => String.fromCharCode(c.charCodeAt(0) - 0xFEE0)).replace(/\s+/g, '');
@@ -278,7 +283,13 @@ document.addEventListener('DOMContentLoaded', () => {
   let state = { playerName: '', creditName: 'CHUNITHM', showLamp: true, songs: [] };
 
   const save = () => { try { localStorage.setItem(KEY, JSON.stringify(state)); } catch {} };
-  const setThumb = src => { $('jThumb').src = src || ''; $('jThumb').style.display = src ? 'block' : 'none'; };
+  const setThumb = (src, fallback) => {
+    const el = $('jThumb');
+    if (!src) { el.style.display = 'none'; el.src = ''; return; }
+    el.onerror = () => { if (fallback && el.src !== fallback) el.src = fallback; };
+    el.src = src;
+    el.style.display = 'block';
+  };
 
   function calcRate(c, s) {
     c = +c || 0; s = Math.max(0, Math.min(1010000, +s || 0));
@@ -335,15 +346,10 @@ document.addEventListener('DOMContentLoaded', () => {
   }
   window.addEventListener('resize', fitPreview);
 
-  // 外部ジャケット画像を安全にDataURLへ変換（プロキシ複数フォールバック付き）
   async function toDataUrl(url) {
     if (!url || url.startsWith('data:')) return url || '';
-    const candidates = [
-      `https://wsrv.nl/?url=${encodeURIComponent(url)}&w=180&h=180&fit=cover&output=jpg`,
-      `https://images.weserv.nl/?url=${encodeURIComponent(url)}&w=180&h=180&fit=cover&output=jpg`,
-      url
-    ];
-    for (const src of candidates) {
+    const proxied = `https://wsrv.nl/?url=${encodeURIComponent(url)}&w=180&h=180&fit=cover&output=jpg`;
+    for (const src of [proxied, url]) {
       const res = await new Promise(resolve => {
         const img = new Image();
         img.crossOrigin = 'anonymous';
@@ -362,7 +368,18 @@ document.addEventListener('DOMContentLoaded', () => {
       });
       if (res) return res;
     }
-    return candidates[0];
+    return url;
+  }
+
+  function parseNumericConst(sh) {
+    const raw = sh.internalLevelValue ?? sh.internalLevel ?? sh.levelValue ?? sh.level;
+    if (raw === undefined || raw === null) return NaN;
+    const str = String(raw).trim();
+    if (str.endsWith('+')) {
+      const n = parseFloat(str.slice(0, -1));
+      return isNaN(n) ? NaN : n + 0.5;
+    }
+    return parseFloat(str);
   }
 
   async function loadDB() {
@@ -378,13 +395,15 @@ document.addEventListener('DOMContentLoaded', () => {
           const charts = {};
           if (Array.isArray(s.sheets)) {
             s.sheets.forEach(sh => {
-              const d = (sh.difficulty || '').toUpperCase();
-              const v = parseFloat(sh.internalLevelValue ?? sh.internalLevel ?? sh.levelValue);
+              const rawD = String(sh.difficulty || sh.diff || '').toLowerCase();
+              const d = DIFF_MAP[rawD];
+              const v = parseNumericConst(sh);
               if (d && !isNaN(v) && v > 0) charts[d] = v;
             });
           }
-          const imageUrl = s.imageName
-            ? (s.imageName.startsWith('http') ? s.imageName : `https://dp4p6x0xfi5o9.cloudfront.net/chunithm/img/cover/${s.imageName}`)
+          const imgName = s.imageName || s.image || '';
+          const imageUrl = imgName
+            ? (imgName.startsWith('http') ? imgName : `https://dp4p6x0xfi5o9.cloudfront.net/chunithm/img/cover/${imgName}`)
             : '';
           return { title, imageUrl, charts, isNew: !!s.isNew };
         }).filter(Boolean);
@@ -411,29 +430,25 @@ document.addEventListener('DOMContentLoaded', () => {
     listEl._m = matches;
     listEl.innerHTML = matches.map((s, i) => {
       const chips = ['BASIC','ADVANCED','EXPERT','MASTER','ULTIMA'].filter(d => s.charts[d] !== undefined)
-        .map(d => `<span class="ac-chip" style="background:${DIFF_BG[d]}">${d.slice(0,3)} ${s.charts[d].toFixed(1)}</span>`).join('');
-      const th = s.imageUrl ? `<img class="ac-thumb" src="https://wsrv.nl/?url=${encodeURIComponent(s.imageUrl)}&w=80&h=80&fit=cover" />` : `<div class="ac-thumb"></div>`;
-      return `<div class="ac-item" data-idx="${i}">${th}<div style="min-width:0;flex:1"><div class="ac-title">${esc(s.title)}</div><div style="margin-top:2px">${chips || '<span style="font-size:.7rem;color:#888">定数データなし</span>'}</div></div></div>`;
+        .map(d => `<span class="ac-chip" data-pick-diff="${d}" style="background:${DIFF_BG[d]}">${d.slice(0,3)} ${s.charts[d].toFixed(1)}</span>`).join('');
+      const th = s.imageUrl
+        ? `<img class="ac-thumb" src="${s.imageUrl}" onerror="this.style.visibility='hidden'" />`
+        : `<div class="ac-thumb"></div>`;
+      return `<div class="ac-item" data-idx="${i}">${th}<div style="min-width:0;flex:1"><div class="ac-title">${esc(s.title)}</div><div>${chips || '<span style="font-size:.7rem;color:#888">定数なし</span>'}</div></div></div>`;
     }).join('');
     listEl.style.display = 'block';
   });
 
-  // pointerdown を使うことでスマホ・PC問わずフォーカス喪失前に確実に発火させる
-  $('acList').addEventListener('pointerdown', async e => {
-    const item = e.target.closest('[data-idx]');
-    if (!item || !$('acList')._m) return;
-    e.preventDefault();
-    const s = $('acList')._m[+item.dataset.idx];
-    if (!s) return;
-
+  async function applySongSelection(s, preferredDiff) {
     selSong = s;
     $('inTitle').value = s.title;
     $('acList').style.display = 'none';
 
-    // 選択中の難易度があればその定数、なければMASTER→ULTIMA→EXPERTの順で自動セット
-    const targetDiff = s.charts[diff] !== undefined
-      ? diff
-      : ['MASTER','ULTIMA','EXPERT','ADVANCED','BASIC'].find(d => s.charts[d] !== undefined);
+    const targetDiff = (preferredDiff && s.charts[preferredDiff] !== undefined)
+      ? preferredDiff
+      : (s.charts[diff] !== undefined
+        ? diff
+        : ['MASTER','ULTIMA','EXPERT','ADVANCED','BASIC'].find(d => s.charts[d] !== undefined));
 
     if (targetDiff) {
       setDiff(targetDiff);
@@ -443,18 +458,26 @@ document.addEventListener('DOMContentLoaded', () => {
     updateLive();
 
     if (s.imageUrl) {
-      const quickThumb = `https://wsrv.nl/?url=${encodeURIComponent(s.imageUrl)}&w=180&h=180&fit=cover`;
-      jacket = quickThumb;
-      setThumb(quickThumb);
+      jacket = s.imageUrl;
+      setThumb(s.imageUrl);
       const dataUrl = await toDataUrl(s.imageUrl);
       if (dataUrl) {
         jacket = dataUrl;
-        setThumb(dataUrl);
+        setThumb(dataUrl, s.imageUrl);
       }
     }
+  }
+
+  $('acList').addEventListener('click', e => {
+    const item = e.target.closest('[data-idx]');
+    if (!item || !$('acList')._m) return;
+    const s = $('acList')._m[+item.dataset.idx];
+    if (!s) return;
+    const chip = e.target.closest('[data-pick-diff]');
+    applySongSelection(s, chip ? chip.dataset.pickDiff : null);
   });
 
-  document.addEventListener('pointerdown', e => {
+  document.addEventListener('click', e => {
     if (!e.target.closest('#inTitle') && !e.target.closest('#acList')) $('acList').style.display = 'none';
   });
 
