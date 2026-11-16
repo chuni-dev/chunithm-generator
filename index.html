@@ -20,7 +20,7 @@ body{font-family:'M PLUS 1p',sans-serif;background:#f4f7f5;color:#1f2923;line-he
 .ham:hover{background:rgba(255,255,255,.26)}
 .drw-bg{position:fixed;inset:0;background:rgba(15,25,19,.55);z-index:1200;display:none}
 .drw-bg.open{display:block}
-.drw{position:fixed;top:0;right:0;bottom:0;width:min(440px,92vw);background:#fff;z-index:1201;box-shadow:-6px 0 24px rgba(0,0,0,.22);display:flex;flex-direction:column;transform:translateX(100%);transition:transform .22s ease}
+.drw{position:fixed;top:0;right:0;bottom:0;width:min(460px,94vw);background:#fff;z-index:1201;box-shadow:-6px 0 24px rgba(0,0,0,.22);display:flex;flex-direction:column;transform:translateX(100%);transition:transform .22s ease}
 .drw.open{transform:translateX(0)}
 .drw-hd{background:#1b3828;color:#fff;padding:14px 16px;display:flex;align-items:center;justify-content:space-between}
 .drw-tabs{display:flex;border-bottom:2px solid #e4ede7;background:#f4f8f5}
@@ -33,9 +33,8 @@ body{font-family:'M PLUS 1p',sans-serif;background:#f4f7f5;color:#1f2923;line-he
 .col{display:flex;flex-direction:column;gap:12px}
 .fg{display:flex;flex-direction:column;gap:6px;position:relative}
 .lbl{font-size:.82rem;font-weight:700;color:#36453c}
-input[type="text"],input[type="number"],textarea,select{width:100%;padding:9px 12px;border:1px solid #c5d1c9;border-radius:8px;font-size:.95rem;font-family:inherit;font-weight:700;background:#fff}
-textarea{resize:vertical;min-height:92px;font-size:.88rem;line-height:1.45}
-input:focus,textarea:focus,select:focus{outline:none;border-color:var(--g);box-shadow:0 0 0 3px rgba(34,122,75,.15)}
+input[type="text"],input[type="number"]{width:100%;padding:9px 12px;border:1px solid #c5d1c9;border-radius:8px;font-size:.95rem;font-family:inherit;font-weight:700;background:#fff}
+input:focus{outline:none;border-color:var(--g);box-shadow:0 0 0 3px rgba(34,122,75,.15)}
 .ac{position:absolute;top:100%;left:0;right:0;z-index:999;background:#fff;border:1.5px solid var(--g);border-radius:8px;margin-top:4px;max-height:280px;overflow-y:auto;box-shadow:0 8px 20px rgba(0,0,0,.16);display:none}
 .ac-i{padding:8px 10px;border-bottom:1px solid #edf2ef;cursor:pointer;display:flex;align-items:center;gap:10px}
 .ac-i:hover{background:#eef7f1}
@@ -60,7 +59,7 @@ input:focus,textarea:focus,select:focus{outline:none;border-color:var(--g);box-s
 .chk input{width:17px;height:17px;accent-color:var(--g)}
 .cbox{display:flex;align-items:center;justify-content:space-between;background:#1e2d24;color:#fff;padding:10px 14px;border-radius:8px;margin-top:4px}
 .cval{font-family:'Oswald',sans-serif;font-size:1.35rem;font-weight:700;color:#ffeaa7}
-.bp{width:100%;padding:12px;background:var(--g);color:#fff;border:none;border-radius:9px;font-size:.98rem;font-weight:800;cursor:pointer}
+.bp{width:100%;padding:12px;background:var(--g);color:#fff;border:none;border-radius:9px;font-size:.98rem;font-weight:800;cursor:pointer;text-align:center;text-decoration:none;display:inline-block}
 .bs,.bw,.bd,.bi{padding:7px 12px;border-radius:7px;font-size:.78rem;font-weight:700;cursor:pointer}
 .bs{background:#fff;color:#2d4236;border:1px solid #c2d1c8}.bs:disabled{opacity:.45;cursor:not-allowed}
 .bw{background:#fff8eb;color:#b45309;border:1px solid #fcd34d;font-weight:800}
@@ -108,10 +107,7 @@ input:focus,textarea:focus,select:focus{outline:none;border-color:var(--g);box-s
 .stat-n{font-size:.73rem;font-weight:800;color:#52665a;background:#e4ede8;padding:1px 7px;border-radius:10px}
 .stat-sc{font-family:'Oswald',sans-serif;font-size:1.08rem;font-weight:700;color:#1f2923}
 .stat-sub{font-size:.72rem;font-weight:700;color:#4f6357;display:flex;justify-content:space-between}
-.op-item{background:#f8faf9;border:1px solid #dce6e0;border-radius:9px;padding:10px 12px;display:flex;flex-direction:column;gap:5px}
-.op-hd{display:flex;justify-content:space-between;align-items:center;font-size:.74rem;color:#52665a;font-weight:700}
-.op-cat{background:#e4ede8;color:#1b3828;padding:1px 7px;border-radius:5px;font-weight:800}
-.op-txt{font-size:.86rem;font-weight:700;color:#1f2923;white-space:pre-wrap;word-break:break-word}
+.gf-frame{width:100%;height:520px;border:1px solid #d5e6dc;border-radius:10px;background:#f8faf9}
 </style>
 </head>
 <body>
@@ -153,31 +149,12 @@ input:focus,textarea:focus,select:focus{outline:none;border-color:var(--g);box-s
       <div class="stat-grid" id="statGrid"></div>
     </div>
 
-    <div id="tabOpin" style="display:none;flex-direction:column;gap:12px">
+    <div id="tabOpin" style="display:none;flex-direction:column;gap:10px">
       <div style="font-size:.8rem;color:#36453c;font-weight:700;background:#f2f8f4;border:1px solid #d5e6dc;padding:9px 11px;border-radius:8px">
-        機能追加のリクエスト・定数修正要望・不具合メモなどを記録できます。
+        機能追加のリクエスト・定数修正要望・不具合報告はこちらから送信できます。
       </div>
-      <div class="fg">
-        <label class="lbl">カテゴリ</label>
-        <select id="opCat">
-          <option value="機能要望">機能要望</option>
-          <option value="定数・楽曲情報">定数・楽曲情報</option>
-          <option value="不具合報告">不具合報告</option>
-          <option value="その他メモ">その他メモ</option>
-        </select>
-      </div>
-      <div class="fg">
-        <label class="lbl">内容 *</label>
-        <textarea id="opTxt" placeholder="例：〇〇の定数を14.8に修正してほしい / こんな機能がほしい"></textarea>
-      </div>
-      <div class="btns">
-        <button type="button" class="bp" id="bOpSend" style="flex:1">意見箱に送信する</button>
-        <button type="button" class="bs" id="bOpCopy" title="投稿済みの全意見をクリップボードにコピー">一覧をコピー</button>
-      </div>
-      <div style="border-top:1px solid #e4ede7;padding-top:10px;display:flex;flex-direction:column;gap:8px">
-        <div style="font-size:.82rem;font-weight:800;color:#1b3828">送信済みの意見（<span id="opCnt">0</span>件）</div>
-        <div id="opList" style="display:flex;flex-direction:column;gap:8px"></div>
-      </div>
+      <iframe class="gf-frame" src="https://docs.google.com/forms/d/e/1FAIpQLSekhjaOsxZfqBYXhSwN-nE8LscsGbMgP1K3d6wsG1hQpk66Wg/viewform?embedded=true" loading="lazy">読み込んでいます…</iframe>
+      <a class="bs" href="https://docs.google.com/forms/d/e/1FAIpQLSekhjaOsxZfqBYXhSwN-nE8LscsGbMgP1K3d6wsG1hQpk66Wg/viewform?usp=header" target="_blank" rel="noopener noreferrer" style="text-align:center;text-decoration:none">別タブでGoogleフォームを開く ↗</a>
     </div>
   </div>
 </aside>
@@ -305,7 +282,6 @@ input:focus,textarea:focus,select:focus{outline:none;border-color:var(--g);box-s
 <script>
 document.addEventListener('DOMContentLoaded', () => {
   const KEY = 'chunithm_miig_style_rating_v1';
-  const OPKEY = 'chunithm_gen_opinions_v1';
   const DIFFS = ['BASIC','ADVANCED','EXPERT','MASTER','ULTIMA'];
   const DBG = { BASIC:'#2ecc71', ADVANCED:'#f39c12', EXPERT:'#e74c3c', MASTER:'#8e44ad', ULTIMA:'#1e272e' };
   const DMAP = { bas:'BASIC', basic:'BASIC', adv:'ADVANCED', advanced:'ADVANCED', exp:'EXPERT', expert:'EXPERT', mas:'MASTER', master:'MASTER', ult:'ULTIMA', ultima:'ULTIMA', '0':'BASIC', '1':'ADVANCED', '2':'EXPERT', '3':'MASTER', '4':'ULTIMA' };
@@ -319,11 +295,10 @@ document.addEventListener('DOMContentLoaded', () => {
   $('sAdj').innerHTML = [-1000,-100,-10,-1,1,10,100,1000].map(n => `<button type="button" class="adj" data-sd="${n}">${n>0?'+'+n:n}</button>`).join('');
   $('sPre').innerHTML = [['理論値',1010000],['SSS+',1009000],['SSS',1007500],['SS+',1005000],['SS',1000000],['S+',990000],['S',975000]].map(([l,v]) => `<button type="button" class="adj pre" data-ss="${v}">${l}</button>`).join('');
 
-  let db = [], dbMap = new Map(), sel = null, edId = null, diff = 'MASTER', lamp = 'NONE', jkt = '', hist = [], statScope = 'top', opinions = [];
+  let db = [], dbMap = new Map(), sel = null, edId = null, diff = 'MASTER', lamp = 'NONE', jkt = '', hist = [], statScope = 'top';
   let st = { playerName:'', creditName:'CHUNITHM', showLamp:true, songs:[] };
 
   const save = () => { try { localStorage.setItem(KEY, JSON.stringify(st)); } catch {} };
-  const saveOp = () => { try { localStorage.setItem(OPKEY, JSON.stringify(opinions)); } catch {} };
   const pushH = () => { hist.push(JSON.stringify(st)); if (hist.length > 30) hist.shift(); updU(); };
   const updU = () => { $('uBtn').disabled = $('uTop').disabled = !hist.length; };
   const setTh = (s, fb) => {
@@ -346,48 +321,6 @@ document.addEventListener('DOMContentLoaded', () => {
       $('tabOpin').style.display = t === 'opin' ? 'flex' : 'none';
     };
   });
-
-  function renderOpinions() {
-    $('opCnt').textContent = opinions.length;
-    if (!opinions.length) {
-      $('opList').innerHTML = '<div style="text-align:center;color:#607066;font-size:.8rem;padding:12px">まだ意見は投稿されていません。</div>';
-      return;
-    }
-    $('opList').innerHTML = opinions.map(o => `<div class="op-item">
-      <div class="op-hd">
-        <span><span class="op-cat">${esc(o.cat)}</span> ${esc(o.time)}</span>
-        <button type="button" class="bd" data-opdel="${o.id}" style="padding:2px 7px;font-size:.7rem">削除</button>
-      </div>
-      <div class="op-txt">${esc(o.text)}</div>
-    </div>`).join('');
-  }
-
-  $('bOpSend').onclick = () => {
-    const text = $('opTxt').value.trim();
-    if (!text) return alert('意見・要望の内容を入力してください。');
-    const d = new Date(), p2 = n => String(n).padStart(2,'0');
-    const time = `${d.getFullYear()}/${p2(d.getMonth()+1)}/${p2(d.getDate())} ${p2(d.getHours())}:${p2(d.getMinutes())}`;
-    opinions.unshift({ id: 'op_' + Date.now(), cat: $('opCat').value, text, time });
-    $('opTxt').value = '';
-    saveOp();
-    renderOpinions();
-    alert('意見箱に記録しました！');
-  };
-
-  $('bOpCopy').onclick = async () => {
-    if (!opinions.length) return alert('コピーする意見がありません。');
-    const txt = opinions.map(o => `[${o.time}] (${o.cat})\n${o.text}`).join('\n---\n');
-    try { await navigator.clipboard.writeText(txt); alert('一覧をクリップボードにコピーしました！'); }
-    catch { alert('コピーに失敗しました。'); }
-  };
-
-  $('opList').onclick = e => {
-    const id = e.target.dataset.opdel;
-    if (!id) return;
-    opinions = opinions.filter(o => o.id !== id);
-    saveOp();
-    renderOpinions();
-  };
 
   function calc(c, s) {
     c = +c || 0; s = Math.max(0, Math.min(1010000, +s || 0));
@@ -774,12 +707,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const p = JSON.parse(localStorage.getItem(KEY));
     if (Array.isArray(p?.songs)) st = { playerName:p.playerName||'', creditName:p.creditName||'CHUNITHM', showLamp:p.showLamp!==false, songs:p.songs };
   } catch {}
-  try {
-    const op = JSON.parse(localStorage.getItem(OPKEY));
-    if (Array.isArray(op)) opinions = op;
-  } catch {}
   $('inP').value = st.playerName; $('inCr').value = st.creditName; $('cLmp').checked = st.showLamp;
-  live(); updU(); render(); renderOpinions(); loadDB();
+  live(); updU(); render(); loadDB();
 });
 </script>
 </body>
