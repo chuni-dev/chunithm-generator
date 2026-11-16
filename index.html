@@ -10,20 +10,32 @@
 :root{--g:#227a4b;--bas:#2ecc71;--adv:#f39c12;--exp:#e74c3c;--mas:#9b59b6;--ult:#1e272e}
 *{box-sizing:border-box;margin:0;padding:0}
 body{font-family:'M PLUS 1p',sans-serif;background:#f4f7f5;color:#1f2923;line-height:1.5;padding-bottom:40px;overflow-x:hidden}
-.hd{background:linear-gradient(135deg,#1b3828,#2b583e);color:#fff;padding:14px 18px;box-shadow:0 2px 8px rgba(0,0,0,.15)}
+.hd{background:linear-gradient(135deg,#1b3828,#2b583e);color:#fff;padding:14px 18px;box-shadow:0 2px 8px rgba(0,0,0,.15);position:sticky;top:0;z-index:900}
 .hd-in,.wrap{max-width:1120px;margin:0 auto}
 .hd-in{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px}
 .wrap{margin:16px auto;padding:0 12px;display:flex;flex-direction:column;gap:16px}
 .b-db{padding:3px 8px;border-radius:6px;font-size:.72rem;font-weight:800;background:rgba(255,255,255,.16);color:#ffeaa7}
 .b-db.ok{background:#27ae60;color:#fff}.b-db.err{background:#c0392b;color:#fff}
+.ham{width:40px;height:36px;border-radius:8px;border:1px solid rgba(255,255,255,.35);background:rgba(255,255,255,.14);color:#fff;font-size:1.25rem;font-weight:900;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:background .15s}
+.ham:hover{background:rgba(255,255,255,.26)}
+.drw-bg{position:fixed;inset:0;background:rgba(15,25,19,.55);z-index:1200;display:none}
+.drw-bg.open{display:block}
+.drw{position:fixed;top:0;right:0;bottom:0;width:min(440px,92vw);background:#fff;z-index:1201;box-shadow:-6px 0 24px rgba(0,0,0,.22);display:flex;flex-direction:column;transform:translateX(100%);transition:transform .22s ease}
+.drw.open{transform:translateX(0)}
+.drw-hd{background:#1b3828;color:#fff;padding:14px 16px;display:flex;align-items:center;justify-content:space-between}
+.drw-tabs{display:flex;border-bottom:2px solid #e4ede7;background:#f4f8f5}
+.drw-tab{flex:1;padding:11px 8px;border:none;background:none;font-family:inherit;font-size:.86rem;font-weight:800;color:#4f6357;cursor:pointer;border-bottom:3px solid transparent;margin-bottom:-2px}
+.drw-tab.on{color:#1b3828;border-bottom-color:var(--g);background:#fff}
+.drw-bd{flex:1;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:14px}
 .pnl{background:#fff;border:1px solid #dce4de;border-radius:12px;padding:16px;box-shadow:0 2px 6px rgba(0,0,0,.04)}
 .pnl-t{font-size:.98rem;font-weight:800;color:#1b3828;margin-bottom:12px;padding-bottom:8px;border-bottom:2px solid #e4ede7;display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px}
 .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:14px}
 .col{display:flex;flex-direction:column;gap:12px}
 .fg{display:flex;flex-direction:column;gap:6px;position:relative}
 .lbl{font-size:.82rem;font-weight:700;color:#36453c}
-input[type="text"],input[type="number"]{width:100%;padding:9px 12px;border:1px solid #c5d1c9;border-radius:8px;font-size:.95rem;font-family:inherit;font-weight:700;background:#fff}
-input:focus{outline:none;border-color:var(--g);box-shadow:0 0 0 3px rgba(34,122,75,.15)}
+input[type="text"],input[type="number"],textarea,select{width:100%;padding:9px 12px;border:1px solid #c5d1c9;border-radius:8px;font-size:.95rem;font-family:inherit;font-weight:700;background:#fff}
+textarea{resize:vertical;min-height:92px;font-size:.88rem;line-height:1.45}
+input:focus,textarea:focus,select:focus{outline:none;border-color:var(--g);box-shadow:0 0 0 3px rgba(34,122,75,.15)}
 .ac{position:absolute;top:100%;left:0;right:0;z-index:999;background:#fff;border:1.5px solid var(--g);border-radius:8px;margin-top:4px;max-height:280px;overflow-y:auto;box-shadow:0 8px 20px rgba(0,0,0,.16);display:none}
 .ac-i{padding:8px 10px;border-bottom:1px solid #edf2ef;cursor:pointer;display:flex;align-items:center;gap:10px}
 .ac-i:hover{background:#eef7f1}
@@ -39,7 +51,7 @@ input:focus{outline:none;border-color:var(--g);box-shadow:0 0 0 3px rgba(34,122,
 .cb[data-d="EXPERT"].on{background:var(--exp);border-color:var(--exp);color:#fff}
 .cb[data-d="MASTER"].on{background:var(--mas);border-color:var(--mas);color:#fff}
 .cb[data-d="ULTIMA"].on{background:var(--ult);border-color:#ff4757;color:#fff}
-.cb[data-l].on{background:var(--g);border-color:var(--g);color:#fff}
+.cb[data-l].on,.cb[data-sc].on{background:var(--g);border-color:var(--g);color:#fff}
 .cb[data-l="AJ"].on{background:linear-gradient(135deg,#f39c12,#e67e22);border-color:#d35400;color:#fff}
 .cb[data-l="AJC"].on{background:linear-gradient(135deg,#ff6b81,#f39c12,#2ed573,#1e90ff);border-color:#1e272e;color:#fff}
 .adj{padding:5px 8px;font-size:.75rem;font-weight:800;border:1px solid #c5d1c9;background:#f1f6f3;color:#26382d;border-radius:6px;cursor:pointer}
@@ -89,13 +101,17 @@ input:focus{outline:none;border-color:var(--g);box-shadow:0 0 0 3px rgba(34,122,
 .tbl{width:100%;border-collapse:collapse;font-size:.84rem}
 .tbl th{text-align:left;padding:8px 10px;background:#eef4f0;color:#2f4236;font-weight:800;border-bottom:2px solid #d5e2da}
 .tbl td{padding:8px 10px;border-bottom:1px solid #e6eee9}
-.stat-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(165px,1fr));gap:8px}
+.stat-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:8px}
 .stat-card{background:#f7faf8;border:1px solid #d6e4dc;border-radius:9px;padding:10px 12px;display:flex;flex-direction:column;gap:3px}
 .stat-top{display:flex;justify-content:space-between;align-items:baseline}
-.stat-c{font-family:'Oswald',sans-serif;font-size:1.25rem;font-weight:700;color:#1b3828}
-.stat-n{font-size:.75rem;font-weight:800;color:#52665a;background:#e4ede8;padding:1px 7px;border-radius:10px}
-.stat-sc{font-family:'Oswald',sans-serif;font-size:1.1rem;font-weight:700;color:#1f2923}
-.stat-sub{font-size:.73rem;font-weight:700;color:#4f6357;display:flex;justify-content:space-between}
+.stat-c{font-family:'Oswald',sans-serif;font-size:1.2rem;font-weight:700;color:#1b3828}
+.stat-n{font-size:.73rem;font-weight:800;color:#52665a;background:#e4ede8;padding:1px 7px;border-radius:10px}
+.stat-sc{font-family:'Oswald',sans-serif;font-size:1.08rem;font-weight:700;color:#1f2923}
+.stat-sub{font-size:.72rem;font-weight:700;color:#4f6357;display:flex;justify-content:space-between}
+.op-item{background:#f8faf9;border:1px solid #dce6e0;border-radius:9px;padding:10px 12px;display:flex;flex-direction:column;gap:5px}
+.op-hd{display:flex;justify-content:space-between;align-items:center;font-size:.74rem;color:#52665a;font-weight:700}
+.op-cat{background:#e4ede8;color:#1b3828;padding:1px 7px;border-radius:5px;font-weight:800}
+.op-txt{font-size:.86rem;font-weight:700;color:#1f2923;white-space:pre-wrap;word-break:break-word}
 </style>
 </head>
 <body>
@@ -112,9 +128,59 @@ input:focus{outline:none;border-color:var(--g);box-shadow:0 0 0 3px rgba(34,122,
       <button type="button" class="bs" id="bExp">JSON保存</button>
       <button type="button" class="bs" id="bImp">JSON読込</button>
       <input type="file" id="jFile" accept=".json" hidden />
+      <button type="button" class="ham" id="bMenu" title="メニュー（統計・意見箱）" aria-label="メニューを開く">☰</button>
     </div>
   </div>
 </header>
+
+<div class="drw-bg" id="drwBg"></div>
+<aside class="drw" id="drw" aria-label="サイドメニュー">
+  <div class="drw-hd">
+    <strong style="font-size:.98rem">メニュー（統計・意見箱）</strong>
+    <button type="button" class="bs" id="bClsDrw" style="padding:4px 10px">✕ 閉じる</button>
+  </div>
+  <div class="drw-tabs">
+    <button type="button" class="drw-tab on" data-tab="stat">📊 譜面定数別統計</button>
+    <button type="button" class="drw-tab" data-tab="opin">📮 意見箱</button>
+  </div>
+  <div class="drw-bd">
+    <div id="tabStat" style="display:flex;flex-direction:column;gap:10px">
+      <div style="font-size:.78rem;color:#52665a;font-weight:700" id="statMeta">集計対象：対象枠（BEST30＋NEW20）</div>
+      <div class="btns" id="statScope">
+        <button type="button" class="cb on" data-sc="top">対象枠のみ（BEST30＋NEW20）</button>
+        <button type="button" class="cb" data-sc="all">登録済み全曲</button>
+      </div>
+      <div class="stat-grid" id="statGrid"></div>
+    </div>
+
+    <div id="tabOpin" style="display:none;flex-direction:column;gap:12px">
+      <div style="font-size:.8rem;color:#36453c;font-weight:700;background:#f2f8f4;border:1px solid #d5e6dc;padding:9px 11px;border-radius:8px">
+        機能追加のリクエスト・定数修正要望・不具合メモなどを記録できます。
+      </div>
+      <div class="fg">
+        <label class="lbl">カテゴリ</label>
+        <select id="opCat">
+          <option value="機能要望">機能要望</option>
+          <option value="定数・楽曲情報">定数・楽曲情報</option>
+          <option value="不具合報告">不具合報告</option>
+          <option value="その他メモ">その他メモ</option>
+        </select>
+      </div>
+      <div class="fg">
+        <label class="lbl">内容 *</label>
+        <textarea id="opTxt" placeholder="例：〇〇の定数を14.8に修正してほしい / こんな機能がほしい"></textarea>
+      </div>
+      <div class="btns">
+        <button type="button" class="bp" id="bOpSend" style="flex:1">意見箱に送信する</button>
+        <button type="button" class="bs" id="bOpCopy" title="投稿済みの全意見をクリップボードにコピー">一覧をコピー</button>
+      </div>
+      <div style="border-top:1px solid #e4ede7;padding-top:10px;display:flex;flex-direction:column;gap:8px">
+        <div style="font-size:.82rem;font-weight:800;color:#1b3828">送信済みの意見（<span id="opCnt">0</span>件）</div>
+        <div id="opList" style="display:flex;flex-direction:column;gap:8px"></div>
+      </div>
+    </div>
+  </div>
+</aside>
 
 <main class="wrap">
   <section class="pnl">
@@ -219,18 +285,6 @@ input:focus{outline:none;border-color:var(--g);box-shadow:0 0 0 3px rgba(34,122,
 
   <section class="pnl">
     <div class="pnl-t">
-      <span>譜面定数別 平均スコア統計</span>
-      <span style="font-size:.76rem;color:#52665a;font-weight:700" id="statMeta">集計対象：対象枠（BEST30＋NEW20）</span>
-    </div>
-    <div class="btns" style="margin-bottom:10px" id="statScope">
-      <button type="button" class="cb on" data-sc="top">対象枠のみ（BEST30＋NEW20）</button>
-      <button type="button" class="cb" data-sc="all">登録済み全曲</button>
-    </div>
-    <div class="stat-grid" id="statGrid"></div>
-  </section>
-
-  <section class="pnl">
-    <div class="pnl-t">
       <span>登録済みの譜面（<span id="rCnt">0</span>件）</span>
       <div class="btns">
         <button type="button" class="bs" id="uBtn" disabled>↩ 元に戻す</button>
@@ -251,6 +305,7 @@ input:focus{outline:none;border-color:var(--g);box-shadow:0 0 0 3px rgba(34,122,
 <script>
 document.addEventListener('DOMContentLoaded', () => {
   const KEY = 'chunithm_miig_style_rating_v1';
+  const OPKEY = 'chunithm_gen_opinions_v1';
   const DIFFS = ['BASIC','ADVANCED','EXPERT','MASTER','ULTIMA'];
   const DBG = { BASIC:'#2ecc71', ADVANCED:'#f39c12', EXPERT:'#e74c3c', MASTER:'#8e44ad', ULTIMA:'#1e272e' };
   const DMAP = { bas:'BASIC', basic:'BASIC', adv:'ADVANCED', advanced:'ADVANCED', exp:'EXPERT', expert:'EXPERT', mas:'MASTER', master:'MASTER', ult:'ULTIMA', ultima:'ULTIMA', '0':'BASIC', '1':'ADVANCED', '2':'EXPERT', '3':'MASTER', '4':'ULTIMA' };
@@ -264,10 +319,11 @@ document.addEventListener('DOMContentLoaded', () => {
   $('sAdj').innerHTML = [-1000,-100,-10,-1,1,10,100,1000].map(n => `<button type="button" class="adj" data-sd="${n}">${n>0?'+'+n:n}</button>`).join('');
   $('sPre').innerHTML = [['理論値',1010000],['SSS+',1009000],['SSS',1007500],['SS+',1005000],['SS',1000000],['S+',990000],['S',975000]].map(([l,v]) => `<button type="button" class="adj pre" data-ss="${v}">${l}</button>`).join('');
 
-  let db = [], dbMap = new Map(), sel = null, edId = null, diff = 'MASTER', lamp = 'NONE', jkt = '', hist = [], statScope = 'top';
+  let db = [], dbMap = new Map(), sel = null, edId = null, diff = 'MASTER', lamp = 'NONE', jkt = '', hist = [], statScope = 'top', opinions = [];
   let st = { playerName:'', creditName:'CHUNITHM', showLamp:true, songs:[] };
 
   const save = () => { try { localStorage.setItem(KEY, JSON.stringify(st)); } catch {} };
+  const saveOp = () => { try { localStorage.setItem(OPKEY, JSON.stringify(opinions)); } catch {} };
   const pushH = () => { hist.push(JSON.stringify(st)); if (hist.length > 30) hist.shift(); updU(); };
   const updU = () => { $('uBtn').disabled = $('uTop').disabled = !hist.length; };
   const setTh = (s, fb) => {
@@ -275,6 +331,62 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!s) { e.style.display = 'none'; e.src = ''; return; }
     e.onerror = () => { if (fb && e.src !== fb) e.src = fb; };
     e.src = s; e.style.display = 'block';
+  };
+
+  const openDrw = () => { $('drw').classList.add('open'); $('drwBg').classList.add('open'); };
+  const closeDrw = () => { $('drw').classList.remove('open'); $('drwBg').classList.remove('open'); };
+  $('bMenu').onclick = openDrw;
+  $('bClsDrw').onclick = $('drwBg').onclick = closeDrw;
+
+  document.querySelectorAll('.drw-tab').forEach(btn => {
+    btn.onclick = () => {
+      const t = btn.dataset.tab;
+      document.querySelectorAll('.drw-tab').forEach(b => b.classList.toggle('on', b === btn));
+      $('tabStat').style.display = t === 'stat' ? 'flex' : 'none';
+      $('tabOpin').style.display = t === 'opin' ? 'flex' : 'none';
+    };
+  });
+
+  function renderOpinions() {
+    $('opCnt').textContent = opinions.length;
+    if (!opinions.length) {
+      $('opList').innerHTML = '<div style="text-align:center;color:#607066;font-size:.8rem;padding:12px">まだ意見は投稿されていません。</div>';
+      return;
+    }
+    $('opList').innerHTML = opinions.map(o => `<div class="op-item">
+      <div class="op-hd">
+        <span><span class="op-cat">${esc(o.cat)}</span> ${esc(o.time)}</span>
+        <button type="button" class="bd" data-opdel="${o.id}" style="padding:2px 7px;font-size:.7rem">削除</button>
+      </div>
+      <div class="op-txt">${esc(o.text)}</div>
+    </div>`).join('');
+  }
+
+  $('bOpSend').onclick = () => {
+    const text = $('opTxt').value.trim();
+    if (!text) return alert('意見・要望の内容を入力してください。');
+    const d = new Date(), p2 = n => String(n).padStart(2,'0');
+    const time = `${d.getFullYear()}/${p2(d.getMonth()+1)}/${p2(d.getDate())} ${p2(d.getHours())}:${p2(d.getMinutes())}`;
+    opinions.unshift({ id: 'op_' + Date.now(), cat: $('opCat').value, text, time });
+    $('opTxt').value = '';
+    saveOp();
+    renderOpinions();
+    alert('意見箱に記録しました！');
+  };
+
+  $('bOpCopy').onclick = async () => {
+    if (!opinions.length) return alert('コピーする意見がありません。');
+    const txt = opinions.map(o => `[${o.time}] (${o.cat})\n${o.text}`).join('\n---\n');
+    try { await navigator.clipboard.writeText(txt); alert('一覧をクリップボードにコピーしました！'); }
+    catch { alert('コピーに失敗しました。'); }
+  };
+
+  $('opList').onclick = e => {
+    const id = e.target.dataset.opdel;
+    if (!id) return;
+    opinions = opinions.filter(o => o.id !== id);
+    saveOp();
+    renderOpinions();
   };
 
   function calc(c, s) {
@@ -536,7 +648,7 @@ document.addEventListener('DOMContentLoaded', () => {
   function renderStats(targetSongs) {
     $('statMeta').textContent = `集計対象：${statScope === 'top' ? '対象枠（BEST30＋NEW20）' : '登録済み全曲'}（${targetSongs.length}曲）`;
     if (!targetSongs.length) {
-      $('statGrid').innerHTML = '<div style="grid-column:1/-1;text-align:center;color:#607066;padding:12px;font-size:.84rem">譜面を登録すると定数ごとの平均スコアが表示されます。</div>';
+      $('statGrid').innerHTML = '<div style="grid-column:1/-1;text-align:center;color:#607066;padding:14px;font-size:.82rem">譜面を登録すると定数ごとの平均スコアが表示されます。</div>';
       return;
     }
     const groups = new Map();
@@ -555,7 +667,7 @@ document.addEventListener('DOMContentLoaded', () => {
       const rk = rank(avgScore);
       return `<div class="stat-card">
         <div class="stat-top"><span class="stat-c">定数 ${g.c.toFixed(1)}</span><span class="stat-n">${g.count}曲</span></div>
-        <div class="stat-sc">${avgScore.toLocaleString()} <span style="font-size:.78rem;color:#227a4b">(${rk.l})</span></div>
+        <div class="stat-sc">${avgScore.toLocaleString()} <span style="font-size:.76rem;color:#227a4b">(${rk.l})</span></div>
         <div class="stat-sub"><span>平均レート</span><strong>${avgRate}</strong></div>
       </div>`;
     }).join('');
@@ -662,8 +774,12 @@ document.addEventListener('DOMContentLoaded', () => {
     const p = JSON.parse(localStorage.getItem(KEY));
     if (Array.isArray(p?.songs)) st = { playerName:p.playerName||'', creditName:p.creditName||'CHUNITHM', showLamp:p.showLamp!==false, songs:p.songs };
   } catch {}
+  try {
+    const op = JSON.parse(localStorage.getItem(OPKEY));
+    if (Array.isArray(op)) opinions = op;
+  } catch {}
   $('inP').value = st.playerName; $('inCr').value = st.creditName; $('cLmp').checked = st.showLamp;
-  live(); updU(); render(); loadDB();
+  live(); updU(); render(); renderOpinions(); loadDB();
 });
 </script>
 </body>
