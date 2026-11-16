@@ -14,6 +14,7 @@ body{font-family:'M PLUS 1p',sans-serif;background:#f4f7f5;color:#1f2923;line-he
 .header-in{max-width:1120px;margin:0 auto;display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px}
 .badge-db{padding:3px 8px;border-radius:6px;font-size:.72rem;font-weight:800;background:rgba(255,255,255,.16);color:#ffeaa7}
 .badge-db.ready{background:#27ae60;color:#fff}
+.badge-db.err{background:#c0392b;color:#fff}
 .container{max-width:1120px;margin:16px auto;padding:0 12px;display:flex;flex-direction:column;gap:16px}
 .panel{background:#fff;border:1px solid #dce4de;border-radius:12px;padding:16px;box-shadow:0 2px 6px rgba(0,0,0,.04)}
 .panel-title{font-size:.98rem;font-weight:800;color:#1b3828;margin-bottom:12px;padding-bottom:8px;border-bottom:2px solid #e4ede7;display:flex;align-items:center;justify-content:space-between;gap:8px}
@@ -25,10 +26,10 @@ input[type="text"],input[type="number"]{width:100%;padding:9px 12px;border:1px s
 input:focus{outline:none;border-color:var(--green);box-shadow:0 0 0 3px rgba(34,122,75,.15)}
 .ac-list{position:absolute;top:100%;left:0;right:0;z-index:999;background:#fff;border:1.5px solid var(--green);border-radius:8px;margin-top:4px;max-height:260px;overflow-y:auto;box-shadow:0 8px 20px rgba(0,0,0,.16);display:none}
 .ac-item{padding:8px 10px;border-bottom:1px solid #edf2ef;cursor:pointer;display:flex;align-items:center;gap:10px}
-.ac-item:hover{background:#eef7f1}
-.ac-thumb{width:38px;height:38px;border-radius:4px;object-fit:cover;background:#2b2e2c;flex-shrink:0}
+.ac-item:hover,.ac-item:active{background:#eef7f1}
+.ac-thumb{width:40px;height:40px;border-radius:4px;object-fit:cover;background:#2b2e2c;flex-shrink:0}
 .ac-title{font-size:.85rem;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.ac-chip{padding:0 5px;border-radius:3px;color:#fff;font-size:.68rem;font-weight:800;margin-right:4px}
+.ac-chip{padding:0 5px;border-radius:3px;color:#fff;font-size:.68rem;font-weight:800;margin-right:4px;display:inline-block}
 .thumb-sm{width:48px;height:48px;border-radius:6px;object-fit:cover;border:1px solid #c5d1c9;display:none}
 .btns{display:flex;flex-wrap:wrap;gap:6px}
 .c-btn{padding:7px 11px;border-radius:7px;border:1.5px solid #cbd6cf;background:#f8faf9;color:#44544a;font-size:.78rem;font-weight:800;cursor:pointer}
@@ -118,7 +119,7 @@ input:focus{outline:none;border-color:var(--green);box-shadow:0 0 0 3px rgba(34,
       <div class="col">
         <div class="fg">
           <label class="lbl">楽曲名（文字入力で候補から定数＆ジャケット自動入力） *</label>
-          <input type="text" id="inTitle" autocomplete="off" placeholder="例: Titania / 混沌を越えし / 祈" />
+          <input type="text" id="inTitle" autocomplete="off" placeholder="例: Titania / 宿星審判" />
           <div class="ac-list" id="acList"></div>
         </div>
         <div class="fg">
@@ -262,9 +263,11 @@ input:focus{outline:none;border-color:var(--green);box-shadow:0 0 0 3px rgba(34,
 <script>
 document.addEventListener('DOMContentLoaded', () => {
   const KEY = 'chunithm_miig_style_rating_v1';
+  // CORS許可された確実につながるCDN・GitHub rawデータソース
   const DB_URLS = [
-    'https://reiwa.f5.si/chunithm_record.json',
-    'https://raw.githubusercontent.com/zetaraku/arcade-songs-fetch/master/data/chunithm/songs.json'
+    'https://cdn.jsdelivr.net/gh/zetaraku/arcade-songs-fetch@master/data/chunithm/songs.json',
+    'https://raw.githubusercontent.com/zetaraku/arcade-songs-fetch/master/data/chunithm/songs.json',
+    'https://dp4p6x0xfi5o9.cloudfront.net/chunithm/data.json'
   ];
   const DIFF_BG = { BASIC: '#2ecc71', ADVANCED: '#f39c12', EXPERT: '#e74c3c', MASTER: '#8e44ad', ULTIMA: '#1e272e' };
   const $ = id => document.getElementById(id);
@@ -311,7 +314,7 @@ document.addEventListener('DOMContentLoaded', () => {
   function setDiff(d) {
     diff = d;
     document.querySelectorAll('#diffGroup .c-btn').forEach(b => b.classList.toggle('active', b.dataset.diff === d));
-    if (selSong && selSong.title === $('inTitle').value.trim() && selSong.charts[d] !== undefined) {
+    if (selSong && selSong.charts[d] !== undefined) {
       $('inConst').value = selSong.charts[d].toFixed(1);
       updateLive();
     }
@@ -332,28 +335,42 @@ document.addEventListener('DOMContentLoaded', () => {
   }
   window.addEventListener('resize', fitPreview);
 
+  // 外部ジャケット画像を安全にDataURLへ変換（プロキシ複数フォールバック付き）
   async function toDataUrl(url) {
     if (!url || url.startsWith('data:')) return url || '';
-    return new Promise(res => {
-      const img = new Image();
-      img.crossOrigin = 'anonymous';
-      img.onload = () => {
-        try {
-          const cv = document.createElement('canvas');
-          cv.width = cv.height = 180;
-          cv.getContext('2d').drawImage(img, 0, 0, 180, 180);
-          res(cv.toDataURL('image/jpeg', .85));
-        } catch { res(url); }
-      };
-      img.onerror = () => res(url);
-      img.src = `https://wsrv.nl/?url=${encodeURIComponent(url)}&w=180&h=180&fit=cover&output=jpg`;
-    });
+    const candidates = [
+      `https://wsrv.nl/?url=${encodeURIComponent(url)}&w=180&h=180&fit=cover&output=jpg`,
+      `https://images.weserv.nl/?url=${encodeURIComponent(url)}&w=180&h=180&fit=cover&output=jpg`,
+      url
+    ];
+    for (const src of candidates) {
+      const res = await new Promise(resolve => {
+        const img = new Image();
+        img.crossOrigin = 'anonymous';
+        img.onload = () => {
+          try {
+            const cv = document.createElement('canvas');
+            cv.width = cv.height = 180;
+            cv.getContext('2d').drawImage(img, 0, 0, 180, 180);
+            resolve(cv.toDataURL('image/jpeg', .85));
+          } catch {
+            resolve(null);
+          }
+        };
+        img.onerror = () => resolve(null);
+        img.src = src;
+      });
+      if (res) return res;
+    }
+    return candidates[0];
   }
 
   async function loadDB() {
     for (const url of DB_URLS) {
       try {
-        const data = await (await fetch(url)).json();
+        const resp = await fetch(url);
+        if (!resp.ok) continue;
+        const data = await resp.json();
         const list = Array.isArray(data?.songs) ? data.songs : Array.isArray(data) ? data : [];
         const parsed = list.map(s => {
           const title = s.title || s.name;
@@ -361,63 +378,83 @@ document.addEventListener('DOMContentLoaded', () => {
           const charts = {};
           if (Array.isArray(s.sheets)) {
             s.sheets.forEach(sh => {
-              const v = parseFloat(sh.internalLevelValue || sh.internalLevel || sh.levelValue);
-              if (sh.difficulty && v > 0) charts[sh.difficulty.toUpperCase()] = v;
-            });
-          } else if (s.const) {
-            [['BAS','BASIC'],['ADV','ADVANCED'],['EXP','EXPERT'],['MAS','MASTER'],['ULT','ULTIMA']].forEach(([k, d]) => {
-              if (s.const[k]) charts[d] = parseFloat(s.const[k]);
+              const d = (sh.difficulty || '').toUpperCase();
+              const v = parseFloat(sh.internalLevelValue ?? sh.internalLevel ?? sh.levelValue);
+              if (d && !isNaN(v) && v > 0) charts[d] = v;
             });
           }
-          const imageUrl = s.imageName ? (s.imageName.startsWith('http') ? s.imageName : `https://dp4p6x0xfi5o9.cloudfront.net/chunithm/img/cover/${s.imageName}`)
-            : s.image ? `https://new.chunithm-net.com/chuni-mobile/html/mobile/img/${s.image}` : '';
+          const imageUrl = s.imageName
+            ? (s.imageName.startsWith('http') ? s.imageName : `https://dp4p6x0xfi5o9.cloudfront.net/chunithm/img/cover/${s.imageName}`)
+            : '';
           return { title, imageUrl, charts, isNew: !!s.isNew };
         }).filter(Boolean);
-        if (parsed.length > 100) {
+
+        if (parsed.length > 50) {
           db = parsed;
           $('dbBadge').textContent = `楽曲DB読込済 (${db.length}曲)`;
           $('dbBadge').classList.add('ready');
           return;
         }
-      } catch {}
+      } catch (err) {
+        console.warn('DB load error:', url, err);
+      }
     }
-    $('dbBadge').textContent = '手動入力モード';
+    $('dbBadge').textContent = 'DB接続失敗（手動入力可）';
+    $('dbBadge').classList.add('err');
   }
 
   $('inTitle').addEventListener('input', () => {
     const q = norm($('inTitle').value), listEl = $('acList');
     if (!q || !db.length) return (listEl.style.display = 'none');
-    const matches = db.filter(s => norm(s.title).includes(q)).slice(0, 25);
+    const matches = db.filter(s => norm(s.title).includes(q)).slice(0, 30);
     if (!matches.length) return (listEl.style.display = 'none');
     listEl._m = matches;
     listEl.innerHTML = matches.map((s, i) => {
       const chips = ['BASIC','ADVANCED','EXPERT','MASTER','ULTIMA'].filter(d => s.charts[d] !== undefined)
         .map(d => `<span class="ac-chip" style="background:${DIFF_BG[d]}">${d.slice(0,3)} ${s.charts[d].toFixed(1)}</span>`).join('');
       const th = s.imageUrl ? `<img class="ac-thumb" src="https://wsrv.nl/?url=${encodeURIComponent(s.imageUrl)}&w=80&h=80&fit=cover" />` : `<div class="ac-thumb"></div>`;
-      return `<div class="ac-item" data-idx="${i}">${th}<div style="min-width:0;flex:1"><div class="ac-title">${esc(s.title)}</div><div style="margin-top:2px">${chips}</div></div></div>`;
+      return `<div class="ac-item" data-idx="${i}">${th}<div style="min-width:0;flex:1"><div class="ac-title">${esc(s.title)}</div><div style="margin-top:2px">${chips || '<span style="font-size:.7rem;color:#888">定数データなし</span>'}</div></div></div>`;
     }).join('');
     listEl.style.display = 'block';
   });
 
-  $('acList').addEventListener('click', async e => {
+  // pointerdown を使うことでスマホ・PC問わずフォーカス喪失前に確実に発火させる
+  $('acList').addEventListener('pointerdown', async e => {
     const item = e.target.closest('[data-idx]');
-    if (!item) return;
+    if (!item || !$('acList')._m) return;
+    e.preventDefault();
     const s = $('acList')._m[+item.dataset.idx];
+    if (!s) return;
+
     selSong = s;
     $('inTitle').value = s.title;
     $('acList').style.display = 'none';
-    const targetDiff = s.charts[diff] !== undefined ? diff : ['MASTER','ULTIMA','EXPERT','ADVANCED','BASIC'].find(d => s.charts[d] !== undefined);
-    if (targetDiff) { setDiff(targetDiff); $('inConst').value = s.charts[targetDiff].toFixed(1); }
+
+    // 選択中の難易度があればその定数、なければMASTER→ULTIMA→EXPERTの順で自動セット
+    const targetDiff = s.charts[diff] !== undefined
+      ? diff
+      : ['MASTER','ULTIMA','EXPERT','ADVANCED','BASIC'].find(d => s.charts[d] !== undefined);
+
+    if (targetDiff) {
+      setDiff(targetDiff);
+      $('inConst').value = s.charts[targetDiff].toFixed(1);
+    }
     if (s.isNew) $('inNew').checked = true;
     updateLive();
+
     if (s.imageUrl) {
-      setThumb(`https://wsrv.nl/?url=${encodeURIComponent(s.imageUrl)}&w=180&h=180&fit=cover`);
-      jacket = await toDataUrl(s.imageUrl);
-      setThumb(jacket);
+      const quickThumb = `https://wsrv.nl/?url=${encodeURIComponent(s.imageUrl)}&w=180&h=180&fit=cover`;
+      jacket = quickThumb;
+      setThumb(quickThumb);
+      const dataUrl = await toDataUrl(s.imageUrl);
+      if (dataUrl) {
+        jacket = dataUrl;
+        setThumb(dataUrl);
+      }
     }
   });
 
-  document.addEventListener('click', e => {
+  document.addEventListener('pointerdown', e => {
     if (!e.target.closest('#inTitle') && !e.target.closest('#acList')) $('acList').style.display = 'none';
   });
 
@@ -479,7 +516,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function tileHtml(s, idx) {
     const rk = getRank(s.score);
-    const jImg = s.jacket ? `<img src="${s.jacket}" />` : `<div class="tile-jph" style="background:linear-gradient(135deg,${DIFF_BG[s.diff]},#1f2937)">${esc(s.title)}</div>`;
+    const jImg = s.jacket ? `<img src="${s.jacket}" crossorigin="anonymous" />` : `<div class="tile-jph" style="background:linear-gradient(135deg,${DIFF_BG[s.diff]},#1f2937)">${esc(s.title)}</div>`;
     const lmp = state.showLamp && s.lamp !== 'NONE' ? `<span class="tile-lamp lamp-${s.lamp}">${s.lamp}</span>` : '';
     return `<div class="tile"><div class="tile-top"><div class="tile-st"><div class="tile-rk">#${idx}</div><div><span class="tile-lbl">CONST</span><span class="tile-num">${s.const.toFixed(1)}</span></div><div><span class="tile-lbl">RATE</span><span class="tile-num" style="color:#ffeaa7">${s.rating.toFixed(3)}</span></div></div><div class="tile-jwrap">${jImg}<div class="tile-diff bg-${s.diff}"><span>${s.diff[0]}</span></div>${lmp}<div class="tile-sbar"><span style="font-size:11px;color:#fff">${s.score.toLocaleString()}</span><span style="font-size:10px;color:${rk.color}">${rk.label}</span></div></div></div><div class="tile-ttl">${esc(s.title)}</div></div>`;
   }
