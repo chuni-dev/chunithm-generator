@@ -17,7 +17,7 @@ body{font-family:'M PLUS 1p',sans-serif;background:#f4f7f5;color:#1f2923;line-he
 .badge-db.err{background:#c0392b;color:#fff}
 .container{max-width:1120px;margin:16px auto;padding:0 12px;display:flex;flex-direction:column;gap:16px}
 .panel{background:#fff;border:1px solid #dce4de;border-radius:12px;padding:16px;box-shadow:0 2px 6px rgba(0,0,0,.04)}
-.panel-title{font-size:.98rem;font-weight:800;color:#1b3828;margin-bottom:12px;padding-bottom:8px;border-bottom:2px solid #e4ede7;display:flex;align-items:center;justify-content:space-between;gap:8px}
+.panel-title{font-size:.98rem;font-weight:800;color:#1b3828;margin-bottom:12px;padding-bottom:8px;border-bottom:2px solid #e4ede7;display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px}
 .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:14px}
 .col{display:flex;flex-direction:column;gap:12px}
 .fg{display:flex;flex-direction:column;gap:6px;position:relative}
@@ -49,6 +49,8 @@ input:focus{outline:none;border-color:var(--green);box-shadow:0 0 0 3px rgba(34,
 .calc-val{font-family:'Oswald',sans-serif;font-size:1.35rem;font-weight:700;color:#ffeaa7}
 .btn-pri{width:100%;padding:12px;background:var(--green);color:#fff;border:none;border-radius:9px;font-size:.98rem;font-weight:800;cursor:pointer}
 .btn-sec{padding:7px 12px;background:#fff;color:#2d4236;border:1px solid #c2d1c8;border-radius:7px;font-size:.78rem;font-weight:700;cursor:pointer}
+.btn-sec:disabled{opacity:.45;cursor:not-allowed}
+.btn-warn{padding:7px 12px;background:#fff8eb;color:#b45309;border:1px solid #fcd34d;border-radius:7px;font-size:.78rem;font-weight:800;cursor:pointer}
 .btn-del{padding:7px 12px;background:#fff5f5;color:#c0392b;border:1px solid #f5c6cb;border-radius:7px;font-size:.78rem;font-weight:700;cursor:pointer}
 .btn-png{background:#237a4b;color:#fff;border:none;border-radius:10px;padding:13px 32px;font-size:1.05rem;font-weight:800;cursor:pointer;box-shadow:0 4px 12px rgba(35,122,75,.3)}
 #imgModal{display:none;margin-top:12px;padding:14px;background:#eef6f1;border:2px solid #237a4b;border-radius:10px;text-align:center;width:100%}
@@ -59,11 +61,9 @@ input:focus{outline:none;border-color:var(--green);box-shadow:0 0 0 3px rgba(34,
 .img-title{font-size:25px;font-weight:900;color:#227a43;line-height:1.15;display:flex;align-items:baseline;gap:10px}
 .img-pbox{background:rgba(255,255,255,.65);border-radius:6px;padding:7px 14px;font-size:18px;font-weight:800;color:#3a4a3d;text-align:center;min-height:40px;display:flex;align-items:center;justify-content:center}
 .img-rbox{background:rgba(255,255,255,.85);border-radius:6px;padding:6px 16px;display:flex;align-items:center;justify-content:center;min-height:50px}
-.img-rval{font-family:'Oswald',sans-serif;font-size:35px;font-weight:700;line-height:1}
+.img-rval{font-family:'Oswald',sans-serif;font-size:36px;font-weight:700;line-height:1;letter-spacing:.02em}
 .rate-green{color:#16a34a}.rate-orange{color:#ea580c}.rate-red{color:#dc2626}.rate-purple{color:#7e22ce}
 .rate-bronze{color:#a16207}.rate-silver{color:#64748b}.rate-gold{color:#ca8a04}.rate-platinum{color:#6366f1}
-.rate-rainbow{background:linear-gradient(90deg,#ff2a5f,#ff8c00,#eab308,#10b981,#0ea5e9,#a855f7);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
-.capturing .rate-rainbow{background:none!important;-webkit-text-fill-color:initial!important;color:#e11d48!important;text-shadow:-1.5px 0 0 #0ea5e9,1.5px 0 0 #10b981,0 1.5px 0 #eab308}
 .img-sub{background:rgba(255,255,255,.55);border-radius:5px;padding:4px 12px;text-align:center;font-size:12.5px;font-weight:800;color:#2c3a2e}
 .img-sub span{font-family:'Oswald',sans-serif;font-size:13.5px;margin:0 12px 0 3px}
 .sec-ttl{font-size:18px;font-weight:900;color:#222823;margin:10px 0 6px}
@@ -102,6 +102,7 @@ input:focus{outline:none;border-color:var(--green);box-shadow:0 0 0 3px rgba(34,
     </div>
     <div class="btns" style="align-items:center">
       <span class="badge-db" id="dbBadge">楽曲DB読込中...</span>
+      <button type="button" class="btn-sec" id="btnUndoTop" disabled>↩ 元に戻す</button>
       <button type="button" class="btn-sec" id="btnExport">JSON保存</button>
       <button type="button" class="btn-sec" id="btnImport">JSON読込</button>
       <input type="file" id="jsonFile" accept=".json" hidden />
@@ -119,7 +120,7 @@ input:focus{outline:none;border-color:var(--green);box-shadow:0 0 0 3px rgba(34,
       <div class="col">
         <div class="fg">
           <label class="lbl">楽曲名（文字入力で候補から定数＆ジャケット自動入力） *</label>
-          <input type="text" id="inTitle" autocomplete="off" placeholder="例: Titania /宿星審判" />
+          <input type="text" id="inTitle" autocomplete="off" placeholder="例: Titania / 混沌を越えし / 祈" />
           <div class="ac-list" id="acList"></div>
         </div>
         <div class="fg">
@@ -249,7 +250,11 @@ input:focus{outline:none;border-color:var(--green);box-shadow:0 0 0 3px rgba(34,
   <section class="panel">
     <div class="panel-title">
       <span>登録済みの譜面（<span id="regCount">0</span>件）</span>
-      <button type="button" class="btn-del" id="btnClrAll">すべて削除</button>
+      <div class="btns">
+        <button type="button" class="btn-sec" id="btnUndo" disabled>↩ 元に戻す</button>
+        <button type="button" class="btn-warn" id="btnNewToBest">新曲枠 → ベスト枠へ移行</button>
+        <button type="button" class="btn-del" id="btnClrAll">すべて削除</button>
+      </div>
     </div>
     <div style="overflow-x:auto">
       <table class="tbl">
@@ -275,12 +280,42 @@ document.addEventListener('DOMContentLoaded', () => {
     mas: 'MASTER', master: 'MASTER',
     ult: 'ULTIMA', ultima: 'ULTIMA'
   };
+  const RAINBOW_PALETTE = ['#ff2a5f', '#ff7b00', '#eab308', '#10b981', '#0ea5e9', '#9333ea'];
   const $ = id => document.getElementById(id);
   const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
   const norm = s => String(s || '').toLowerCase().replace(/[！-～]/g, c => String.fromCharCode(c.charCodeAt(0) - 0xFEE0)).replace(/\s+/g, '');
 
   let db = [], selSong = null, editId = null, diff = 'MASTER', lamp = 'NONE', jacket = '';
   let state = { playerName: '', creditName: 'CHUNITHM', showLamp: true, songs: [] };
+  let historyStack = [];
+
+  function pushHistory() {
+    historyStack.push(JSON.stringify(state));
+    if (historyStack.length > 30) historyStack.shift();
+    updateUndoBtns();
+  }
+
+  function updateUndoBtns() {
+    const disabled = historyStack.length === 0;
+    $('btnUndo').disabled = disabled;
+    $('btnUndoTop').disabled = disabled;
+  }
+
+  function undo() {
+    if (!historyStack.length) return;
+    const prev = JSON.parse(historyStack.pop());
+    state = prev;
+    $('inPlayer').value = state.playerName;
+    $('inCredit').value = state.creditName;
+    $('chkLamp').checked = state.showLamp;
+    resetForm();
+    save();
+    render();
+    updateUndoBtns();
+  }
+
+  $('btnUndo').onclick = undo;
+  $('btnUndoTop').onclick = undo;
 
   const save = () => { try { localStorage.setItem(KEY, JSON.stringify(state)); } catch {} };
   const setThumb = (src, fallback) => {
@@ -312,7 +347,21 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function rateClass(r) {
-    return r >= 16 ? 'rate-rainbow' : r >= 15.25 ? 'rate-platinum' : r >= 14.5 ? 'rate-gold' : r >= 13.25 ? 'rate-silver' : r >= 12 ? 'rate-bronze' : r >= 10 ? 'rate-purple' : r >= 7 ? 'rate-red' : r >= 4 ? 'rate-orange' : 'rate-green';
+    return r >= 15.25 ? 'rate-platinum' : r >= 14.5 ? 'rate-gold' : r >= 13.25 ? 'rate-silver' : r >= 12 ? 'rate-bronze' : r >= 10 ? 'rate-purple' : r >= 7 ? 'rate-red' : r >= 4 ? 'rate-orange' : 'rate-green';
+  }
+
+  // 16.00以上はhtml2canvasでも確実に虹色になるよう1文字ずつ着色して描画
+  function renderRatingDisplay(el, total) {
+    const str = total.toFixed(3);
+    if (total >= 16.00) {
+      el.className = 'img-rval';
+      el.innerHTML = str.split('').map((ch, idx) =>
+        `<span style="color:${RAINBOW_PALETTE[idx % RAINBOW_PALETTE.length]}">${ch}</span>`
+      ).join('');
+    } else {
+      el.className = `img-rval ${rateClass(total)}`;
+      el.textContent = str;
+    }
   }
 
   function updateLive() {
@@ -524,6 +573,7 @@ document.addEventListener('DOMContentLoaded', () => {
   $('btnSave').onclick = () => {
     const title = $('inTitle').value.trim();
     if (!title) return alert('楽曲名を入力してください。');
+    pushHistory();
     const obj = {
       id: editId || 's_' + Date.now() + Math.random().toString(36).slice(2, 5),
       title, diff,
@@ -559,8 +609,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const top = best[0]?.rating || news[0]?.rating || 0;
     const maxR = total > 0 ? Math.max(total, (bSum + nSum + Math.max(0, 50 - best.length - news.length) * top) / 50) : 0;
 
-    $('vTotal').textContent = total.toFixed(3);
-    $('vTotal').className = `img-rval ${rateClass(total)}`;
+    renderRatingDisplay($('vTotal'), total);
     $('vBest').textContent = (best.length ? bSum / 30 : 0).toFixed(3);
     $('vNew').textContent = (news.length ? nSum / 20 : 0).toFixed(3);
     $('vMax').textContent = maxR.toFixed(3);
@@ -569,13 +618,30 @@ document.addEventListener('DOMContentLoaded', () => {
     $('gridNew').innerHTML = news.length ? news.map((s, i) => tileHtml(s, i + 1)).join('') : '<div class="grid-empty">新曲枠の対象曲がありません。</div>';
 
     $('regCount').textContent = all.length;
-    $('regBody').innerHTML = all.length ? all.map(s => `<tr><td>${s.isNew ? '<span class="b-mini" style="background:#e67e22">NEW</span>' : 'BEST'}</td><td style="font-weight:800">${esc(s.title)}</td><td><span class="b-mini bg-${s.diff}">${s.diff}</span></td><td>${s.const.toFixed(1)}</td><td>${s.score.toLocaleString()}</td><td>${s.lamp === 'NONE' ? '-' : s.lamp}</td><td style="font-weight:800;color:var(--green)">${s.rating.toFixed(3)}</td><td><button type="button" class="btn-sec" data-ed="${s.id}">編集</button> <button type="button" class="btn-del" data-dl="${s.id}">削除</button></td></tr>`).join('') : '<tr><td colspan="8" style="text-align:center;color:#607066;padding:18px">登録された譜面はまだありません。</td></tr>';
+    $('regBody').innerHTML = all.length ? all.map(s => `<tr>
+      <td>${s.isNew ? '<span class="b-mini" style="background:#e67e22">NEW</span>' : 'BEST'}</td>
+      <td style="font-weight:800">${esc(s.title)}</td>
+      <td><span class="b-mini bg-${s.diff}">${s.diff}</span></td>
+      <td>${s.const.toFixed(1)}</td>
+      <td>${s.score.toLocaleString()}</td>
+      <td>${s.lamp === 'NONE' ? '-' : s.lamp}</td>
+      <td style="font-weight:800;color:var(--green)">${s.rating.toFixed(3)}</td>
+      <td style="white-space:nowrap">
+        ${s.isNew ? `<button type="button" class="btn-warn" data-mv="${s.id}" style="padding:4px 8px;font-size:.72rem">BESTへ</button> ` : ''}
+        <button type="button" class="btn-sec" data-ed="${s.id}" style="padding:4px 8px;font-size:.72rem">編集</button>
+        <button type="button" class="btn-del" data-dl="${s.id}" style="padding:4px 8px;font-size:.72rem">削除</button>
+      </td>
+    </tr>`).join('') : '<tr><td colspan="8" style="text-align:center;color:#607066;padding:18px">登録された譜面はまだありません。</td></tr>';
     requestAnimationFrame(fitPreview);
   }
 
   $('regBody').onclick = e => {
-    const ed = e.target.dataset.ed, dl = e.target.dataset.dl;
-    if (ed) {
+    const ed = e.target.dataset.ed, dl = e.target.dataset.dl, mv = e.target.dataset.mv;
+    if (mv) {
+      pushHistory();
+      state.songs = state.songs.map(s => s.id === mv ? { ...s, isNew: false } : s);
+      save(); render();
+    } else if (ed) {
       const t = state.songs.find(s => s.id === ed);
       if (!t) return;
       editId = t.id; $('inTitle').value = t.title; $('inConst').value = t.const.toFixed(1); $('inScore').value = t.score;
@@ -584,13 +650,30 @@ document.addEventListener('DOMContentLoaded', () => {
       $('formTitle').textContent = `編集中：${t.title}`; $('btnSave').textContent = '変更を更新する'; $('btnReset').style.display = 'inline-block';
       updateLive(); window.scrollTo({ top: 0, behavior: 'smooth' });
     } else if (dl) {
+      pushHistory();
       state.songs = state.songs.filter(s => s.id !== dl);
       if (editId === dl) resetForm();
       save(); render();
     }
   };
 
-  $('btnClrAll').onclick = () => { if (state.songs.length && confirm('すべて削除しますか？')) { state.songs = []; resetForm(); save(); render(); } };
+  $('btnNewToBest').onclick = () => {
+    const newCount = state.songs.filter(s => s.isNew).length;
+    if (!newCount) return alert('新曲枠（NEW）に登録されている曲はありません。');
+    if (confirm(`新曲枠の ${newCount} 曲をすべてベスト枠へ移行しますか？\n（間違えた場合は「元に戻す」ボタンで復元できます）`)) {
+      pushHistory();
+      state.songs = state.songs.map(s => s.isNew ? { ...s, isNew: false } : s);
+      save(); render();
+    }
+  };
+
+  $('btnClrAll').onclick = () => {
+    if (state.songs.length && confirm('すべて削除しますか？（「元に戻す」ボタンで復元できます）')) {
+      pushHistory();
+      state.songs = []; resetForm(); save(); render();
+    }
+  };
+
   $('inPlayer').oninput = e => { state.playerName = e.target.value; save(); render(); };
   $('inCredit').oninput = e => { state.creditName = e.target.value; save(); render(); };
   $('chkLamp').onchange = e => { state.showLamp = e.target.checked; save(); render(); };
@@ -599,12 +682,12 @@ document.addEventListener('DOMContentLoaded', () => {
     const btn = $('btnPng'), cap = $('captureArea'), prev = cap.style.transform;
     btn.textContent = '生成中...'; btn.disabled = true;
     try {
-      cap.style.transform = 'none'; cap.classList.add('capturing');
+      cap.style.transform = 'none';
       const url = (await html2canvas(cap, { scale: 2, useCORS: true, backgroundColor: '#e4f1d8' })).toDataURL('image/png');
       $('imgPrev').src = url; $('imgModal').style.display = 'block';
       const a = document.createElement('a'); a.download = `chunithm_rating_${Date.now()}.png`; a.href = url; a.click();
     } catch (e) { alert('画像生成失敗: ' + e.message); }
-    finally { cap.classList.remove('capturing'); cap.style.transform = prev; fitPreview(); btn.textContent = '選択した画像をPNGで保存'; btn.disabled = false; }
+    finally { cap.style.transform = prev; fitPreview(); btn.textContent = '選択した画像をPNGで保存'; btn.disabled = false; }
   };
 
   $('btnCloseModal').onclick = () => $('imgModal').style.display = 'none';
@@ -621,6 +704,7 @@ document.addEventListener('DOMContentLoaded', () => {
       try {
         const p = JSON.parse(ev.target.result);
         if (Array.isArray(p.songs)) {
+          pushHistory();
           state = { playerName: p.playerName || '', creditName: p.creditName || 'CHUNITHM', showLamp: p.showLamp !== false, songs: p.songs };
           $('inPlayer').value = state.playerName; $('inCredit').value = state.creditName; $('chkLamp').checked = state.showLamp;
           save(); render(); alert('読み込みました！');
@@ -635,7 +719,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (Array.isArray(p?.songs)) state = { playerName: p.playerName || '', creditName: p.creditName || 'CHUNITHM', showLamp: p.showLamp !== false, songs: p.songs };
   } catch {}
   $('inPlayer').value = state.playerName; $('inCredit').value = state.creditName; $('chkLamp').checked = state.showLamp;
-  updateLive(); render(); loadDB();
+  updateLive(); updateUndoBtns(); render(); loadDB();
 });
 </script>
 </body>
