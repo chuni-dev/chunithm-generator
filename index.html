@@ -220,7 +220,7 @@ input:focus{outline:none;border-color:var(--g);box-shadow:0 0 0 3px rgba(34,122,
   <section class="pnl">
     <div class="pnl-t">
       <span>譜面定数別 平均スコア統計</span>
-      <span style="font-size:.76rem;color:#52665a;font-weight:700" id="statMeta">対象対象：対象枠（BEST30＋NEW20）</span>
+      <span style="font-size:.76rem;color:#52665a;font-weight:700" id="statMeta">集計対象：対象枠（BEST30＋NEW20）</span>
     </div>
     <div class="btns" style="margin-bottom:10px" id="statScope">
       <button type="button" class="cb on" data-sc="top">対象枠のみ（BEST30＋NEW20）</button>
@@ -260,7 +260,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const norm = s => String(s||'').toLowerCase().replace(/[！-～]/g, c => String.fromCharCode(c.charCodeAt(0)-0xFEE0)).replace(/[’'“”"・･\-‐‑–—―〜~：:！!？?（）()［］\[\]\s]/g,'');
 
   $('dGrp').innerHTML = DIFFS.map(d => `<button type="button" class="cb${d==='MASTER'?' on':''}" data-d="${d}">${d}</button>`).join('');
-  $('lGrp').innerHTML = [['NONE','なし'],['FC','FULL COMBO'],['AJ','ALL JUSTICE'],['AJC','AJ CRITICAL']].map(([k,v],i) => `<button type="button" class="cb${!i?' on':''}" data-l="${k}">${v}</button>`).join('');
+  $('lGrp').innerHTML = [['NONE','なし'],['FC','FULL COMBO'],['AJ','ALL JUSTICE'],['AJC','AJC']].map(([k,v],i) => `<button type="button" class="cb${!i?' on':''}" data-l="${k}">${v}</button>`).join('');
   $('sAdj').innerHTML = [-1000,-100,-10,-1,1,10,100,1000].map(n => `<button type="button" class="adj" data-sd="${n}">${n>0?'+'+n:n}</button>`).join('');
   $('sPre').innerHTML = [['理論値',1010000],['SSS+',1009000],['SSS',1007500],['SS+',1005000],['SS',1000000],['S+',990000],['S',975000]].map(([l,v]) => `<button type="button" class="adj pre" data-ss="${v}">${l}</button>`).join('');
 
@@ -477,7 +477,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
   document.onclick = e => { if (!e.target.closest('#inT') && !e.target.closest('#ac')) $('ac').style.display = 'none'; };
   document.querySelectorAll('[data-sd]').forEach(b => b.onclick = () => { $('inS').value = Math.max(0, Math.min(1010000, (+$('inS').value||0) + +b.dataset.sd)); live(); });
-  document.querySelectorAll('[data-ss]').forEach(b => b.onclick = () => { $('inS').value = +b.dataset.ss; live(); });
+  document.querySelectorAll('[data-ss]').forEach(b => b.onclick = () => {
+    const val = +b.dataset.ss;
+    $('inS').value = val;
+    if (val === 1010000) setL('AJC');
+    live();
+  });
   document.querySelectorAll('[data-cd]').forEach(b => b.onclick = () => { $('inC').value = Math.max(1, Math.min(16, Math.round(((+$('inC').value||1) + +b.dataset.cd)*10)/10)).toFixed(1); live(); });
   $('dGrp').onclick = e => e.target.dataset.d && setD(e.target.dataset.d);
   $('lGrp').onclick = e => e.target.dataset.l && setL(e.target.dataset.l);
