@@ -39,9 +39,10 @@ input:focus{outline:none;border-color:var(--g);box-shadow:0 0 0 3px rgba(34,122,
 .ac-i{padding:8px 10px;border-bottom:1px solid #edf2ef;cursor:pointer;display:flex;align-items:center;gap:10px}
 .ac-i:hover{background:#eef7f1}
 .ac-th{width:42px;height:42px;border-radius:4px;object-fit:cover;background:#2b2e2c;flex-shrink:0}
-.ac-tt{font-size:.85rem;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ac-tt{font-size:.85rem;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:flex;align-items:center;gap:5px}
 .ac-c,.bm{padding:2px 6px;border-radius:4px;color:#fff;font-size:.7rem;font-weight:800;display:inline-block}
 .ac-c{margin:2px 4px 0 0}
+.b-new{background:#e67e22;color:#fff;font-size:.65rem;font-weight:900;padding:1px 5px;border-radius:4px;flex-shrink:0}
 .th-sm{width:52px;height:52px;border-radius:6px;object-fit:cover;border:1px solid #c5d1c9;display:none;background:#2b2e2c}
 .btns{display:flex;flex-wrap:wrap;gap:6px}
 .cb{padding:7px 11px;border-radius:7px;border:1.5px solid #cbd6cf;background:#f8faf9;color:#44544a;font-size:.78rem;font-weight:800;cursor:pointer}
@@ -221,7 +222,7 @@ input:focus{outline:none;border-color:var(--g);box-shadow:0 0 0 3px rgba(34,122,
     <div class="grid">
       <div class="col">
         <div class="fg">
-          <label class="lbl">楽曲名（文字入力で候補から定数＆ジャケット自動入力） *</label>
+          <label class="lbl">楽曲名（文字入力で候補から定数・新曲枠・ジャケット自動入力） *</label>
           <input type="text" id="inT" autocomplete="off" placeholder="例: Titania / 混沌を越えし / 祈" />
           <div class="ac" id="ac"></div>
         </div>
@@ -606,23 +607,58 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const songMap = new Map();
     const metaList = Array.isArray(metaData?.songs) ? metaData.songs : Array.isArray(metaData) ? metaData : [];
+
+    // 1. メタデータDB内の最新バージョン（配列末尾のバージョン名）を自動特定
+    const versionsList = Array.isArray(metaData?.versions)
+      ? metaData.versions.map(v => typeof v === 'string' ? v : (v.version || v.name || '')).filter(Boolean)
+      : [];
+    const seenVersions = [];
+    metaList.forEach(s => {
+      const v = String(s.version || '').trim();
+      if (v && !seenVersions.includes(v)) seenVersions.push(v);
+    });
+    const latestVersion = versionsList.length
+      ? versionsList[versionsList.length - 1]
+      : (seenVersions.length ? seenVersions[seenVersions.length - 1] : '');
+
     metaList.forEach(s => {
       const t = s.title || s.name; if (!t) return;
       const ch = {};
+      let sheetIsNew = false;
       (s.sheets || []).forEach(sh => {
         const d = DMAP[String(sh.difficulty || sh.diff || '').toLowerCase()];
         const raw = String(sh.internalLevelValue ?? sh.internalLevel ?? sh.levelValue ?? sh.level ?? '').trim();
         const v = raw.endsWith('+') ? parseFloat(raw) + .5 : parseFloat(raw);
         if (d && v > 0) ch[d] = v;
+        if (sh.isNew) sheetIsNew = true;
       });
+      const ver = String(s.version || '').trim();
+      const isLatestVer = !!(latestVersion && ver && ver === latestVersion);
       const im = s.imageName || s.image || '';
       const img = im ? (im.startsWith('http') ? im : `https://dp4p6x0xfi5o9.cloudfront.net/chunithm/img/cover/${im}`) : '';
       const key = norm(t);
-      if (!songMap.has(key)) songMap.set(key, { t, ch, isNew: !!s.isNew, img });
+      if (!songMap.has(key)) {
+        songMap.set(key, {
+          t,
+          ch,
+          ver,
+          isNew: !!(s.isNew || sheetIsNew || isLatestVer),
+          img
+        });
+      }
     });
 
+    // 2. reiwaAll の最新定数＆バージョン情報で補完
     let latestCount = 0;
+    const reiwaVersions = [];
     if (Array.isArray(reiwaAll)) {
+      reiwaAll.forEach(item => {
+        const meta = item.meta || item;
+        const v = String(meta.version || meta.ver || '').trim();
+        if (v && !reiwaVersions.includes(v)) reiwaVersions.push(v);
+      });
+      const latestReiwaVer = reiwaVersions.length ? reiwaVersions[reiwaVersions.length - 1] : '';
+
       reiwaAll.forEach(item => {
         const meta = item.meta || item;
         const t = meta.title || meta.name;
@@ -638,15 +674,21 @@ document.addEventListener('DOMContentLoaded', () => {
         latestCount++;
         const key = norm(t);
         const prev = songMap.get(key);
+        const rVer = String(meta.version || meta.ver || '').trim();
+        const isLatestReiwa = !!(latestReiwaVer && rVer && rVer === latestReiwaVer);
+        const isNewFlag = !!(prev?.isNew || meta.isNew || meta.new || isLatestReiwa);
+
         songMap.set(key, {
           t: prev?.t || t,
           ch: { ...(prev?.ch || {}), ...ch },
-          isNew: prev?.isNew || false,
+          ver: prev?.ver || rVer,
+          isNew: isNewFlag,
           img: prev?.img || ''
         });
       });
     }
 
+    // 3. reiwaRec で最新定数・新曲フラグを補完
     if (Array.isArray(reiwaRec)) {
       reiwaRec.forEach(rec => {
         const t = rec.title || rec.name;
@@ -655,8 +697,9 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!t || !d || !(v > 0 && v <= 16.5)) return;
         latestCount++;
         const key = norm(t);
-        const prev = songMap.get(key) || { t, ch: {}, isNew: false, img: '' };
+        const prev = songMap.get(key) || { t, ch: {}, ver: '', isNew: false, img: '' };
         prev.ch[d] = v;
+        if (rec.isNew || rec.new) prev.isNew = true;
         songMap.set(key, prev);
       });
     }
@@ -703,7 +746,8 @@ document.addEventListener('DOMContentLoaded', () => {
     el.innerHTML = m.map((s, i) => {
       const cs = DIFFS.filter(d => s.ch[d] !== undefined).map(d => `<span class="ac-c" data-pd="${d}" style="background:${DBG[d]}">${d.slice(0,3)} ${s.ch[d].toFixed(1)}</span>`).join('');
       const th = s.img ? `<img class="ac-th" src="${s.img}" onerror="this.style.visibility='hidden'" />` : `<div class="ac-th"></div>`;
-      return `<div class="ac-i" data-i="${i}">${th}<div style="min-width:0;flex:1"><div class="ac-tt">${esc(s.t)}</div><div>${cs || '<span style="font-size:.7rem;color:#888">定数なし</span>'}</div></div></div>`;
+      const nb = s.isNew ? `<span class="b-new">NEW</span>` : '';
+      return `<div class="ac-i" data-i="${i}">${th}<div style="min-width:0;flex:1"><div class="ac-tt">${nb}<span style="overflow:hidden;text-overflow:ellipsis">${esc(s.t)}</span></div><div>${cs || '<span style="font-size:.7rem;color:#888">定数なし</span>'}</div></div></div>`;
     }).join('');
     el.style.display = 'block';
   };
