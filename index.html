@@ -238,6 +238,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const esc = s => String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
   const norm = s => String(s||'').toLowerCase().replace(/[！-～]/g, c => String.fromCharCode(c.charCodeAt(0)-0xFEE0)).replace(/\s+/g,'');
 
+  // UIボタン群の動的生成
   $('dGrp').innerHTML = DIFFS.map(d => `<button type="button" class="cb${d==='MASTER'?' on':''}" data-d="${d}">${d}</button>`).join('');
   $('lGrp').innerHTML = [['NONE','なし'],['FC','FULL COMBO'],['AJ','ALL JUSTICE'],['AJC','AJ CRITICAL']].map(([k,v],i) => `<button type="button" class="cb${!i?' on':''}" data-l="${k}">${v}</button>`).join('');
   $('sAdj').innerHTML = [-1000,-100,-10,-1,1,10,100,1000].map(n => `<button type="button" class="adj" data-sd="${n}">${n>0?'+'+n:n}</button>`).join('');
@@ -310,89 +311,27 @@ document.addEventListener('DOMContentLoaded', () => {
     return url;
   }
 
-  async function fetchJson(urls) {
-    for (const u of urls) {
+  async function loadDB() {
+    for (const u of ['https://dp4p6x0xfi5o9.cloudfront.net/chunithm/data.json','https://cdn.jsdelivr.net/gh/zetaraku/arcade-songs-fetch@master/data/chunithm/songs.json']) {
       try {
-        const r = await fetch(u);
-        if (r.ok) return await r.json();
+        const res = await fetch(u); if (!res.ok) continue;
+        const j = await res.json(), arr = Array.isArray(j?.songs) ? j.songs : Array.isArray(j) ? j : [];
+        const p = arr.map(s => {
+          const t = s.title || s.name; if (!t) return null;
+          const ch = {};
+          (s.sheets || []).forEach(sh => {
+            const d = DMAP[String(sh.difficulty || sh.diff || '').toLowerCase()];
+            const raw = String(sh.internalLevelValue ?? sh.internalLevel ?? sh.levelValue ?? sh.level ?? '').trim();
+            const v = raw.endsWith('+') ? parseFloat(raw) + .5 : parseFloat(raw);
+            if (d && v > 0) ch[d] = v;
+          });
+          const im = s.imageName || s.image || '';
+          return { t, ch, isNew: !!s.isNew, img: im ? (im.startsWith('http') ? im : `https://dp4p6x0xfi5o9.cloudfront.net/chunithm/img/cover/${im}`) : '' };
+        }).filter(Boolean);
+        if (p.length > 50) { db = p; $('dbB').textContent = `楽曲DB読込済 (${db.length}曲)`; $('dbB').classList.add('ok'); return; }
       } catch {}
     }
-    return null;
-  }
-
-  // 最新定数DB（reiwa.f5.si等）を優先しつつ、ジャケット画像と新曲情報をarcade-songs CDNから自動補完
-  async function loadDB() {
-    const [latestData, metaData] = await Promise.all([
-      fetchJson([
-        'https://reiwa.f5.si/chunithm_record.json',
-        'https://api.allorigins.win/raw?url=' + encodeURIComponent('https://reiwa.f5.si/chunithm_record.json')
-      ]),
-      fetchJson([
-        'https://dp4p6x0xfi5o9.cloudfront.net/chunithm/data.json',
-        'https://cdn.jsdelivr.net/gh/zetaraku/arcade-songs-fetch@master/data/chunithm/songs.json'
-      ])
-    ]);
-
-    const songMap = new Map();
-
-    // 1. まずジャケット＆ベース情報を登録
-    const metaList = Array.isArray(metaData?.songs) ? metaData.songs : Array.isArray(metaData) ? metaData : [];
-    metaList.forEach(s => {
-      const t = s.title || s.name; if (!t) return;
-      const ch = {};
-      (s.sheets || []).forEach(sh => {
-        const d = DMAP[String(sh.difficulty || sh.diff || '').toLowerCase()];
-        const raw = String(sh.internalLevelValue ?? sh.internalLevel ?? sh.levelValue ?? sh.level ?? '').trim();
-        const v = raw.endsWith('+') ? parseFloat(raw) + .5 : parseFloat(raw);
-        if (d && v > 0) ch[d] = v;
-      });
-      const im = s.imageName || s.image || '';
-      const img = im ? (im.startsWith('http') ? im : `https://dp4p6x0xfi5o9.cloudfront.net/chunithm/img/cover/${im}`) : '';
-      const key = norm(t);
-      if (!songMap.has(key)) songMap.set(key, { t, ch, isNew: !!s.isNew, img });
-    });
-
-    // 2. 最新定数DBで定数・新曲フラグを上書き優先（ジャケットは既存マップから自動補完）
-    const latestList = Array.isArray(latestData) ? latestData : Array.isArray(latestData?.songs) ? latestData.songs : [];
-    let hasLatest = false;
-    latestList.forEach(s => {
-      const t = s.title || s.name; if (!t) return;
-      const ch = {};
-      if (s.const && typeof s.const === 'object') {
-        Object.entries(s.const).forEach(([k, val]) => {
-          const d = DMAP[k.toLowerCase()];
-          const v = parseFloat(val);
-          if (d && v > 0) ch[d] = v;
-        });
-      } else if (Array.isArray(s.sheets)) {
-        s.sheets.forEach(sh => {
-          const d = DMAP[String(sh.difficulty || '').toLowerCase()];
-          const v = parseFloat(sh.internalLevelValue ?? sh.internalLevel ?? sh.const);
-          if (d && v > 0) ch[d] = v;
-        });
-      }
-      if (!Object.keys(ch).length) return;
-      hasLatest = true;
-      const key = norm(t);
-      const prev = songMap.get(key);
-      const im = s.imageName || s.image || '';
-      const fallbackImg = im ? (im.startsWith('http') ? im : `https://new.chunithm-net.com/chuni-mobile/html/mobile/img/${im}`) : '';
-      songMap.set(key, {
-        t: prev?.t || t,
-        ch: { ...(prev?.ch || {}), ...ch },
-        isNew: s.isNew !== undefined ? !!s.isNew : (prev?.isNew || false),
-        img: prev?.img || fallbackImg
-      });
-    });
-
-    db = Array.from(songMap.values());
-    if (db.length > 50) {
-      $('dbB').textContent = hasLatest ? `最新定数DB適用済 (${db.length}曲)` : `楽曲DB読込済 (${db.length}曲)`;
-      $('dbB').classList.add('ok');
-    } else {
-      $('dbB').textContent = 'DB接続失敗（手動入力可）';
-      $('dbB').classList.add('err');
-    }
+    $('dbB').textContent = 'DB接続失敗（手動入力可）'; $('dbB').classList.add('err');
   }
 
   $('inT').oninput = () => {
@@ -415,7 +354,7 @@ document.addEventListener('DOMContentLoaded', () => {
     sel = s; $('inT').value = s.t; $('ac').style.display = 'none';
     const td = (pd && s.ch[pd] !== undefined) ? pd : (s.ch[diff] !== undefined ? diff : ['MASTER','ULTIMA','EXPERT','ADVANCED','BASIC'].find(d => s.ch[d] !== undefined));
     if (td) { setD(td); $('inC').value = s.ch[td].toFixed(1); }
-    $('inN').checked = !!s.isNew;
+    if (s.isNew) $('inN').checked = true;
     live();
     if (s.img) { jkt = s.img; setTh(s.img); const du = await toData(s.img); if (du) { jkt = du; setTh(du, s.img); } }
   };
