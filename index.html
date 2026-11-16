@@ -49,9 +49,10 @@ input:focus{outline:none;border-color:var(--g);box-shadow:0 0 0 3px rgba(34,122,
 .cbox{display:flex;align-items:center;justify-content:space-between;background:#1e2d24;color:#fff;padding:10px 14px;border-radius:8px;margin-top:4px}
 .cval{font-family:'Oswald',sans-serif;font-size:1.35rem;font-weight:700;color:#ffeaa7}
 .bp{width:100%;padding:12px;background:var(--g);color:#fff;border:none;border-radius:9px;font-size:.98rem;font-weight:800;cursor:pointer}
-.bs,.bw,.bd{padding:7px 12px;border-radius:7px;font-size:.78rem;font-weight:700;cursor:pointer}
+.bs,.bw,.bd,.bi{padding:7px 12px;border-radius:7px;font-size:.78rem;font-weight:700;cursor:pointer}
 .bs{background:#fff;color:#2d4236;border:1px solid #c2d1c8}.bs:disabled{opacity:.45;cursor:not-allowed}
 .bw{background:#fff8eb;color:#b45309;border:1px solid #fcd34d;font-weight:800}
+.bi{background:#eff6ff;color:#1d4ed8;border:1px solid #bfdbfe;font-weight:800}
 .bd{background:#fff5f5;color:#c0392b;border:1px solid #f5c6cb}
 .bpng{background:#237a4b;color:#fff;border:none;border-radius:10px;padding:13px 32px;font-size:1.05rem;font-weight:800;cursor:pointer;box-shadow:0 4px 12px rgba(35,122,75,.3)}
 #mod{display:none;margin-top:12px;padding:14px;background:#eef6f1;border:2px solid #237a4b;border-radius:10px;text-align:center;width:100%}
@@ -214,6 +215,7 @@ input:focus{outline:none;border-color:var(--g);box-shadow:0 0 0 3px rgba(34,122,
       <span>登録済みの譜面（<span id="rCnt">0</span>件）</span>
       <div class="btns">
         <button type="button" class="bs" id="uBtn" disabled>↩ 元に戻す</button>
+        <button type="button" class="bi" id="bSync">登録曲の定数を最新DBで更新</button>
         <button type="button" class="bw" id="bN2B">新曲枠 → ベスト枠へ移行</button>
         <button type="button" class="bd" id="bClr">すべて削除</button>
       </div>
@@ -243,7 +245,7 @@ document.addEventListener('DOMContentLoaded', () => {
   $('sAdj').innerHTML = [-1000,-100,-10,-1,1,10,100,1000].map(n => `<button type="button" class="adj" data-sd="${n}">${n>0?'+'+n:n}</button>`).join('');
   $('sPre').innerHTML = [['理論値',1010000],['SSS+',1009000],['SSS',1007500],['SS+',1005000],['SS',1000000],['S+',990000],['S',975000]].map(([l,v]) => `<button type="button" class="adj pre" data-ss="${v}">${l}</button>`).join('');
 
-  let db = [], sel = null, edId = null, diff = 'MASTER', lamp = 'NONE', jkt = '', hist = [];
+  let db = [], dbMap = new Map(), sel = null, edId = null, diff = 'MASTER', lamp = 'NONE', jkt = '', hist = [];
   let st = { playerName:'', creditName:'CHUNITHM', showLamp:true, songs:[] };
 
   const save = () => { try { localStorage.setItem(KEY, JSON.stringify(st)); } catch {} };
@@ -313,18 +315,45 @@ document.addEventListener('DOMContentLoaded', () => {
   async function fetchJson(urls) {
     for (const u of urls) {
       try {
-        const r = await fetch(u);
+        const r = await fetch(u, { cache: 'no-store' });
         if (r.ok) return await r.json();
       } catch {}
     }
     return null;
   }
 
+  function extractCharts(item) {
+    const ch = {};
+    if (Array.isArray(item.sheets)) {
+      item.sheets.forEach(sh => {
+        const d = DMAP[String(sh.difficulty || sh.diff || '').toLowerCase()];
+        const raw = String(sh.internalLevelValue ?? sh.internalLevel ?? sh.levelValue ?? sh.level ?? '').trim();
+        const v = raw.endsWith('+') ? parseFloat(raw) + .5 : parseFloat(raw);
+        if (d && v > 0) ch[d] = v;
+      });
+    }
+    const objSrc = item.const || item.charts || item.levels || item;
+    if (objSrc && typeof objSrc === 'object') {
+      Object.entries(objSrc).forEach(([k, val]) => {
+        const d = DMAP[k.toLowerCase()];
+        if (!d) return;
+        const v = typeof val === 'object' ? parseFloat(val.const ?? val.internalLevel ?? val.level) : parseFloat(val);
+        if (v > 0 && v <= 16.5) ch[d] = v;
+      });
+    }
+    return ch;
+  }
+
   async function loadDB() {
-    const [latestData, metaData] = await Promise.all([
+    const [latestA, latestB, metaData] = await Promise.all([
       fetchJson([
         'https://reiwa.f5.si/chunithm_record.json',
+        'https://corsproxy.io/?' + encodeURIComponent('https://reiwa.f5.si/chunithm_record.json'),
         'https://api.allorigins.win/raw?url=' + encodeURIComponent('https://reiwa.f5.si/chunithm_record.json')
+      ]),
+      fetchJson([
+        'https://chunirec.net/api/2.0/music/showall.json?region=jp2&token=public',
+        'https://raw.githubusercontent.com/esterTion/chunithm-wiki-json/master/music.json'
       ]),
       fetchJson([
         'https://dp4p6x0xfi5o9.cloudfront.net/chunithm/data.json',
@@ -337,60 +366,77 @@ document.addEventListener('DOMContentLoaded', () => {
     const metaList = Array.isArray(metaData?.songs) ? metaData.songs : Array.isArray(metaData) ? metaData : [];
     metaList.forEach(s => {
       const t = s.title || s.name; if (!t) return;
-      const ch = {};
-      (s.sheets || []).forEach(sh => {
-        const d = DMAP[String(sh.difficulty || sh.diff || '').toLowerCase()];
-        const raw = String(sh.internalLevelValue ?? sh.internalLevel ?? sh.levelValue ?? sh.level ?? '').trim();
-        const v = raw.endsWith('+') ? parseFloat(raw) + .5 : parseFloat(raw);
-        if (d && v > 0) ch[d] = v;
-      });
+      const ch = extractCharts(s);
       const im = s.imageName || s.image || '';
       const img = im ? (im.startsWith('http') ? im : `https://dp4p6x0xfi5o9.cloudfront.net/chunithm/img/cover/${im}`) : '';
       const key = norm(t);
       if (!songMap.has(key)) songMap.set(key, { t, ch, isNew: !!s.isNew, img });
     });
 
-    const latestList = Array.isArray(latestData) ? latestData : Array.isArray(latestData?.songs) ? latestData.songs : [];
     let hasLatest = false;
-    latestList.forEach(s => {
-      const t = s.title || s.name; if (!t) return;
-      const ch = {};
-      if (s.const && typeof s.const === 'object') {
-        Object.entries(s.const).forEach(([k, val]) => {
-          const d = DMAP[k.toLowerCase()];
-          const v = parseFloat(val);
-          if (d && v > 0) ch[d] = v;
-        });
-      } else if (Array.isArray(s.sheets)) {
-        s.sheets.forEach(sh => {
-          const d = DMAP[String(sh.difficulty || '').toLowerCase()];
-          const v = parseFloat(sh.internalLevelValue ?? sh.internalLevel ?? sh.const);
-          if (d && v > 0) ch[d] = v;
-        });
-      }
-      if (!Object.keys(ch).length) return;
-      hasLatest = true;
-      const key = norm(t);
-      const prev = songMap.get(key);
-      const im = s.imageName || s.image || '';
-      const fallbackImg = im ? (im.startsWith('http') ? im : `https://new.chunithm-net.com/chuni-mobile/html/mobile/img/${im}`) : '';
-      songMap.set(key, {
-        t: prev?.t || t,
-        ch: { ...(prev?.ch || {}), ...ch },
-        isNew: s.isNew !== undefined ? !!s.isNew : (prev?.isNew || false),
-        img: prev?.img || fallbackImg
-      });
-    });
+    const applyLatest = raw => {
+      if (!raw) return;
+      const entries = Array.isArray(raw)
+        ? raw.map(s => [s.title || s.name, s])
+        : Array.isArray(raw.songs)
+          ? raw.songs.map(s => [s.title || s.name, s])
+          : typeof raw === 'object'
+            ? Object.entries(raw)
+            : [];
 
+      entries.forEach(([t, s]) => {
+        if (!t || !s || typeof s !== 'object') return;
+        const ch = extractCharts(s);
+        if (!Object.keys(ch).length) return;
+        hasLatest = true;
+        const key = norm(t);
+        const prev = songMap.get(key);
+        const im = s.imageName || s.image || '';
+        const fallbackImg = im ? (im.startsWith('http') ? im : `https://new.chunithm-net.com/chuni-mobile/html/mobile/img/${im}`) : '';
+        songMap.set(key, {
+          t: prev?.t || t,
+          ch: { ...(prev?.ch || {}), ...ch },
+          isNew: s.isNew !== undefined ? !!s.isNew : (prev?.isNew || false),
+          img: prev?.img || fallbackImg
+        });
+      });
+    };
+
+    applyLatest(latestB);
+    applyLatest(latestA);
+
+    dbMap = songMap;
     db = Array.from(songMap.values());
     if (db.length > 50) {
-      $('dbB').textContent = hasLatest ? `最新定数DB適用済 (${db.length}曲)` : `楽曲DB読込済 (${db.length}曲)`;
+      $('dbB').textContent = hasLatest ? `最新定数DB適用済 (${db.length}曲)` : `標準DB読込済 (${db.length}曲)`;
       $('dbB').classList.add('ok');
     } else {
       $('dbB').textContent = 'DB接続失敗（手動入力可）';
       $('dbB').classList.add('err');
     }
   }
+
+  $('bSync').onclick = () => {
+    if (!st.songs.length) return alert('登録済みの譜面がありません。');
+    if (!dbMap.size) return alert('楽曲DBが読み込まれていません。');
+    let updated = 0;
+    const next = st.songs.map(s => {
+      const m = dbMap.get(norm(s.title));
+      const newC = m?.ch?.[s.diff];
+      if (newC && Math.abs(newC - s.const) > 0.001) {
+        updated++;
+        return { ...s, const: newC };
+      }
+      return s;
+    });
+    if (!updated) return alert('すべての登録曲はすでに最新の定数と一致しています。');
+    if (confirm(`${updated} 曲の譜面定数を最新DBの値に更新しますか？`)) {
+      pushH();
+      st.songs = next;
+      save();
+      render();
+    }
+  };
 
   $('inT').oninput = () => {
     const q = norm($('inT').value), el = $('ac');
