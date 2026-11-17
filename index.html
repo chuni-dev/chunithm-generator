@@ -588,23 +588,6 @@ document.addEventListener('DOMContentLoaded', () => {
     return null;
   }
 
-  // バージョン順ランク（新しいバージョンほど大きい数値になる）
-  const VER_ORDER = [
-    'chuni', 'plus', 'air', 'star', 'amazon', 'crystal', 'paradise',
-    'new', 'sun', 'luminous', 'verse', 'x-verse', 'xverse'
-  ];
-  function getVerScore(v) {
-    const s = norm(v);
-    if (!s) return -1;
-    let base = -1;
-    VER_ORDER.forEach((kw, idx) => {
-      if (s.includes(kw)) base = idx * 10;
-    });
-    if (base >= 0 && (s.includes('plus') || s.includes('+'))) base += 5;
-    if (s.includes('xverse') || s.includes('x-verse')) base = 130 + (s.includes('plus') || s.includes('+') ? 5 : 0);
-    return base;
-  }
-
   async function loadDB() {
     const [reiwaRec, reiwaAll, metaData] = await Promise.all([
       fetchJson([
@@ -625,27 +608,42 @@ document.addEventListener('DOMContentLoaded', () => {
     const songMap = new Map();
     const metaList = Array.isArray(metaData?.songs) ? metaData.songs : Array.isArray(metaData) ? metaData : [];
 
-    // 全楽曲のリリース日とバージョンスコアの最大値を調査
-    let maxDateMs = 0;
-    let maxVerScore = -1;
-    let latestVerName = '';
-
+    // 1. metaData.versions の末尾または全曲中のユニークなバージョン登場順の最後を「現行バージョン」に決定
+    const verDefs = Array.isArray(metaData?.versions)
+      ? metaData.versions.map(v => typeof v === 'string' ? v : (v.version || v.name || '')).filter(Boolean)
+      : [];
+    const seenVersNorm = [];
+    const seenVersRaw = [];
     metaList.forEach(s => {
-      const v = String(s.version || '').trim();
-      const vs = getVerScore(v);
-      if (vs > maxVerScore) { maxVerScore = vs; latestVerName = v; }
-      const rd = s.releaseDate || s.sheets?.[0]?.releaseDate || '';
-      if (rd) {
-        const ms = Date.parse(rd);
-        if (!isNaN(ms) && ms > maxDateMs) maxDateMs = ms;
+      const raw = String(s.version || '').trim();
+      const nv = norm(raw);
+      if (nv && !seenVersNorm.includes(nv)) {
+        seenVersNorm.push(nv);
+        seenVersRaw.push(raw);
       }
     });
 
-    // 最新リリース日から約190日（約半年）以内を新曲期間として扱う
-    const newCutoffMs = maxDateMs > 0 ? maxDateMs - 190 * 24 * 60 * 60 * 1000 : 0;
+    const currentVerRaw = verDefs.length ? verDefs[verDefs.length - 1] : (seenVersRaw.length ? seenVersRaw[seenVersRaw.length - 1] : '');
+    const currentVerNorm = norm(currentVerRaw);
+
+    // 2. カテゴリー別配列構造に対応：各カテゴリー内で「現行バージョンが始まった位置」より後ろをすべてNEWとする
+    let currentCat = null;
+    let inNewBlock = false;
 
     metaList.forEach(s => {
       const t = s.title || s.name; if (!t) return;
+      const cat = String(s.category || '');
+      if (cat !== currentCat) {
+        currentCat = cat;
+        inNewBlock = false;
+      }
+
+      const ver = String(s.version || '').trim();
+      const nv = norm(ver);
+      if (currentVerNorm && nv === currentVerNorm) {
+        inNewBlock = true;
+      }
+
       const ch = {};
       let sheetIsNew = false;
       (s.sheets || []).forEach(sh => {
@@ -655,13 +653,6 @@ document.addEventListener('DOMContentLoaded', () => {
         if (d && v > 0) ch[d] = v;
         if (sh.isNew) sheetIsNew = true;
       });
-      const ver = String(s.version || '').trim();
-      const vs = getVerScore(ver);
-      const isLatestVer = maxVerScore > 0 && vs === maxVerScore;
-
-      const rd = s.releaseDate || s.sheets?.[0]?.releaseDate || '';
-      const ms = rd ? Date.parse(rd) : NaN;
-      const isRecentDate = !isNaN(ms) && newCutoffMs > 0 && ms >= newCutoffMs;
 
       const im = s.imageName || s.image || '';
       const img = im ? (im.startsWith('http') ? im : `https://dp4p6x0xfi5o9.cloudfront.net/chunithm/img/cover/${im}`) : '';
@@ -671,21 +662,22 @@ document.addEventListener('DOMContentLoaded', () => {
           t,
           ch,
           ver,
-          isNew: !!(s.isNew || sheetIsNew || isLatestVer || isRecentDate),
+          isNew: !!(s.isNew || sheetIsNew || inNewBlock || (currentVerNorm && nv === currentVerNorm)),
           img
         });
       }
     });
 
-    // reiwaAll からもバージョン情報と最新定数を統合
+    // 3. reiwaAll の最新定数＆バージョン情報で補完
     let latestCount = 0;
     if (Array.isArray(reiwaAll)) {
+      const rVersNorm = [];
       reiwaAll.forEach(item => {
         const meta = item.meta || item;
-        const v = String(meta.version || meta.ver || '').trim();
-        const vs = getVerScore(v);
-        if (vs > maxVerScore) { maxVerScore = vs; latestVerName = v; }
+        const nv = norm(meta.version || meta.ver || '');
+        if (nv && !rVersNorm.includes(nv)) rVersNorm.push(nv);
       });
+      const latestReiwaNorm = rVersNorm.length ? rVersNorm[rVersNorm.length - 1] : '';
 
       reiwaAll.forEach(item => {
         const meta = item.meta || item;
@@ -703,9 +695,12 @@ document.addEventListener('DOMContentLoaded', () => {
         const key = norm(t);
         const prev = songMap.get(key);
         const rVer = String(meta.version || meta.ver || '').trim();
-        const rVs = getVerScore(rVer);
-        const isLatestReiwa = maxVerScore > 0 && rVs === maxVerScore;
-        const isNewFlag = !!(prev?.isNew || meta.isNew || meta.new || isLatestReiwa);
+        const rNv = norm(rVer);
+        const isReiwaNew = !!(
+          (currentVerNorm && rNv === currentVerNorm) ||
+          (latestReiwaNorm && rNv === latestReiwaNorm)
+        );
+        const isNewFlag = !!(prev?.isNew || meta.isNew || meta.new || isReiwaNew);
 
         songMap.set(key, {
           t: prev?.t || t,
@@ -717,6 +712,7 @@ document.addEventListener('DOMContentLoaded', () => {
       });
     }
 
+    // 4. reiwaRec で最新定数・新曲フラグを補完
     if (Array.isArray(reiwaRec)) {
       reiwaRec.forEach(rec => {
         const t = rec.title || rec.name;
@@ -727,8 +723,8 @@ document.addEventListener('DOMContentLoaded', () => {
         const key = norm(t);
         const prev = songMap.get(key) || { t, ch: {}, ver: '', isNew: false, img: '' };
         prev.ch[d] = v;
-        const recVs = getVerScore(rec.version || rec.ver || '');
-        if (rec.isNew || rec.new || (maxVerScore > 0 && recVs === maxVerScore)) prev.isNew = true;
+        const rNv = norm(rec.version || rec.ver || '');
+        if (rec.isNew || rec.new || (currentVerNorm && rNv === currentVerNorm)) prev.isNew = true;
         songMap.set(key, prev);
       });
     }
@@ -737,7 +733,9 @@ document.addEventListener('DOMContentLoaded', () => {
     db = Array.from(songMap.values());
     const newCount = db.filter(x => x.isNew).length;
     if (db.length > 50) {
-      $('dbB').textContent = `DB適用済 (${db.length}曲 / 新曲${newCount}曲)`;
+      $('dbB').textContent = currentVerRaw
+        ? `DB適用 (${currentVerRaw} / 新曲${newCount}曲)`
+        : `DB適用済 (${db.length}曲 / 新曲${newCount}曲)`;
       $('dbB').classList.add('ok');
     } else {
       $('dbB').textContent = 'DB接続失敗（手動入力可）';
