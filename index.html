@@ -114,6 +114,7 @@ input:focus{outline:none;border-color:var(--g);box-shadow:0 0 0 3px rgba(34,122,
 .msg-box{font-size:.8rem;font-weight:800;padding:8px 10px;border-radius:7px;display:none}
 .msg-ok{background:#d4edda;color:#155724;border:1px solid #c3e6cb;display:block}
 .msg-err{background:#f8d7da;color:#721c24;border:1px solid #f5c6cb;display:block}
+.warn-note{font-size:.75rem;color:#991b1b;background:#fef2f2;border:1px solid #fecaca;padding:8px 10px;border-radius:7px;line-height:1.45}
 </style>
 </head>
 <body>
@@ -177,9 +178,12 @@ input:focus{outline:none;border-color:var(--g);box-shadow:0 0 0 3px rgba(34,122,
       <div id="newcList" class="col" style="gap:10px"></div>
     </div>
 
-    <div id="tabSync" style="display:none;flex-direction:column;gap:12px">
-      <div style="font-size:.8rem;color:#36453c;background:#f2f8f4;border:1px solid #d5e6dc;padding:10px 12px;border-radius:8px">
-        引き継ぎIDと暗証番号（PIN）を設定すると、登録データをクラウドに保存し、スマホやPCなど別端末からいつでも復元・同期できます。
+    <div id="tabSync" style="display:none;flex-direction:column;gap:10px">
+      <div style="font-size:.78rem;color:#36453c;background:#f2f8f4;border:1px solid #d5e6dc;padding:9px 11px;border-radius:8px">
+        引き継ぎIDと暗証番号（PIN）を設定すると、データをクラウドに保存し別端末から復元できます。
+      </div>
+      <div class="warn-note">
+        ⚠️ <b>重要：</b>自動再発行機能はありません。IDとPINを忘れるとクラウド上のデータを復元できなくなるため、必ずスクリーンショットやメモ等で控えてください。（どうしても忘れた場合は「意見箱」からIDとプレイヤー名をご連絡ください）
       </div>
       <div class="cloud-box">
         <div class="fg">
@@ -189,7 +193,13 @@ input:focus{outline:none;border-color:var(--g);box-shadow:0 0 0 3px rgba(34,122,
             <button type="button" class="bs" id="bGenId" style="white-space:nowrap">自動発行</button>
           </div>
         </div>
-        <div class="fg"><label class="lbl">暗証番号（PIN・4桁以上の数字など）</label><input type="password" id="inSyncPin" placeholder="例: 1234" maxlength="20" /></div>
+        <div class="fg">
+          <label class="lbl">暗証番号（PIN・4桁以上の数字など）</label>
+          <div style="display:flex;gap:6px">
+            <input type="password" id="inSyncPin" placeholder="例: 1234" maxlength="20" />
+            <button type="button" class="bs" id="bTogPin" style="white-space:nowrap">👁 表示</button>
+          </div>
+        </div>
         <div id="syncMsg" class="msg-box"></div>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:2px">
           <button type="button" class="bp" id="bCloudSave" style="font-size:.86rem;padding:10px">☁ クラウドへ保存</button>
@@ -346,17 +356,11 @@ document.addEventListener('DOMContentLoaded', () => {
   const saveAuth = () => { try { localStorage.setItem(AUTH_KEY, JSON.stringify(auth)); } catch {} updAuthUI(); };
   const pushH = () => { hist.push(JSON.stringify(st)); if (hist.length > 30) hist.shift(); updU(); };
   const updU = () => { $('uBtn').disabled = $('uTop').disabled = !hist.length; };
-  const setTh = (s, fb) => {
-    const e = $('jTh');
-    if (!s) return (e.style.display = 'none', e.src = '');
-    e.onerror = () => { if (fb && e.src !== fb) e.src = fb; };
-    e.src = s; e.style.display = 'block';
-  };
+  const setTh = (s, fb) => { const e = $('jTh'); if (!s) return (e.style.display = 'none', e.src = ''); e.onerror = () => { if (fb && e.src !== fb) e.src = fb; }; e.src = s; e.style.display = 'block'; };
 
   function updAuthUI() {
     const b = $('authBadge'), on = !!auth.id;
-    b.textContent = on ? `ID: ${auth.id}` : '未ログイン';
-    b.classList.toggle('ok', on);
+    b.textContent = on ? `ID: ${auth.id}` : '未ログイン'; b.classList.toggle('ok', on);
     $('bLogout').style.display = on ? 'block' : 'none';
     $('syncStatusText').textContent = on ? (auth.lastSync ? `最終クラウド同期: ${auth.lastSync}` : `ログイン中: ${auth.id}`) : '未ログイン（端末内のみ保存中）';
   }
@@ -369,24 +373,27 @@ document.addEventListener('DOMContentLoaded', () => {
   }
   const openDrw = t => { if (t) switchTab(t); $('drw').classList.add('open'); $('drwBg').classList.add('open'); };
   const closeDrw = () => { $('drw').classList.remove('open'); $('drwBg').classList.remove('open'); };
-  $('bMenu').onclick = () => openDrw();
-  $('authBadge').onclick = () => openDrw('sync');
+  $('bMenu').onclick = () => openDrw(); $('authBadge').onclick = () => openDrw('sync');
   $('bClsDrw').onclick = $('drwBg').onclick = closeDrw;
   document.querySelectorAll('.drw-tab').forEach(b => b.onclick = () => switchTab(b.dataset.tab));
+
+  $('bTogPin').onclick = () => {
+    const ip = $('inSyncPin'), show = ip.type === 'password';
+    ip.type = show ? 'text' : 'password';
+    $('bTogPin').textContent = show ? '🙈 隠す' : '👁 表示';
+  };
 
   function renderConstTable() {
     const srcSongs = ncFilter === 'new' ? db.filter(s => s.isNew) : db;
     const qRaw = $('inNewcQ').value.trim(), qNorm = norm(qRaw);
     if (!srcSongs.length) return ($('newcList').innerHTML = '<div style="text-align:center;color:#607066;padding:18px;font-size:.82rem">データを読み込み中、または該当データがありません。</div>');
 
-    const byConst = new Map();
-    let totalCharts = 0;
+    const byConst = new Map(); let totalCharts = 0;
     srcSongs.forEach(s => DIFFS.forEach(d => {
       const c = s.ch[d]; if (c === undefined) return;
       const cStr = c.toFixed(1);
       if (qRaw && !norm(s.t).includes(qNorm) && !cStr.includes(qRaw)) return;
-      totalCharts++;
-      (byConst.get(cStr) || byConst.set(cStr, []).get(cStr)).push({ s, d });
+      totalCharts++; (byConst.get(cStr) || byConst.set(cStr, []).get(cStr)).push({ s, d });
     }));
 
     const sortedKeys = [...byConst.keys()].sort((a, b) => parseFloat(b) - parseFloat(a));
@@ -398,8 +405,7 @@ document.addEventListener('DOMContentLoaded', () => {
     for (const cStr of sortedKeys) {
       if (shown >= limit) break;
       const items = byConst.get(cStr).sort((a, b) => (dOrder[a.d] - dOrder[b.d]) || a.s.t.localeCompare(b.s.t, 'ja'));
-      const slice = items.slice(0, limit - shown);
-      shown += slice.length;
+      const slice = items.slice(0, limit - shown); shown += slice.length;
       const rows = slice.map(({ s, d }) => {
         const th = s.img ? `<img class="nc-th" src="${s.img}" loading="lazy" onerror="this.style.visibility='hidden'" />` : `<div class="nc-th"></div>`;
         return `<div class="nc-it" data-nct="${esc(norm(s.t))}" data-ncd="${d}">${th}<span class="bm" style="background:${DBG[d]};flex-shrink:0">${d.slice(0,3)}</span>${s.isNew?'<span class="b-new">NEW</span>':''}<div class="nc-tt">${esc(s.t)}</div></div>`;
@@ -409,18 +415,9 @@ document.addEventListener('DOMContentLoaded', () => {
     $('newcMeta').textContent = `該当：${totalCharts}譜面${totalCharts > shown ? `（上位${shown}件を表示中・検索で全件絞り込み可）` : ''}（タップで入力欄へセット）`;
     $('newcList').innerHTML = html;
   }
-  $('newcFilter').onclick = e => {
-    const f = e.target.dataset.ncf; if (!f) return;
-    ncFilter = f;
-    document.querySelectorAll('#newcFilter .cb').forEach(b => b.classList.toggle('on', b.dataset.ncf === f));
-    renderConstTable();
-  };
+  $('newcFilter').onclick = e => { const f = e.target.dataset.ncf; if (!f) return; ncFilter = f; document.querySelectorAll('#newcFilter .cb').forEach(b => b.classList.toggle('on', b.dataset.ncf === f)); renderConstTable(); };
   $('inNewcQ').oninput = renderConstTable;
-  $('newcList').onclick = e => {
-    const it = e.target.closest('[data-nct]'); if (!it) return;
-    const s = dbMap.get(it.dataset.nct); if (!s) return;
-    closeDrw(); applySongToForm(s, it.dataset.ncd); window.scrollTo({ top:0, behavior:'smooth' });
-  };
+  $('newcList').onclick = e => { const it = e.target.closest('[data-nct]'); if (!it) return; const s = dbMap.get(it.dataset.nct); if (!s) return; closeDrw(); applySongToForm(s, it.dataset.ncd); window.scrollTo({ top:0, behavior:'smooth' }); };
 
   async function applySongToForm(s, preferDiff) {
     sel = s; $('inT').value = s.t; $('ac').style.display = 'none';
@@ -431,10 +428,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   const showSyncMsg = (t, err) => { const e = $('syncMsg'); e.textContent = t; e.className = 'msg-box ' + (err ? 'msg-err' : 'msg-ok'); };
-  $('bGenId').onclick = () => {
-    const c = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-    $('inSyncId').value = 'CHU-' + Array.from({length:6}, () => c[Math.random()*c.length|0]).join('');
-  };
+  $('bGenId').onclick = () => { const c = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; $('inSyncId').value = 'CHU-' + Array.from({length:6}, () => c[Math.random()*c.length|0]).join(''); };
 
   async function apiPost(payload) {
     const json = await (await fetch(GAS_URL, { method:'POST', body:JSON.stringify(payload) })).json();
@@ -449,7 +443,7 @@ document.addEventListener('DOMContentLoaded', () => {
     try {
       const json = await apiPost({ action:'save', id, pin, data:{ playerName:st.playerName, creditName:st.creditName, showLamp:st.showLamp, songs:st.songs.map(({id,title,diff,const:c,score,lamp,isNew}) => ({id,title,diff,const:c,score,lamp,isNew})) } });
       auth = { id, pin, lastSync: json.updatedAt || 'たった今' }; saveAuth(); globalCache = null;
-      showSyncMsg(`保存完了！ID「${id}」でクラウドに同期しました。`);
+      showSyncMsg(`保存完了！ID「${id}」とPIN「${pin}」でクラウドに同期しました。`);
     } catch (e) { showSyncMsg('エラー: ' + e.message, true); }
     finally { $('bCloudSave').disabled = $('bCloudLoad').disabled = false; }
   };
@@ -475,14 +469,8 @@ document.addEventListener('DOMContentLoaded', () => {
   async function loadGlobalStats() {
     $('globalMeta').textContent = 'クラウドから全体統計を取得中...';
     $('statGrid').innerHTML = '<div style="grid-column:1/-1;text-align:center;color:#607066;padding:14px;font-size:.82rem">読み込み中...</div>';
-    try {
-      const json = await (await fetch(`${GAS_URL}?action=stats`)).json();
-      if (!json.ok) throw new Error(json.error || '統計取得失敗');
-      globalCache = json; render();
-    } catch (e) {
-      $('globalMeta').textContent = '統計の取得に失敗しました';
-      $('statGrid').innerHTML = `<div style="grid-column:1/-1;text-align:center;color:#c0392b;padding:14px;font-size:.82rem">${esc(e.message)}</div>`;
-    }
+    try { const json = await (await fetch(`${GAS_URL}?action=stats`)).json(); if (!json.ok) throw new Error(json.error || '統計取得失敗'); globalCache = json; render(); }
+    catch (e) { $('globalMeta').textContent = '統計の取得に失敗しました'; $('statGrid').innerHTML = `<div style="grid-column:1/-1;text-align:center;color:#c0392b;padding:14px;font-size:.82rem">${esc(e.message)}</div>`; }
   }
   $('bReloadStats').onclick = loadGlobalStats;
 
@@ -504,40 +492,25 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function live() {
     const c = +$('inC').value || 0, s = +$('inS').value || 0, r = calc(c, s), rk = rank(s), d = (r - c).toFixed(2);
-    $('lRt').textContent = `${r.toFixed(3)} (${rk.l})`;
-    $('lHnt').textContent = `${s.toLocaleString()} (${rk.l}) = 定数 ${c.toFixed(1)} ${d >= 0 ? '+' : ''}${d}`;
+    $('lRt').textContent = `${r.toFixed(3)} (${rk.l})`; $('lHnt').textContent = `${s.toLocaleString()} (${rk.l}) = 定数 ${c.toFixed(1)} ${d >= 0 ? '+' : ''}${d}`;
   }
 
-  function setD(d) {
-    diff = d; document.querySelectorAll('#dGrp .cb').forEach(b => b.classList.toggle('on', b.dataset.d === d));
-    if (sel?.ch[d] !== undefined) { $('inC').value = sel.ch[d].toFixed(1); live(); }
-  }
+  function setD(d) { diff = d; document.querySelectorAll('#dGrp .cb').forEach(b => b.classList.toggle('on', b.dataset.d === d)); if (sel?.ch[d] !== undefined) { $('inC').value = sel.ch[d].toFixed(1); live(); } }
   const setL = l => { lamp = l; document.querySelectorAll('#lGrp .cb').forEach(b => b.classList.toggle('on', b.dataset.l === l)); };
 
-  function fit() {
-    const w = $('fit').clientWidth; if (!w) return;
-    const sc = Math.min(1, w / 920), cp = $('cap');
-    cp.style.transform = `scale(${sc})`; $('sBox').style.width = `${920 * sc}px`; $('sBox').style.height = `${cp.offsetHeight * sc}px`;
-  }
+  function fit() { const w = $('fit').clientWidth; if (!w) return; const sc = Math.min(1, w / 920), cp = $('cap'); cp.style.transform = `scale(${sc})`; $('sBox').style.width = `${920 * sc}px`; $('sBox').style.height = `${cp.offsetHeight * sc}px`; }
   window.addEventListener('resize', fit);
 
   async function toData(url) {
     if (!url || url.startsWith('data:')) return url || '';
     for (const src of [`https://wsrv.nl/?url=${encodeURIComponent(url)}&w=180&h=180&fit=cover&output=jpg`, url]) {
-      const r = await new Promise(ok => {
-        const im = new Image(); im.crossOrigin = 'anonymous';
-        im.onload = () => { try { const cv = document.createElement('canvas'); cv.width = cv.height = 180; cv.getContext('2d').drawImage(im,0,0,180,180); ok(cv.toDataURL('image/jpeg',.85)); } catch { ok(null); } };
-        im.onerror = () => ok(null); im.src = src;
-      });
+      const r = await new Promise(ok => { const im = new Image(); im.crossOrigin = 'anonymous'; im.onload = () => { try { const cv = document.createElement('canvas'); cv.width = cv.height = 180; cv.getContext('2d').drawImage(im,0,0,180,180); ok(cv.toDataURL('image/jpeg',.85)); } catch { ok(null); } }; im.onerror = () => ok(null); im.src = src; });
       if (r) return r;
     }
     return url;
   }
 
-  async function fetchJson(urls) {
-    for (const u of urls) { try { const r = await fetch(u, { cache:'no-store' }); if (r.ok) return await r.json(); } catch {} }
-    return null;
-  }
+  async function fetchJson(urls) { for (const u of urls) { try { const r = await fetch(u, { cache:'no-store' }); if (r.ok) return await r.json(); } catch {} } return null; }
 
   async function loadDB() {
     const [reiwaRec, reiwaAll, metaData] = await Promise.all([
@@ -546,39 +519,30 @@ document.addEventListener('DOMContentLoaded', () => {
       fetchJson(['https://dp4p6x0xfi5o9.cloudfront.net/chunithm/data.json','https://cdn.jsdelivr.net/gh/zetaraku/arcade-songs-fetch@master/data/chunithm/songs.json'])
     ]);
 
-    const songMap = new Map();
-    const metaList = Array.isArray(metaData?.songs) ? metaData.songs : Array.isArray(metaData) ? metaData : [];
-    const hasMetaDB = metaList.length > 500;
-    const verDefs = Array.isArray(metaData?.versions) ? metaData.versions.map(v => typeof v === 'string' ? v : (v.version || v.name || '')).filter(Boolean) : [];
-    const seenRaw = [];
+    const songMap = new Map(), metaList = Array.isArray(metaData?.songs) ? metaData.songs : Array.isArray(metaData) ? metaData : [], hasMetaDB = metaList.length > 500;
+    const verDefs = Array.isArray(metaData?.versions) ? metaData.versions.map(v => typeof v === 'string' ? v : (v.version || v.name || '')).filter(Boolean) : [], seenRaw = [];
     metaList.forEach(s => { const raw = String(s.version || '').trim(); if (raw && !seenRaw.some(x => norm(x) === norm(raw))) seenRaw.push(raw); });
     const currentVerRaw = verDefs.at(-1) || seenRaw.at(-1) || '', currentVerNorm = norm(currentVerRaw);
 
     let currentCat = null, inNewBlock = false;
     metaList.forEach(s => {
       const t = s.title || s.name; if (!t) return;
-      const cat = String(s.category || '');
-      if (cat !== currentCat) { currentCat = cat; inNewBlock = false; }
-      const ver = String(s.version || '').trim(), nv = norm(ver);
-      if (currentVerNorm && nv === currentVerNorm) inNewBlock = true;
+      const cat = String(s.category || ''); if (cat !== currentCat) { currentCat = cat; inNewBlock = false; }
+      const ver = String(s.version || '').trim(), nv = norm(ver); if (currentVerNorm && nv === currentVerNorm) inNewBlock = true;
       const ch = {}; let sheetIsNew = false;
       (s.sheets || []).forEach(sh => {
-        const d = DMAP[String(sh.difficulty || sh.diff || '').toLowerCase()];
-        const raw = String(sh.internalLevelValue ?? sh.internalLevel ?? sh.levelValue ?? sh.level ?? '').trim();
+        const d = DMAP[String(sh.difficulty || sh.diff || '').toLowerCase()], raw = String(sh.internalLevelValue ?? sh.internalLevel ?? sh.levelValue ?? sh.level ?? '').trim();
         const v = raw.endsWith('+') ? parseFloat(raw) + .5 : parseFloat(raw);
-        if (d && v > 0) ch[d] = v;
-        if (sh.isNew) sheetIsNew = true;
+        if (d && v > 0) ch[d] = v; if (sh.isNew) sheetIsNew = true;
       });
-      const im = s.imageName || s.image || '', img = im ? (im.startsWith('http') ? im : `https://dp4p6x0xfi5o9.cloudfront.net/chunithm/img/cover/${im}`) : '';
-      const key = norm(t);
+      const im = s.imageName || s.image || '', img = im ? (im.startsWith('http') ? im : `https://dp4p6x0xfi5o9.cloudfront.net/chunithm/img/cover/${im}`) : '', key = norm(t);
       if (!songMap.has(key)) songMap.set(key, { t, ch, ver, isNew: !!(s.isNew || sheetIsNew || inNewBlock || (currentVerNorm && nv === currentVerNorm)), img });
     });
 
     if (Array.isArray(reiwaAll)) {
       const rVers = []; let minNewId = Infinity;
       reiwaAll.forEach(it => {
-        const m = it.meta || it, nv = norm(m.version || m.ver || '');
-        if (nv && !rVers.includes(nv)) rVers.push(nv);
+        const m = it.meta || it, nv = norm(m.version || m.ver || ''); if (nv && !rVers.includes(nv)) rVers.push(nv);
         const t = m.title || m.name, id = Number(m.id ?? m.music_id);
         if (((t && songMap.get(norm(t))?.isNew) || (currentVerNorm && nv === currentVerNorm)) && id > 0 && id < minNewId) minNewId = id;
       });
@@ -586,10 +550,7 @@ document.addEventListener('DOMContentLoaded', () => {
       reiwaAll.forEach(it => {
         const m = it.meta || it, t = m.title || m.name; if (!t) return;
         const ch = {};
-        Object.entries(it.data || it.const || {}).forEach(([k, o]) => {
-          const d = DMAP[k.toLowerCase()], v = parseFloat(typeof o === 'object' ? (o.const ?? o.level) : o);
-          if (d && v > 0 && v <= 16.5) ch[d] = v;
-        });
+        Object.entries(it.data || it.const || {}).forEach(([k, o]) => { const d = DMAP[k.toLowerCase()], v = parseFloat(typeof o === 'object' ? (o.const ?? o.level) : o); if (d && v > 0 && v <= 16.5) ch[d] = v; });
         if (!Object.keys(ch).length) return;
         const key = norm(t), prev = songMap.get(key), rVer = String(m.version || m.ver || '').trim(), rNv = norm(rVer), id = Number(m.id ?? m.music_id);
         const isNew = !!(prev?.isNew || m.isNew || m.new || (hasMetaDB && !prev) || (minNewId < Infinity && id >= minNewId) || (currentVerNorm && rNv === currentVerNorm) || (latestR && rNv === latestR));
@@ -601,36 +562,29 @@ document.addEventListener('DOMContentLoaded', () => {
       reiwaRec.forEach(r => {
         const t = r.title || r.name, d = DMAP[String(r.diff ?? r.difficulty ?? '').toLowerCase()], v = parseFloat(r.const ?? r.internalLevel ?? r.level);
         if (!t || !d || !(v > 0 && v <= 16.5)) return;
-        const key = norm(t), prev = songMap.get(key), rNv = norm(r.version || r.ver || '');
-        const obj = prev || { t, ch:{}, ver:'', isNew:false, img:'' };
-        obj.ch[d] = v;
-        if ((hasMetaDB && !prev) || r.isNew || r.new || (currentVerNorm && rNv === currentVerNorm)) obj.isNew = true;
+        const key = norm(t), prev = songMap.get(key), rNv = norm(r.version || r.ver || ''), obj = prev || { t, ch:{}, ver:'', isNew:false, img:'' };
+        obj.ch[d] = v; if ((hasMetaDB && !prev) || r.isNew || r.new || (currentVerNorm && rNv === currentVerNorm)) obj.isNew = true;
         songMap.set(key, obj);
       });
     }
 
     dbMap = songMap; db = [...songMap.values()]; renderConstTable();
     const newCount = db.filter(x => x.isNew).length;
-    if (db.length > 50) {
-      $('dbB').textContent = currentVerRaw ? `DB適用 (${currentVerRaw} / 新曲${newCount}曲)` : `DB適用済 (${db.length}曲 / 新曲${newCount}曲)`;
-      $('dbB').classList.add('ok');
-    } else { $('dbB').textContent = 'DB接続失敗（手動入力可）'; $('dbB').classList.add('err'); }
+    if (db.length > 50) { $('dbB').textContent = currentVerRaw ? `DB適用 (${currentVerRaw} / 新曲${newCount}曲)` : `DB適用済 (${db.length}曲 / 新曲${newCount}曲)`; $('dbB').classList.add('ok'); }
+    else { $('dbB').textContent = 'DB接続失敗（手動入力可）'; $('dbB').classList.add('err'); }
   }
 
   $('bSync').onclick = () => {
     if (!st.songs.length) return alert('登録済みの譜面がありません。');
     if (!dbMap.size) return alert('楽曲DBが読み込まれていません。');
-    let upd = 0;
-    const next = st.songs.map(s => { const nc = dbMap.get(norm(s.title))?.ch?.[s.diff]; return (nc && Math.abs(nc - s.const) > .001) ? (upd++, { ...s, const: nc }) : s; });
+    let upd = 0; const next = st.songs.map(s => { const nc = dbMap.get(norm(s.title))?.ch?.[s.diff]; return (nc && Math.abs(nc - s.const) > .001) ? (upd++, { ...s, const: nc }) : s; });
     if (!upd) return alert('すべての登録曲はすでに最新の定数と一致しています。');
     if (confirm(`${upd} 曲の譜面定数を最新DBの値に更新しますか？`)) { pushH(); st.songs = next; save(); render(); }
   };
 
   $('inT').oninput = () => {
-    const q = norm($('inT').value), el = $('ac');
-    if (!q || !db.length) return (el.style.display = 'none');
-    const m = db.filter(s => norm(s.t).includes(q)).slice(0, 30);
-    if (!m.length) return (el.style.display = 'none');
+    const q = norm($('inT').value), el = $('ac'); if (!q || !db.length) return (el.style.display = 'none');
+    const m = db.filter(s => norm(s.t).includes(q)).slice(0, 30); if (!m.length) return (el.style.display = 'none');
     el._m = m;
     el.innerHTML = m.map((s, i) => {
       const cs = DIFFS.filter(d => s.ch[d] !== undefined).map(d => `<span class="ac-c" data-pd="${d}" style="background:${DBG[d]}">${d.slice(0,3)} ${s.ch[d].toFixed(1)}</span>`).join('');
@@ -650,22 +604,13 @@ document.addEventListener('DOMContentLoaded', () => {
   $('inC').oninput = $('inS').oninput = live;
 
   $('inJ').onchange = e => {
-    const f = e.target.files[0]; if (!f) return;
-    const r = new FileReader();
-    r.onload = ev => {
-      const im = new Image();
-      im.onload = () => { const cv = document.createElement('canvas'); cv.width = cv.height = 180; const m = Math.min(im.width, im.height); cv.getContext('2d').drawImage(im,(im.width-m)/2,(im.height-m)/2,m,m,0,0,180,180); jkt = cv.toDataURL('image/jpeg',.82); setTh(jkt); };
-      im.src = ev.target.result;
-    };
+    const f = e.target.files[0]; if (!f) return; const r = new FileReader();
+    r.onload = ev => { const im = new Image(); im.onload = () => { const cv = document.createElement('canvas'); cv.width = cv.height = 180; const m = Math.min(im.width, im.height); cv.getContext('2d').drawImage(im,(im.width-m)/2,(im.height-m)/2,m,m,0,0,180,180); jkt = cv.toDataURL('image/jpeg',.82); setTh(jkt); }; im.src = ev.target.result; };
     r.readAsDataURL(f);
   };
   $('bClrJ').onclick = () => { $('inJ').value = ''; jkt = ''; setTh(''); };
 
-  function rst() {
-    edId = sel = null; $('inT').value = ''; $('inC').value = '14.5'; $('inS').value = '1007500';
-    $('inN').checked = false; $('inJ').value = ''; jkt = ''; setTh(''); setD('MASTER'); setL('NONE');
-    $('fTtl').textContent = '譜面を登録・更新'; $('bSav').textContent = 'この譜面を登録する'; $('bRst').style.display = 'none'; live();
-  }
+  function rst() { edId = sel = null; $('inT').value = ''; $('inC').value = '14.5'; $('inS').value = '1007500'; $('inN').checked = false; $('inJ').value = ''; jkt = ''; setTh(''); setD('MASTER'); setL('NONE'); $('fTtl').textContent = '譜面を登録・更新'; $('bSav').textContent = 'この譜面を登録する'; $('bRst').style.display = 'none'; live(); }
   $('bRst').onclick = rst;
 
   $('bSav').onclick = () => {
@@ -676,20 +621,10 @@ document.addEventListener('DOMContentLoaded', () => {
     save(); rst(); render();
   };
 
-  $('statMode').onclick = e => {
-    const m = e.target.dataset.smode; if (!m) return;
-    statMode = m; document.querySelectorAll('#statMode .cb').forEach(b => b.classList.toggle('on', b.dataset.smode === m));
-    $('mineStatCtrl').style.display = m === 'mine' ? 'flex' : 'none'; $('globalStatCtrl').style.display = m === 'global' ? 'flex' : 'none';
-    if (m === 'global' && !globalCache) loadGlobalStats(); else render();
-  };
+  $('statMode').onclick = e => { const m = e.target.dataset.smode; if (!m) return; statMode = m; document.querySelectorAll('#statMode .cb').forEach(b => b.classList.toggle('on', b.dataset.smode === m)); $('mineStatCtrl').style.display = m === 'mine' ? 'flex' : 'none'; $('globalStatCtrl').style.display = m === 'global' ? 'flex' : 'none'; if (m === 'global' && !globalCache) loadGlobalStats(); else render(); };
+  $('statScope').onclick = e => { const sc = e.target.dataset.sc; if (!sc) return; statScope = sc; document.querySelectorAll('#statScope .cb').forEach(b => b.classList.toggle('on', b.dataset.sc === sc)); render(); };
 
-  $('statScope').onclick = e => {
-    const sc = e.target.dataset.sc; if (!sc) return;
-    statScope = sc; document.querySelectorAll('#statScope .cb').forEach(b => b.classList.toggle('on', b.dataset.sc === sc)); render();
-  };
-
-  const statCard = (c, badge, avgSc, rateLabel, avgRt) =>
-    `<div class="stat-card"><div class="stat-top"><span class="stat-c">定数 ${Number(c).toFixed(1)}</span><span class="stat-n">${badge}</span></div><div class="stat-sc">${Number(avgSc).toLocaleString()} <span style="font-size:.76rem;color:#227a4b">(${rank(avgSc).l})</span></div><div class="stat-sub"><span>${rateLabel}</span><strong>${avgRt}</strong></div></div>`;
+  const statCard = (c, badge, avgSc, rateLabel, avgRt) => `<div class="stat-card"><div class="stat-top"><span class="stat-c">定数 ${Number(c).toFixed(1)}</span><span class="stat-n">${badge}</span></div><div class="stat-sc">${Number(avgSc).toLocaleString()} <span style="font-size:.76rem;color:#227a4b">(${rank(avgSc).l})</span></div><div class="stat-sub"><span>${rateLabel}</span><strong>${avgRt}</strong></div></div>`;
 
   function renderStats(targetSongs) {
     if (statMode === 'global') {
@@ -707,8 +642,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   const tile = (s, i) => {
-    const rk = rank(s.score);
-    const ji = s.jacket ? `<img src="${s.jacket}" crossorigin="anonymous" />` : `<div class="tl-p" style="background:linear-gradient(135deg,${DBG[s.diff]},#1f2937)">${esc(s.title)}</div>`;
+    const rk = rank(s.score), ji = s.jacket ? `<img src="${s.jacket}" crossorigin="anonymous" />` : `<div class="tl-p" style="background:linear-gradient(135deg,${DBG[s.diff]},#1f2937)">${esc(s.title)}</div>`;
     const mp = st.showLamp && s.lamp !== 'NONE' ? `<span class="tl-mp mp-${s.lamp}">${s.lamp}</span>` : '';
     return `<div class="tl"><div class="tl-t"><div class="tl-s"><div class="tl-r">#${i}</div><div><span class="tl-l">CONST</span><span class="tl-n">${s.const.toFixed(1)}</span></div><div><span class="tl-l">RATE</span><span class="tl-n" style="color:#ffeaa7">${s.rt.toFixed(3)}</span></div></div><div class="tl-j">${ji}<div class="tl-d bg-${s.diff}"><span>${s.diff[0]}</span></div>${mp}<div class="tl-sb"><span style="color:#fff">${s.score.toLocaleString()}</span><span style="font-size:10px;color:${rk.c}">${rk.l}</span></div></div></div><div class="tl-tt">${esc(s.title)}</div></div>`;
   };
@@ -751,26 +685,15 @@ document.addEventListener('DOMContentLoaded', () => {
     } else if (dl) { pushH(); st.songs = st.songs.filter(s => s.id !== dl); if (edId === dl) rst(); save(); render(); }
   };
 
-  $('uBtn').onclick = $('uTop').onclick = () => {
-    if (!hist.length) return;
-    st = JSON.parse(hist.pop()); $('inP').value = st.playerName; $('inCr').value = st.creditName; $('cLmp').checked = st.showLamp;
-    rst(); save(); render(); updU();
-  };
-
-  $('bN2B').onclick = () => {
-    const n = st.songs.filter(s => s.isNew).length;
-    if (!n) return alert('新曲枠（NEW）に登録されている曲はありません。');
-    if (confirm(`新曲枠の ${n} 曲をすべてベスト枠へ移行しますか？`)) { pushH(); st.songs = st.songs.map(s => s.isNew ? { ...s, isNew:false } : s); save(); render(); }
-  };
-
+  $('uBtn').onclick = $('uTop').onclick = () => { if (!hist.length) return; st = JSON.parse(hist.pop()); $('inP').value = st.playerName; $('inCr').value = st.creditName; $('cLmp').checked = st.showLamp; rst(); save(); render(); updU(); };
+  $('bN2B').onclick = () => { const n = st.songs.filter(s => s.isNew).length; if (!n) return alert('新曲枠（NEW）に登録されている曲はありません。'); if (confirm(`新曲枠の ${n} 曲をすべてベスト枠へ移行しますか？`)) { pushH(); st.songs = st.songs.map(s => s.isNew ? { ...s, isNew:false } : s); save(); render(); } };
   $('bClr').onclick = () => { if (st.songs.length && confirm('すべて削除しますか？')) { pushH(); st.songs = []; rst(); save(); render(); } };
   $('inP').oninput = e => { st.playerName = e.target.value; save(); render(); };
   $('inCr').oninput = e => { st.creditName = e.target.value; save(); render(); };
   $('cLmp').onchange = e => { st.showLamp = e.target.checked; save(); render(); };
 
   $('bPng').onclick = async () => {
-    const b = $('bPng'), cp = $('cap'), pv = cp.style.transform;
-    b.textContent = '生成中...'; b.disabled = true;
+    const b = $('bPng'), cp = $('cap'), pv = cp.style.transform; b.textContent = '生成中...'; b.disabled = true;
     try {
       cp.style.transform = 'none';
       const u = (await html2canvas(cp, { scale:2, useCORS:true, backgroundColor:'#e4f1d8' })).toDataURL('image/png');
@@ -784,14 +707,8 @@ document.addEventListener('DOMContentLoaded', () => {
   $('bExp').onclick = () => { const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([JSON.stringify(st)],{type:'application/json'})); a.download = 'chunithm_rating.json'; a.click(); };
   $('bImp').onclick = () => $('jFile').click();
   $('jFile').onchange = e => {
-    const f = e.target.files[0]; if (!f) return;
-    const r = new FileReader();
-    r.onload = ev => {
-      try {
-        const p = JSON.parse(ev.target.result);
-        if (Array.isArray(p.songs)) { pushH(); st = { playerName:p.playerName||'', creditName:p.creditName||'CHUNITHM', showLamp:p.showLamp!==false, songs:p.songs }; $('inP').value=st.playerName; $('inCr').value=st.creditName; $('cLmp').checked=st.showLamp; save(); render(); alert('読み込みました！'); }
-      } catch { alert('JSON読込失敗'); }
-    };
+    const f = e.target.files[0]; if (!f) return; const r = new FileReader();
+    r.onload = ev => { try { const p = JSON.parse(ev.target.result); if (Array.isArray(p.songs)) { pushH(); st = { playerName:p.playerName||'', creditName:p.creditName||'CHUNITHM', showLamp:p.showLamp!==false, songs:p.songs }; $('inP').value=st.playerName; $('inCr').value=st.creditName; $('cLmp').checked=st.showLamp; save(); render(); alert('読み込みました！'); } } catch { alert('JSON読込失敗'); } };
     r.readAsText(f); e.target.value = '';
   };
 
