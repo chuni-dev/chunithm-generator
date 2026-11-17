@@ -9,7 +9,7 @@
 <style>
 :root{--g:#227a4b;--bas:#2ecc71;--adv:#f39c12;--exp:#e74c3c;--mas:#9b59b6;--ult:#1e272e}
 *{box-sizing:border-box;margin:0;padding:0}
-body{font-family:'M PLUS 1p',sans-serif;background:#f4f7f5;color:#1f2923;line-height:1.5;padding-bottom:40px;overflow-x:hidden}
+body{font:700 1rem/1.5 'M PLUS 1p',sans-serif;background:#f4f7f5;color:#1f2923;padding-bottom:40px;overflow-x:hidden}
 .hd{background:linear-gradient(135deg,#1b3828,#2b583e);color:#fff;padding:14px 18px;box-shadow:0 2px 8px rgba(0,0,0,.15);position:sticky;top:0;z-index:900}
 .hd-in,.wrap{max-width:1120px;margin:0 auto}
 .hd-in{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px}
@@ -17,9 +17,8 @@ body{font-family:'M PLUS 1p',sans-serif;background:#f4f7f5;color:#1f2923;line-he
 .b-db{padding:3px 8px;border-radius:6px;font-size:.72rem;font-weight:800;background:rgba(255,255,255,.16);color:#ffeaa7}
 .b-db.ok{background:#27ae60;color:#fff}.b-db.err{background:#c0392b;color:#fff}
 .ham{width:40px;height:36px;border-radius:8px;border:1px solid rgba(255,255,255,.35);background:rgba(255,255,255,.14);color:#fff;font-size:1.25rem;font-weight:900;cursor:pointer;display:flex;align-items:center;justify-content:center}
-.ham:hover{background:rgba(255,255,255,.26)}
 .drw-bg{position:fixed;inset:0;background:rgba(15,25,19,.55);z-index:1200;display:none}.drw-bg.open{display:block}
-.drw{position:fixed;top:0;right:0;bottom:0;width:min(480px,95vw);background:#fff;z-index:1201;box-shadow:-6px 0 24px rgba(0,0,0,.22);display:flex;flex-direction:column;transform:translateX(100%);transition:transform .22s ease}.drw.open{transform:translateX(0)}
+.drw{position:fixed;top:0;right:0;bottom:0;width:min(480px,95vw);background:#fff;z-index:1201;box-shadow:-6px 0 24px rgba(0,0,0,.22);display:flex;flex-direction:column;transform:translateX(100%);transition:transform .22s}.drw.open{transform:translateX(0)}
 .drw-hd{background:#1b3828;color:#fff;padding:14px 16px;display:flex;align-items:center;justify-content:space-between}
 .drw-tabs{display:flex;border-bottom:2px solid #e4ede7;background:#f4f8f5;overflow-x:auto}
 .drw-tab{flex:1;padding:10px 4px;border:none;background:none;font:800 .75rem inherit;color:#4f6357;cursor:pointer;border-bottom:3px solid transparent;margin-bottom:-2px;white-space:nowrap}
@@ -30,7 +29,7 @@ body{font-family:'M PLUS 1p',sans-serif;background:#f4f7f5;color:#1f2923;line-he
 .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:14px}
 .col{display:flex;flex-direction:column;gap:12px}
 .fg{display:flex;flex-direction:column;gap:6px;position:relative}
-.lbl{font-size:.82rem;font-weight:700;color:#36453c}
+.lbl{font-size:.82rem;color:#36453c}
 input[type="text"],input[type="number"],input[type="password"]{width:100%;padding:9px 12px;border:1px solid #c5d1c9;border-radius:8px;font:700 .95rem inherit;background:#fff}
 input:focus{outline:none;border-color:var(--g);box-shadow:0 0 0 3px rgba(34,122,75,.15)}
 .ac{position:absolute;top:100%;left:0;right:0;z-index:999;background:#fff;border:1.5px solid var(--g);border-radius:8px;margin-top:4px;max-height:280px;overflow-y:auto;box-shadow:0 8px 20px rgba(0,0,0,.16);display:none}
@@ -47,17 +46,17 @@ input:focus{outline:none;border-color:var(--g);box-shadow:0 0 0 3px rgba(34,122,
 .cb[data-d="EXPERT"].on{background:var(--exp);border-color:var(--exp);color:#fff}
 .cb[data-d="MASTER"].on{background:var(--mas);border-color:var(--mas);color:#fff}
 .cb[data-d="ULTIMA"].on{background:var(--ult);border-color:#ff4757;color:#fff}
-.cb[data-l].on,.cb[data-sc].on,.cb[data-smode].on{background:var(--g);border-color:var(--g);color:#fff}
+.cb[data-l].on,.cb[data-sc].on,.cb[data-smode].on,.cb[data-ncf].on{background:var(--g);border-color:var(--g);color:#fff}
 .cb[data-l="AJ"].on{background:linear-gradient(135deg,#f39c12,#e67e22);border-color:#d35400;color:#fff}
 .cb[data-l="AJC"].on{background:linear-gradient(135deg,#ff6b81,#f39c12,#2ed573,#1e90ff);border-color:#1e272e;color:#fff}
 .adj{padding:5px 8px;font-size:.75rem;font-weight:800;border:1px solid #c5d1c9;background:#f1f6f3;color:#26382d;border-radius:6px;cursor:pointer}
 .adj.pre{background:#eef5ff;border-color:#bcd3f5;color:#1e4b8f}
-.chk{display:flex;align-items:center;gap:8px;padding:8px 10px;background:#f4f9f6;border:1px solid #d5e6dc;border-radius:8px;cursor:pointer;font-size:.85rem;font-weight:700}
+.chk{display:flex;align-items:center;gap:8px;padding:8px 10px;background:#f4f9f6;border:1px solid #d5e6dc;border-radius:8px;cursor:pointer;font-size:.85rem}
 .chk input{width:17px;height:17px;accent-color:var(--g)}
 .cbox{display:flex;align-items:center;justify-content:space-between;background:#1e2d24;color:#fff;padding:10px 14px;border-radius:8px;margin-top:4px}
 .cval{font:700 1.35rem 'Oswald',sans-serif;color:#ffeaa7}
-.bp{width:100%;padding:12px;background:var(--g);color:#fff;border:none;border-radius:9px;font-size:.98rem;font-weight:800;cursor:pointer;text-align:center;text-decoration:none;display:inline-block}.bp:disabled{opacity:.55;cursor:not-allowed}
-.bs,.bw,.bd,.bi{padding:7px 12px;border-radius:7px;font-size:.78rem;font-weight:700;cursor:pointer}
+.bp{width:100%;padding:12px;background:var(--g);color:#fff;border:none;border-radius:9px;font-size:.98rem;font-weight:800;cursor:pointer;text-align:center}.bp:disabled{opacity:.55;cursor:not-allowed}
+.bs,.bw,.bd,.bi{padding:7px 12px;border-radius:7px;font-size:.78rem;cursor:pointer}
 .bs{background:#fff;color:#2d4236;border:1px solid #c2d1c8}.bs:disabled{opacity:.45;cursor:not-allowed}
 .bw{background:#fff8eb;color:#b45309;border:1px solid #fcd34d;font-weight:800}
 .bi{background:#eff6ff;color:#1d4ed8;border:1px solid #bfdbfe;font-weight:800}
@@ -77,7 +76,7 @@ input:focus{outline:none;border-color:var(--g);box-shadow:0 0 0 3px rgba(34,122,
 .isub span{font:700 13.5px 'Oswald',sans-serif;margin:0 12px 0 3px}
 .sttl{font-size:18px;font-weight:900;color:#222823;margin:10px 0 6px}
 .tgrd{background:#7c7e7c;border-radius:4px;padding:8px;display:grid;grid-template-columns:repeat(5,1fr);gap:6px;min-height:80px}
-.emp{grid-column:1/-1;color:#e6eae6;font-size:13px;font-weight:700;text-align:center;padding:24px 0}
+.emp{grid-column:1/-1;color:#e6eae6;font-size:13px;text-align:center;padding:24px 0}
 .tl{background:linear-gradient(180deg,#989a98,#7d7f7d);border:1px solid #636563;border-radius:4px;padding:4px 5px;display:flex;flex-direction:column;justify-content:space-between;overflow:hidden}
 .tl-t{display:flex;gap:4px;height:86px}
 .tl-s{width:52px;flex-shrink:0;display:flex;flex-direction:column;justify-content:space-between;align-items:center;text-align:center}
@@ -103,11 +102,11 @@ input:focus{outline:none;border-color:var(--g);box-shadow:0 0 0 3px rgba(34,122,
 .stat-c{font:700 1.2rem 'Oswald',sans-serif;color:#1b3828}
 .stat-n{font-size:.73rem;font-weight:800;color:#52665a;background:#e4ede8;padding:1px 7px;border-radius:10px}
 .stat-sc{font:700 1.08rem 'Oswald',sans-serif;color:#1f2923}
-.stat-sub{font-size:.72rem;font-weight:700;color:#4f6357;display:flex;justify-content:space-between}
+.stat-sub{font-size:.72rem;color:#4f6357;display:flex;justify-content:space-between}
 .nc-grp{border:1px solid #d6e4dc;border-radius:9px;overflow:hidden;background:#fff}
 .nc-hd{background:#1b3828;color:#fff;padding:5px 10px;display:flex;justify-content:space-between;align-items:center;font:700 1rem 'Oswald',sans-serif}
 .nc-hd span{font:700 .72rem 'M PLUS 1p',sans-serif;color:#bce3cc}
-.nc-it{display:flex;align-items:center;gap:8px;padding:6px 9px;border-bottom:1px solid #edf2ef;cursor:pointer;transition:background .12s}.nc-it:last-child{border-bottom:none}.nc-it:hover{background:#eef7f1}
+.nc-it{display:flex;align-items:center;gap:8px;padding:6px 9px;border-bottom:1px solid #edf2ef;cursor:pointer}.nc-it:last-child{border-bottom:none}.nc-it:hover{background:#eef7f1}
 .nc-th{width:34px;height:34px;border-radius:4px;object-fit:cover;background:#2b2e2c;flex-shrink:0}
 .nc-tt{font-size:.8rem;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:1}
 .gf-frame{width:100%;height:500px;border:1px solid #d5e6dc;border-radius:10px;background:#f8faf9}
@@ -127,7 +126,7 @@ input:focus{outline:none;border-color:var(--g);box-shadow:0 0 0 3px rgba(34,122,
     </div>
     <div class="btns" style="align-items:center">
       <span class="b-db" id="dbB">楽曲DB読込中...</span>
-      <span class="b-db" id="authBadge" style="cursor:pointer" title="クラウド同期メニューを開く">未ログイン</span>
+      <span class="b-db" id="authBadge" style="cursor:pointer">未ログイン</span>
       <button type="button" class="bs" id="uTop" disabled>↩ 元に戻す</button>
       <button type="button" class="bs" id="bExp">JSON保存</button>
       <button type="button" class="bs" id="bImp">JSON読込</button>
@@ -142,7 +141,7 @@ input:focus{outline:none;border-color:var(--g);box-shadow:0 0 0 3px rgba(34,122,
   <div class="drw-hd"><strong style="font-size:.98rem">メニュー</strong><button type="button" class="bs" id="bClsDrw" style="padding:4px 10px">✕ 閉じる</button></div>
   <div class="drw-tabs">
     <button type="button" class="drw-tab on" data-tab="stat">📊 定数別統計</button>
-    <button type="button" class="drw-tab" data-tab="newc">🆕 新曲定数表</button>
+    <button type="button" class="drw-tab" data-tab="newc">📋 全譜面定数表</button>
     <button type="button" class="drw-tab" data-tab="sync">🔑 クラウド同期</button>
     <button type="button" class="drw-tab" data-tab="opin">📮 意見箱</button>
   </div>
@@ -153,7 +152,7 @@ input:focus{outline:none;border-color:var(--g);box-shadow:0 0 0 3px rgba(34,122,
         <button type="button" class="cb" data-smode="global">みんなの全体統計</button>
       </div>
       <div id="mineStatCtrl" class="col" style="gap:8px">
-        <div style="font-size:.78rem;color:#52665a;font-weight:700" id="statMeta">集計対象：対象枠（BEST30＋NEW20）</div>
+        <div style="font-size:.78rem;color:#52665a" id="statMeta">集計対象：対象枠（BEST30＋NEW20）</div>
         <div class="btns" id="statScope">
           <button type="button" class="cb on" data-sc="top">対象枠のみ（BEST30＋NEW20）</button>
           <button type="button" class="cb" data-sc="all">登録済み全曲</button>
@@ -161,23 +160,25 @@ input:focus{outline:none;border-color:var(--g);box-shadow:0 0 0 3px rgba(34,122,
       </div>
       <div id="globalStatCtrl" style="display:none;flex-direction:column;gap:8px">
         <div style="display:flex;justify-content:space-between;align-items:center">
-          <span style="font-size:.78rem;color:#52665a;font-weight:700" id="globalMeta">クラウド登録ユーザーの平均スコア</span>
+          <span style="font-size:.78rem;color:#52665a" id="globalMeta">クラウド登録ユーザーの平均スコア</span>
           <button type="button" class="bs" id="bReloadStats" style="padding:4px 9px;font-size:.74rem">🔄 再読込</button>
         </div>
       </div>
       <div class="stat-grid" id="statGrid"></div>
     </div>
 
-    <div id="tabNewc" style="display:none;flex-direction:column;gap:10px">
-      <div style="font-size:.78rem;color:#36453c;font-weight:700;background:#f2f8f4;border:1px solid #d5e6dc;padding:8px 10px;border-radius:8px" id="newcMeta">
-        新曲枠（NEW枠）対象の定数表（クリックで入力欄へセット）
+    <div id="tabNewc" style="display:none;flex-direction:column;gap:8px">
+      <div class="btns" id="newcFilter">
+        <button type="button" class="cb on" data-ncf="all">全譜面</button>
+        <button type="button" class="cb" data-ncf="new">新曲枠のみ</button>
       </div>
-      <input type="text" id="inNewcQ" placeholder="曲名 または 定数 (例: 15.0 / Garakuta) で絞り込み" style="font-size:.84rem;padding:8px 10px" />
+      <input type="text" id="inNewcQ" placeholder="曲名 または 定数 (例: 15.0 / Garakuta) で検索" style="font-size:.84rem;padding:8px 10px" />
+      <div style="font-size:.75rem;color:#52665a" id="newcMeta">タップで登録フォームへ入力</div>
       <div id="newcList" class="col" style="gap:10px"></div>
     </div>
 
     <div id="tabSync" style="display:none;flex-direction:column;gap:12px">
-      <div style="font-size:.8rem;color:#36453c;font-weight:700;background:#f2f8f4;border:1px solid #d5e6dc;padding:10px 12px;border-radius:8px">
+      <div style="font-size:.8rem;color:#36453c;background:#f2f8f4;border:1px solid #d5e6dc;padding:10px 12px;border-radius:8px">
         引き継ぎIDと暗証番号（PIN）を設定すると、登録データをクラウドに保存し、スマホやPCなど別端末からいつでも復元・同期できます。
       </div>
       <div class="cloud-box">
@@ -194,13 +195,13 @@ input:focus{outline:none;border-color:var(--g);box-shadow:0 0 0 3px rgba(34,122,
           <button type="button" class="bp" id="bCloudSave" style="font-size:.86rem;padding:10px">☁ クラウドへ保存</button>
           <button type="button" class="bi" id="bCloudLoad" style="font-size:.86rem;padding:10px">📥 クラウドから読込</button>
         </div>
-        <div id="syncStatusText" style="font-size:.75rem;color:#4f6357;font-weight:700;text-align:center"></div>
+        <div id="syncStatusText" style="font-size:.75rem;color:#4f6357;text-align:center"></div>
       </div>
       <button type="button" class="bd" id="bLogout" style="display:none;width:100%">ログアウト（この端末のID記憶を解除）</button>
     </div>
 
     <div id="tabOpin" style="display:none;flex-direction:column;gap:10px">
-      <div style="font-size:.8rem;color:#36453c;font-weight:700;background:#f2f8f4;border:1px solid #d5e6dc;padding:9px 11px;border-radius:8px">
+      <div style="font-size:.8rem;color:#36453c;background:#f2f8f4;border:1px solid #d5e6dc;padding:9px 11px;border-radius:8px">
         機能追加のリクエスト・定数修正要望・不具合報告はこちらから送信できます。
       </div>
       <iframe class="gf-frame" src="https://docs.google.com/forms/d/e/1FAIpQLSekhjaOsxZfqBYXhSwN-nE8LscsGbMgP1K3d6wsG1hQpk66Wg/viewform?embedded=true" loading="lazy">読み込んでいます…</iframe>
@@ -250,7 +251,7 @@ input:focus{outline:none;border-color:var(--g);box-shadow:0 0 0 3px rgba(34,122,
     </div>
     <div class="col" style="margin-top:14px">
       <div class="cbox">
-        <div><div style="font-size:.78rem;color:#a9c7b5;font-weight:700">単曲レート / ランク</div><div style="font-size:.75rem;color:#cde3d6" id="lHnt"></div></div>
+        <div><div style="font-size:.78rem;color:#a9c7b5">単曲レート / ランク</div><div style="font-size:.75rem;color:#cde3d6" id="lHnt"></div></div>
         <div class="cval" id="lRt"></div>
       </div>
       <button type="button" class="bp" id="bSav">この譜面を登録する</button>
@@ -293,7 +294,7 @@ input:focus{outline:none;border-color:var(--g);box-shadow:0 0 0 3px rgba(34,122,
         </div>
         <div class="sttl">BEST枠（上位30曲）</div><div class="tgrd" id="gB"></div>
         <div class="sttl">NEW枠（上位20曲）</div><div class="tgrd" id="gN"></div>
-        <div style="margin-top:14px;text-align:center;font-size:10.5px;font-weight:700;color:#465749">
+        <div style="margin-top:14px;text-align:center;font-size:10.5px;color:#465749">
           ※掲載されている楽曲ジャケット画像等の著作権・各種権利は、各権利者に帰属します。本ツールは非公式のファン制作物です。
         </div>
       </div>
@@ -337,7 +338,7 @@ document.addEventListener('DOMContentLoaded', () => {
   $('sPre').innerHTML = [['理論値',1010000],['SSS+',1009000],['SSS',1007500],['SS+',1005000],['SS',1000000],['S+',990000],['S',975000]].map(([l,v]) => `<button type="button" class="adj pre" data-ss="${v}">${l}</button>`).join('');
 
   let db = [], dbMap = new Map(), sel = null, edId = null, diff = 'MASTER', lamp = 'NONE', jkt = '', hist = [];
-  let statMode = 'mine', statScope = 'top', globalCache = null;
+  let statMode = 'mine', statScope = 'top', ncFilter = 'all', globalCache = null;
   let st = { playerName:'', creditName:'CHUNITHM', showLamp:true, songs:[] };
   let auth = { id:'', pin:'', lastSync:'' };
 
@@ -364,7 +365,7 @@ document.addEventListener('DOMContentLoaded', () => {
     document.querySelectorAll('.drw-tab').forEach(b => b.classList.toggle('on', b.dataset.tab === t));
     ['stat','newc','sync','opin'].forEach(k => $('tab' + k[0].toUpperCase() + k.slice(1)).style.display = k === t ? 'flex' : 'none');
     if (t === 'stat' && statMode === 'global' && !globalCache) loadGlobalStats();
-    if (t === 'newc') renderNewConstTable();
+    if (t === 'newc') renderConstTable();
   }
   const openDrw = t => { if (t) switchTab(t); $('drw').classList.add('open'); $('drwBg').classList.add('open'); };
   const closeDrw = () => { $('drw').classList.remove('open'); $('drwBg').classList.remove('open'); };
@@ -373,56 +374,52 @@ document.addEventListener('DOMContentLoaded', () => {
   $('bClsDrw').onclick = $('drwBg').onclick = closeDrw;
   document.querySelectorAll('.drw-tab').forEach(b => b.onclick = () => switchTab(b.dataset.tab));
 
-  function renderNewConstTable() {
-    const newSongs = db.filter(s => s.isNew);
-    const qRaw = $('inNewcQ').value.trim();
-    const qNorm = norm(qRaw);
-    if (!newSongs.length) {
-      $('newcList').innerHTML = '<div style="text-align:center;color:#607066;padding:18px;font-size:.82rem">新曲データを読み込み中、または該当データがありません。</div>';
-      return;
-    }
+  function renderConstTable() {
+    const srcSongs = ncFilter === 'new' ? db.filter(s => s.isNew) : db;
+    const qRaw = $('inNewcQ').value.trim(), qNorm = norm(qRaw);
+    if (!srcSongs.length) return ($('newcList').innerHTML = '<div style="text-align:center;color:#607066;padding:18px;font-size:.82rem">データを読み込み中、または該当データがありません。</div>');
 
     const byConst = new Map();
     let totalCharts = 0;
-    newSongs.forEach(s => {
-      DIFFS.forEach(d => {
-        const c = s.ch[d];
-        if (c === undefined) return;
-        const cStr = c.toFixed(1);
-        if (qRaw && !norm(s.t).includes(qNorm) && !cStr.includes(qRaw)) return;
-        totalCharts++;
-        const arr = byConst.get(cStr) || [];
-        arr.push({ s, d, c });
-        byConst.set(cStr, arr);
-      });
-    });
+    srcSongs.forEach(s => DIFFS.forEach(d => {
+      const c = s.ch[d]; if (c === undefined) return;
+      const cStr = c.toFixed(1);
+      if (qRaw && !norm(s.t).includes(qNorm) && !cStr.includes(qRaw)) return;
+      totalCharts++;
+      (byConst.get(cStr) || byConst.set(cStr, []).get(cStr)).push({ s, d });
+    }));
 
-    $('newcMeta').textContent = `新曲枠対象：全${newSongs.length}曲 / 表示譜面：${totalCharts}件（タップで登録フォームへ入力）`;
     const sortedKeys = [...byConst.keys()].sort((a, b) => parseFloat(b) - parseFloat(a));
-    if (!sortedKeys.length) {
-      $('newcList').innerHTML = '<div style="text-align:center;color:#607066;padding:18px;font-size:.82rem">条件に一致する新曲譜面がありません。</div>';
-      return;
-    }
+    if (!sortedKeys.length) return ($('newcList').innerHTML = '<div style="text-align:center;color:#607066;padding:18px;font-size:.82rem">条件に一致する譜面がありません。</div>');
 
     const dOrder = { ULTIMA:0, MASTER:1, EXPERT:2, ADVANCED:3, BASIC:4 };
-    $('newcList').innerHTML = sortedKeys.map(cStr => {
+    const limit = (!qRaw && ncFilter === 'all') ? 250 : 800;
+    let shown = 0, html = '';
+    for (const cStr of sortedKeys) {
+      if (shown >= limit) break;
       const items = byConst.get(cStr).sort((a, b) => (dOrder[a.d] - dOrder[b.d]) || a.s.t.localeCompare(b.s.t, 'ja'));
-      const rows = items.map(({ s, d }) => {
+      const slice = items.slice(0, limit - shown);
+      shown += slice.length;
+      const rows = slice.map(({ s, d }) => {
         const th = s.img ? `<img class="nc-th" src="${s.img}" loading="lazy" onerror="this.style.visibility='hidden'" />` : `<div class="nc-th"></div>`;
-        return `<div class="nc-it" data-nct="${esc(norm(s.t))}" data-ncd="${d}">${th}<span class="bm" style="background:${DBG[d]};flex-shrink:0">${d.slice(0,3)}</span><div class="nc-tt">${esc(s.t)}</div></div>`;
+        return `<div class="nc-it" data-nct="${esc(norm(s.t))}" data-ncd="${d}">${th}<span class="bm" style="background:${DBG[d]};flex-shrink:0">${d.slice(0,3)}</span>${s.isNew?'<span class="b-new">NEW</span>':''}<div class="nc-tt">${esc(s.t)}</div></div>`;
       }).join('');
-      return `<div class="nc-grp"><div class="nc-hd"><div>定数 ${cStr}</div><span>${items.length}譜面</span></div>${rows}</div>`;
-    }).join('');
+      html += `<div class="nc-grp"><div class="nc-hd"><div>定数 ${cStr}</div><span>${items.length}譜面</span></div>${rows}</div>`;
+    }
+    $('newcMeta').textContent = `該当：${totalCharts}譜面${totalCharts > shown ? `（上位${shown}件を表示中・検索で全件絞り込み可）` : ''}（タップで入力欄へセット）`;
+    $('newcList').innerHTML = html;
   }
-  $('inNewcQ').oninput = renderNewConstTable;
+  $('newcFilter').onclick = e => {
+    const f = e.target.dataset.ncf; if (!f) return;
+    ncFilter = f;
+    document.querySelectorAll('#newcFilter .cb').forEach(b => b.classList.toggle('on', b.dataset.ncf === f));
+    renderConstTable();
+  };
+  $('inNewcQ').oninput = renderConstTable;
   $('newcList').onclick = e => {
-    const it = e.target.closest('[data-nct]');
-    if (!it) return;
-    const s = dbMap.get(it.dataset.nct);
-    if (!s) return;
-    closeDrw();
-    applySongToForm(s, it.dataset.ncd);
-    window.scrollTo({ top:0, behavior:'smooth' });
+    const it = e.target.closest('[data-nct]'); if (!it) return;
+    const s = dbMap.get(it.dataset.nct); if (!s) return;
+    closeDrw(); applySongToForm(s, it.dataset.ncd); window.scrollTo({ top:0, behavior:'smooth' });
   };
 
   async function applySongToForm(s, preferDiff) {
@@ -440,8 +437,7 @@ document.addEventListener('DOMContentLoaded', () => {
   };
 
   async function apiPost(payload) {
-    const res = await fetch(GAS_URL, { method:'POST', body:JSON.stringify(payload) });
-    const json = await res.json();
+    const json = await (await fetch(GAS_URL, { method:'POST', body:JSON.stringify(payload) })).json();
     if (!json.ok) throw new Error(json.error || '通信エラー');
     return json;
   }
@@ -449,15 +445,10 @@ document.addEventListener('DOMContentLoaded', () => {
   $('bCloudSave').onclick = async () => {
     const id = $('inSyncId').value.trim().toUpperCase(), pin = $('inSyncPin').value.trim();
     if (!id || pin.length < 4) return showSyncMsg('引き継ぎIDと、4桁以上の暗証番号（PIN）を入力してください。', true);
-    $('bCloudSave').disabled = $('bCloudLoad').disabled = true;
-    showSyncMsg('クラウドへ保存しています...');
+    $('bCloudSave').disabled = $('bCloudLoad').disabled = true; showSyncMsg('クラウドへ保存しています...');
     try {
-      const json = await apiPost({
-        action:'save', id, pin,
-        data:{ playerName:st.playerName, creditName:st.creditName, showLamp:st.showLamp, songs:st.songs.map(({id,title,diff,const:c,score,lamp,isNew}) => ({id,title,diff,const:c,score,lamp,isNew})) }
-      });
-      auth = { id, pin, lastSync: json.updatedAt || 'たった今' };
-      saveAuth(); globalCache = null;
+      const json = await apiPost({ action:'save', id, pin, data:{ playerName:st.playerName, creditName:st.creditName, showLamp:st.showLamp, songs:st.songs.map(({id,title,diff,const:c,score,lamp,isNew}) => ({id,title,diff,const:c,score,lamp,isNew})) } });
+      auth = { id, pin, lastSync: json.updatedAt || 'たった今' }; saveAuth(); globalCache = null;
       showSyncMsg(`保存完了！ID「${id}」でクラウドに同期しました。`);
     } catch (e) { showSyncMsg('エラー: ' + e.message, true); }
     finally { $('bCloudSave').disabled = $('bCloudLoad').disabled = false; }
@@ -466,30 +457,20 @@ document.addEventListener('DOMContentLoaded', () => {
   $('bCloudLoad').onclick = async () => {
     const id = $('inSyncId').value.trim().toUpperCase(), pin = $('inSyncPin').value.trim();
     if (!id || !pin) return showSyncMsg('引き継ぎIDと暗証番号（PIN）を入力してください。', true);
-    $('bCloudSave').disabled = $('bCloudLoad').disabled = true;
-    showSyncMsg('クラウドからデータを取得中...');
+    $('bCloudSave').disabled = $('bCloudLoad').disabled = true; showSyncMsg('クラウドからデータを取得中...');
     try {
       const { data: d = {} } = await apiPost({ action:'login', id, pin });
       if (!Array.isArray(d.songs)) throw new Error('保存データが見つかりません');
       pushH();
-      st = {
-        playerName: d.playerName || '', creditName: d.creditName || 'CHUNITHM', showLamp: d.showLamp !== false,
-        songs: d.songs.map(s => ({ ...s, jacket: s.jacket || dbMap.get(norm(s.title))?.img || '' }))
-      };
+      st = { playerName:d.playerName||'', creditName:d.creditName||'CHUNITHM', showLamp:d.showLamp!==false, songs:d.songs.map(s => ({ ...s, jacket: s.jacket || dbMap.get(norm(s.title))?.img || '' })) };
       $('inP').value = st.playerName; $('inCr').value = st.creditName; $('cLmp').checked = st.showLamp;
-      save(); render();
-      auth = { id, pin, lastSync: '読込完了' }; saveAuth();
+      save(); render(); auth = { id, pin, lastSync: '読込完了' }; saveAuth();
       showSyncMsg(`ログイン成功！${st.songs.length}曲のデータを復元しました。`);
     } catch (e) { showSyncMsg('エラー: ' + e.message, true); }
     finally { $('bCloudSave').disabled = $('bCloudLoad').disabled = false; }
   };
 
-  $('bLogout').onclick = () => {
-    auth = { id:'', pin:'', lastSync:'' };
-    $('inSyncId').value = $('inSyncPin').value = '';
-    $('syncMsg').className = 'msg-box';
-    saveAuth();
-  };
+  $('bLogout').onclick = () => { auth = { id:'', pin:'', lastSync:'' }; $('inSyncId').value = $('inSyncPin').value = ''; $('syncMsg').className = 'msg-box'; saveAuth(); };
 
   async function loadGlobalStats() {
     $('globalMeta').textContent = 'クラウドから全体統計を取得中...';
@@ -528,8 +509,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function setD(d) {
-    diff = d;
-    document.querySelectorAll('#dGrp .cb').forEach(b => b.classList.toggle('on', b.dataset.d === d));
+    diff = d; document.querySelectorAll('#dGrp .cb').forEach(b => b.classList.toggle('on', b.dataset.d === d));
     if (sel?.ch[d] !== undefined) { $('inC').value = sel.ch[d].toFixed(1); live(); }
   }
   const setL = l => { lamp = l; document.querySelectorAll('#lGrp .cb').forEach(b => b.classList.toggle('on', b.dataset.l === l)); };
@@ -537,9 +517,7 @@ document.addEventListener('DOMContentLoaded', () => {
   function fit() {
     const w = $('fit').clientWidth; if (!w) return;
     const sc = Math.min(1, w / 920), cp = $('cap');
-    cp.style.transform = `scale(${sc})`;
-    $('sBox').style.width = `${920 * sc}px`;
-    $('sBox').style.height = `${cp.offsetHeight * sc}px`;
+    cp.style.transform = `scale(${sc})`; $('sBox').style.width = `${920 * sc}px`; $('sBox').style.height = `${cp.offsetHeight * sc}px`;
   }
   window.addEventListener('resize', fit);
 
@@ -574,8 +552,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const verDefs = Array.isArray(metaData?.versions) ? metaData.versions.map(v => typeof v === 'string' ? v : (v.version || v.name || '')).filter(Boolean) : [];
     const seenRaw = [];
     metaList.forEach(s => { const raw = String(s.version || '').trim(); if (raw && !seenRaw.some(x => norm(x) === norm(raw))) seenRaw.push(raw); });
-    const currentVerRaw = verDefs.at(-1) || seenRaw.at(-1) || '';
-    const currentVerNorm = norm(currentVerRaw);
+    const currentVerRaw = verDefs.at(-1) || seenRaw.at(-1) || '', currentVerNorm = norm(currentVerRaw);
 
     let currentCat = null, inNewBlock = false;
     metaList.forEach(s => {
@@ -632,8 +609,7 @@ document.addEventListener('DOMContentLoaded', () => {
       });
     }
 
-    dbMap = songMap; db = [...songMap.values()];
-    renderNewConstTable();
+    dbMap = songMap; db = [...songMap.values()]; renderConstTable();
     const newCount = db.filter(x => x.isNew).length;
     if (db.length > 50) {
       $('dbB').textContent = currentVerRaw ? `DB適用 (${currentVerRaw} / 新曲${newCount}曲)` : `DB適用済 (${db.length}曲 / 新曲${newCount}曲)`;
@@ -664,11 +640,7 @@ document.addEventListener('DOMContentLoaded', () => {
     el.style.display = 'block';
   };
 
-  $('ac').onclick = e => {
-    const it = e.target.closest('[data-i]'); if (!it || !$('ac')._m) return;
-    applySongToForm($('ac')._m[+it.dataset.i], e.target.closest('[data-pd]')?.dataset.pd);
-  };
-
+  $('ac').onclick = e => { const it = e.target.closest('[data-i]'); if (it && $('ac')._m) applySongToForm($('ac')._m[+it.dataset.i], e.target.closest('[data-pd]')?.dataset.pd); };
   document.onclick = e => { if (!e.target.closest('#inT') && !e.target.closest('#ac')) $('ac').style.display = 'none'; };
   document.querySelectorAll('[data-sd]').forEach(b => b.onclick = () => { $('inS').value = Math.max(0, Math.min(1010000, (+$('inS').value||0) + +b.dataset.sd)); live(); });
   document.querySelectorAll('[data-ss]').forEach(b => b.onclick = () => { const v = +b.dataset.ss; $('inS').value = v; if (v === 1010000) setL('AJC'); live(); });
@@ -699,30 +671,21 @@ document.addEventListener('DOMContentLoaded', () => {
   $('bSav').onclick = () => {
     const title = $('inT').value.trim(); if (!title) return alert('楽曲名を入力してください。');
     pushH();
-    const obj = {
-      id: edId || 's_' + Date.now() + Math.random().toString(36).slice(2,5), title, diff,
-      const: Math.max(1, Math.min(16, Math.round((+$('inC').value||1)*10)/10)),
-      score: Math.max(0, Math.min(1010000, parseInt($('inS').value,10)||0)),
-      lamp, isNew: $('inN').checked, jacket: jkt || (edId ? st.songs.find(s => s.id === edId)?.jacket || '' : '')
-    };
+    const obj = { id: edId || 's_' + Date.now() + Math.random().toString(36).slice(2,5), title, diff, const: Math.max(1, Math.min(16, Math.round((+$('inC').value||1)*10)/10)), score: Math.max(0, Math.min(1010000, parseInt($('inS').value,10)||0)), lamp, isNew: $('inN').checked, jacket: jkt || (edId ? st.songs.find(s => s.id === edId)?.jacket || '' : '') };
     st.songs = edId ? st.songs.map(s => s.id === edId ? obj : s) : [...st.songs, obj];
     save(); rst(); render();
   };
 
   $('statMode').onclick = e => {
     const m = e.target.dataset.smode; if (!m) return;
-    statMode = m;
-    document.querySelectorAll('#statMode .cb').forEach(b => b.classList.toggle('on', b.dataset.smode === m));
-    $('mineStatCtrl').style.display = m === 'mine' ? 'flex' : 'none';
-    $('globalStatCtrl').style.display = m === 'global' ? 'flex' : 'none';
+    statMode = m; document.querySelectorAll('#statMode .cb').forEach(b => b.classList.toggle('on', b.dataset.smode === m));
+    $('mineStatCtrl').style.display = m === 'mine' ? 'flex' : 'none'; $('globalStatCtrl').style.display = m === 'global' ? 'flex' : 'none';
     if (m === 'global' && !globalCache) loadGlobalStats(); else render();
   };
 
   $('statScope').onclick = e => {
     const sc = e.target.dataset.sc; if (!sc) return;
-    statScope = sc;
-    document.querySelectorAll('#statScope .cb').forEach(b => b.classList.toggle('on', b.dataset.sc === sc));
-    render();
+    statScope = sc; document.querySelectorAll('#statScope .cb').forEach(b => b.classList.toggle('on', b.dataset.sc === sc)); render();
   };
 
   const statCard = (c, badge, avgSc, rateLabel, avgRt) =>
@@ -733,8 +696,7 @@ document.addEventListener('DOMContentLoaded', () => {
       if (!globalCache) return;
       $('globalMeta').textContent = `クラウド登録人数: ${globalCache.userCount || 0}人（全登録譜面の平均）`;
       const list = globalCache.stats || [];
-      $('statGrid').innerHTML = list.length ? list.map(g => statCard(g.c, `計${g.count}件`, g.avgScore, '全体平均レート', calc(g.c, g.avgScore).toFixed(3))).join('')
-        : '<div style="grid-column:1/-1;text-align:center;color:#607066;padding:14px;font-size:.82rem">まだクラウドに統計データがありません。</div>';
+      $('statGrid').innerHTML = list.length ? list.map(g => statCard(g.c, `計${g.count}件`, g.avgScore, '全体平均レート', calc(g.c, g.avgScore).toFixed(3))).join('') : '<div style="grid-column:1/-1;text-align:center;color:#607066;padding:14px;font-size:.82rem">まだクラウドに統計データがありません。</div>';
       return;
     }
     $('statMeta').textContent = `集計対象：${statScope === 'top' ? '対象枠（BEST30＋NEW20）' : '登録済み全曲'}（${targetSongs.length}曲）`;
@@ -759,8 +721,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const all = st.songs.map(s => ({ ...s, rt: calc(s.const, s.score) })).sort((a,b) => (b.rt - a.rt) || (b.score - a.score));
     const best = all.filter(s => !s.isNew).slice(0, 30), news = all.filter(s => s.isNew).slice(0, 20);
-    const bS = best.reduce((a,b) => a + b.rt, 0), nS = news.reduce((a,b) => a + b.rt, 0), tot = (bS + nS) / 50;
-    const top = best[0]?.rt || news[0]?.rt || 0;
+    const bS = best.reduce((a,b) => a + b.rt, 0), nS = news.reduce((a,b) => a + b.rt, 0), tot = (bS + nS) / 50, top = best[0]?.rt || news[0]?.rt || 0;
 
     const vT = $('vTot'), ts = tot.toFixed(3);
     if (tot >= 16) { vT.className = 'irv'; vT.innerHTML = ts.split('').map((c,i) => `<span style="color:${RBW[i%RBW.length]}">${c}</span>`).join(''); }
@@ -792,8 +753,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   $('uBtn').onclick = $('uTop').onclick = () => {
     if (!hist.length) return;
-    st = JSON.parse(hist.pop());
-    $('inP').value = st.playerName; $('inCr').value = st.creditName; $('cLmp').checked = st.showLamp;
+    st = JSON.parse(hist.pop()); $('inP').value = st.playerName; $('inCr').value = st.creditName; $('cLmp').checked = st.showLamp;
     rst(); save(); render(); updU();
   };
 
