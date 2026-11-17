@@ -168,10 +168,10 @@ input:focus{outline:none;border-color:var(--g);box-shadow:0 0 0 3px rgba(34,122,
       <div class="stat-grid" id="statGrid"></div>
       <div class="nc-grp" id="recBox">
         <div class="nc-hd">
-          <div>🎯 おすすめ譜面（BEST30平均から算出）</div>
+          <div>🎯 おすすめ譜面（ID登録者限定）</div>
           <button type="button" class="bs" id="bRefRec" style="padding:2px 8px;font-size:.7rem">🔄 入替</button>
         </div>
-        <div style="padding:6px 10px;font-size:.74rem;color:#36453c;background:#f4f9f6;border-bottom:1px solid #d6e4dc" id="recMeta">BEST枠を登録するとおすすめ譜面を表示します</div>
+        <div style="padding:6px 10px;font-size:.74rem;color:#36453c;background:#f4f9f6;border-bottom:1px solid #d6e4dc" id="recMeta"></div>
         <div id="recList"></div>
       </div>
     </div>
@@ -361,7 +361,7 @@ document.addEventListener('DOMContentLoaded', () => {
   let auth = { id:'', pin:'', lastSync:'' };
 
   const save = () => { try { localStorage.setItem(KEY, JSON.stringify(st)); } catch {} };
-  const saveAuth = () => { try { localStorage.setItem(AUTH_KEY, JSON.stringify(auth)); } catch {} updAuthUI(); };
+  const saveAuth = () => { try { localStorage.setItem(AUTH_KEY, JSON.stringify(auth)); } catch {} updAuthUI(); renderRec(lastBest); };
   const pushH = () => { hist.push(JSON.stringify(st)); if (hist.length > 30) hist.shift(); updU(); };
   const updU = () => { $('uBtn').disabled = $('uTop').disabled = !hist.length; };
   const setTh = (s, fb) => { const e = $('jTh'); if (!s) return (e.style.display = 'none', e.src = ''); e.onerror = () => { if (fb && e.src !== fb) e.src = fb; }; e.src = s; e.style.display = 'block'; };
@@ -388,6 +388,14 @@ document.addEventListener('DOMContentLoaded', () => {
   $('bTogPin').onclick = () => { const ip = $('inSyncPin'), show = ip.type === 'password'; ip.type = show ? 'text' : 'password'; $('bTogPin').textContent = show ? '🙈 隠す' : '👁 表示'; };
 
   function renderRec(best) {
+    const loggedIn = !!auth.id;
+    $('bRefRec').style.display = loggedIn ? 'inline-block' : 'none';
+    if (!loggedIn) {
+      $('recMeta').innerHTML = '🔒 この機能は<b>引き継ぎIDを登録・ログインした方限定</b>です。';
+      $('recList').innerHTML = `<div style="padding:12px;text-align:center"><button type="button" class="bp" id="bGoSync" style="font-size:.82rem;padding:8px 12px">🔑 クラウド同期でIDを登録する</button></div>`;
+      $('bGoSync').onclick = () => switchTab('sync');
+      return;
+    }
     if (!best.length) return ($('recMeta').textContent = 'BEST枠を登録するとおすすめ譜面を表示します', $('recList').innerHTML = '');
     if (!db.length) return ($('recMeta').textContent = '楽曲DBを読み込み中です...', $('recList').innerHTML = '');
     const avg = best.reduce((a, b) => a + b.rt, 0) / best.length;
