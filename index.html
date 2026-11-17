@@ -607,8 +607,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const songMap = new Map();
     const metaList = Array.isArray(metaData?.songs) ? metaData.songs : Array.isArray(metaData) ? metaData : [];
+    const hasMetaDB = metaList.length > 500;
 
-    // 1. metaData.versions の末尾または全曲中のユニークなバージョン登場順の最後を「現行バージョン」に決定
+    // 1. 現行バージョン名を特定
     const verDefs = Array.isArray(metaData?.versions)
       ? metaData.versions.map(v => typeof v === 'string' ? v : (v.version || v.name || '')).filter(Boolean)
       : [];
@@ -622,11 +623,10 @@ document.addEventListener('DOMContentLoaded', () => {
         seenVersRaw.push(raw);
       }
     });
-
     const currentVerRaw = verDefs.length ? verDefs[verDefs.length - 1] : (seenVersRaw.length ? seenVersRaw[seenVersRaw.length - 1] : '');
     const currentVerNorm = norm(currentVerRaw);
 
-    // 2. カテゴリー別配列構造に対応：各カテゴリー内で「現行バージョンが始まった位置」より後ろをすべてNEWとする
+    // 2. カテゴリー別配列構造に対応してメタDBを展開
     let currentCat = null;
     let inNewBlock = false;
 
@@ -668,14 +668,22 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     });
 
-    // 3. reiwaAll の最新定数＆バージョン情報で補完
+    // 3. reiwaAll の最新定数＆バージョン＆新曲判定で補完
     let latestCount = 0;
     if (Array.isArray(reiwaAll)) {
       const rVersNorm = [];
+      let minNewNumericId = Infinity;
+
       reiwaAll.forEach(item => {
         const meta = item.meta || item;
         const nv = norm(meta.version || meta.ver || '');
         if (nv && !rVersNorm.includes(nv)) rVersNorm.push(nv);
+        const t = meta.title || meta.name;
+        const existing = t ? songMap.get(norm(t)) : null;
+        const numId = Number(meta.id ?? meta.music_id);
+        if ((existing?.isNew || (currentVerNorm && nv === currentVerNorm)) && numId > 0 && numId < minNewNumericId) {
+          minNewNumericId = numId;
+        }
       });
       const latestReiwaNorm = rVersNorm.length ? rVersNorm[rVersNorm.length - 1] : '';
 
@@ -696,7 +704,14 @@ document.addEventListener('DOMContentLoaded', () => {
         const prev = songMap.get(key);
         const rVer = String(meta.version || meta.ver || '').trim();
         const rNv = norm(rVer);
+        const numId = Number(meta.id ?? meta.music_id);
+
+        // 標準メタDBに未収録の超最新曲、または現行バージョン/最新ID帯の曲をNEW判定
+        const isNotInMetaYet = hasMetaDB && !prev;
+        const isIdInNewRange = minNewNumericId < Infinity && numId >= minNewNumericId;
         const isReiwaNew = !!(
+          isNotInMetaYet ||
+          isIdInNewRange ||
           (currentVerNorm && rNv === currentVerNorm) ||
           (latestReiwaNorm && rNv === latestReiwaNorm)
         );
@@ -721,11 +736,13 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!t || !d || !(v > 0 && v <= 16.5)) return;
         latestCount++;
         const key = norm(t);
-        const prev = songMap.get(key) || { t, ch: {}, ver: '', isNew: false, img: '' };
-        prev.ch[d] = v;
+        const prev = songMap.get(key);
+        const isNotInMetaYet = hasMetaDB && !prev;
+        const obj = prev || { t, ch: {}, ver: '', isNew: false, img: '' };
+        obj.ch[d] = v;
         const rNv = norm(rec.version || rec.ver || '');
-        if (rec.isNew || rec.new || (currentVerNorm && rNv === currentVerNorm)) prev.isNew = true;
-        songMap.set(key, prev);
+        if (isNotInMetaYet || rec.isNew || rec.new || (currentVerNorm && rNv === currentVerNorm)) obj.isNew = true;
+        songMap.set(key, obj);
       });
     }
 
