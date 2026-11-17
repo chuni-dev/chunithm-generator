@@ -19,12 +19,12 @@ body{font-family:'M PLUS 1p',sans-serif;background:#f4f7f5;color:#1f2923;line-he
 .ham{width:40px;height:36px;border-radius:8px;border:1px solid rgba(255,255,255,.35);background:rgba(255,255,255,.14);color:#fff;font-size:1.25rem;font-weight:900;cursor:pointer;display:flex;align-items:center;justify-content:center}
 .ham:hover{background:rgba(255,255,255,.26)}
 .drw-bg{position:fixed;inset:0;background:rgba(15,25,19,.55);z-index:1200;display:none}.drw-bg.open{display:block}
-.drw{position:fixed;top:0;right:0;bottom:0;width:min(460px,94vw);background:#fff;z-index:1201;box-shadow:-6px 0 24px rgba(0,0,0,.22);display:flex;flex-direction:column;transform:translateX(100%);transition:transform .22s ease}.drw.open{transform:translateX(0)}
+.drw{position:fixed;top:0;right:0;bottom:0;width:min(480px,95vw);background:#fff;z-index:1201;box-shadow:-6px 0 24px rgba(0,0,0,.22);display:flex;flex-direction:column;transform:translateX(100%);transition:transform .22s ease}.drw.open{transform:translateX(0)}
 .drw-hd{background:#1b3828;color:#fff;padding:14px 16px;display:flex;align-items:center;justify-content:space-between}
-.drw-tabs{display:flex;border-bottom:2px solid #e4ede7;background:#f4f8f5}
-.drw-tab{flex:1;padding:11px 6px;border:none;background:none;font:800 .8rem inherit;color:#4f6357;cursor:pointer;border-bottom:3px solid transparent;margin-bottom:-2px}
+.drw-tabs{display:flex;border-bottom:2px solid #e4ede7;background:#f4f8f5;overflow-x:auto}
+.drw-tab{flex:1;padding:10px 4px;border:none;background:none;font:800 .75rem inherit;color:#4f6357;cursor:pointer;border-bottom:3px solid transparent;margin-bottom:-2px;white-space:nowrap}
 .drw-tab.on{color:#1b3828;border-bottom-color:var(--g);background:#fff}
-.drw-bd{flex:1;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:14px}
+.drw-bd{flex:1;overflow-y:auto;padding:14px;display:flex;flex-direction:column;gap:12px}
 .pnl{background:#fff;border:1px solid #dce4de;border-radius:12px;padding:16px;box-shadow:0 2px 6px rgba(0,0,0,.04)}
 .pnl-t{font-size:.98rem;font-weight:800;color:#1b3828;margin-bottom:12px;padding-bottom:8px;border-bottom:2px solid #e4ede7;display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px}
 .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:14px}
@@ -104,6 +104,12 @@ input:focus{outline:none;border-color:var(--g);box-shadow:0 0 0 3px rgba(34,122,
 .stat-n{font-size:.73rem;font-weight:800;color:#52665a;background:#e4ede8;padding:1px 7px;border-radius:10px}
 .stat-sc{font:700 1.08rem 'Oswald',sans-serif;color:#1f2923}
 .stat-sub{font-size:.72rem;font-weight:700;color:#4f6357;display:flex;justify-content:space-between}
+.nc-grp{border:1px solid #d6e4dc;border-radius:9px;overflow:hidden;background:#fff}
+.nc-hd{background:#1b3828;color:#fff;padding:5px 10px;display:flex;justify-content:space-between;align-items:center;font:700 1rem 'Oswald',sans-serif}
+.nc-hd span{font:700 .72rem 'M PLUS 1p',sans-serif;color:#bce3cc}
+.nc-it{display:flex;align-items:center;gap:8px;padding:6px 9px;border-bottom:1px solid #edf2ef;cursor:pointer;transition:background .12s}.nc-it:last-child{border-bottom:none}.nc-it:hover{background:#eef7f1}
+.nc-th{width:34px;height:34px;border-radius:4px;object-fit:cover;background:#2b2e2c;flex-shrink:0}
+.nc-tt{font-size:.8rem;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:1}
 .gf-frame{width:100%;height:500px;border:1px solid #d5e6dc;border-radius:10px;background:#f8faf9}
 .cloud-box{background:#f3f9f5;border:1px solid #cfe3d7;border-radius:10px;padding:12px;display:flex;flex-direction:column;gap:10px}
 .msg-box{font-size:.8rem;font-weight:800;padding:8px 10px;border-radius:7px;display:none}
@@ -136,6 +142,7 @@ input:focus{outline:none;border-color:var(--g);box-shadow:0 0 0 3px rgba(34,122,
   <div class="drw-hd"><strong style="font-size:.98rem">メニュー</strong><button type="button" class="bs" id="bClsDrw" style="padding:4px 10px">✕ 閉じる</button></div>
   <div class="drw-tabs">
     <button type="button" class="drw-tab on" data-tab="stat">📊 定数別統計</button>
+    <button type="button" class="drw-tab" data-tab="newc">🆕 新曲定数表</button>
     <button type="button" class="drw-tab" data-tab="sync">🔑 クラウド同期</button>
     <button type="button" class="drw-tab" data-tab="opin">📮 意見箱</button>
   </div>
@@ -159,6 +166,14 @@ input:focus{outline:none;border-color:var(--g);box-shadow:0 0 0 3px rgba(34,122,
         </div>
       </div>
       <div class="stat-grid" id="statGrid"></div>
+    </div>
+
+    <div id="tabNewc" style="display:none;flex-direction:column;gap:10px">
+      <div style="font-size:.78rem;color:#36453c;font-weight:700;background:#f2f8f4;border:1px solid #d5e6dc;padding:8px 10px;border-radius:8px" id="newcMeta">
+        新曲枠（NEW枠）対象の定数表（クリックで入力欄へセット）
+      </div>
+      <input type="text" id="inNewcQ" placeholder="曲名 または 定数 (例: 15.0 / Garakuta) で絞り込み" style="font-size:.84rem;padding:8px 10px" />
+      <div id="newcList" class="col" style="gap:10px"></div>
     </div>
 
     <div id="tabSync" style="display:none;flex-direction:column;gap:12px">
@@ -347,8 +362,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function switchTab(t) {
     document.querySelectorAll('.drw-tab').forEach(b => b.classList.toggle('on', b.dataset.tab === t));
-    ['stat','sync','opin'].forEach(k => $('tab' + k[0].toUpperCase() + k.slice(1)).style.display = k === t ? 'flex' : 'none');
+    ['stat','newc','sync','opin'].forEach(k => $('tab' + k[0].toUpperCase() + k.slice(1)).style.display = k === t ? 'flex' : 'none');
     if (t === 'stat' && statMode === 'global' && !globalCache) loadGlobalStats();
+    if (t === 'newc') renderNewConstTable();
   }
   const openDrw = t => { if (t) switchTab(t); $('drw').classList.add('open'); $('drwBg').classList.add('open'); };
   const closeDrw = () => { $('drw').classList.remove('open'); $('drwBg').classList.remove('open'); };
@@ -356,6 +372,66 @@ document.addEventListener('DOMContentLoaded', () => {
   $('authBadge').onclick = () => openDrw('sync');
   $('bClsDrw').onclick = $('drwBg').onclick = closeDrw;
   document.querySelectorAll('.drw-tab').forEach(b => b.onclick = () => switchTab(b.dataset.tab));
+
+  function renderNewConstTable() {
+    const newSongs = db.filter(s => s.isNew);
+    const qRaw = $('inNewcQ').value.trim();
+    const qNorm = norm(qRaw);
+    if (!newSongs.length) {
+      $('newcList').innerHTML = '<div style="text-align:center;color:#607066;padding:18px;font-size:.82rem">新曲データを読み込み中、または該当データがありません。</div>';
+      return;
+    }
+
+    const byConst = new Map();
+    let totalCharts = 0;
+    newSongs.forEach(s => {
+      DIFFS.forEach(d => {
+        const c = s.ch[d];
+        if (c === undefined) return;
+        const cStr = c.toFixed(1);
+        if (qRaw && !norm(s.t).includes(qNorm) && !cStr.includes(qRaw)) return;
+        totalCharts++;
+        const arr = byConst.get(cStr) || [];
+        arr.push({ s, d, c });
+        byConst.set(cStr, arr);
+      });
+    });
+
+    $('newcMeta').textContent = `新曲枠対象：全${newSongs.length}曲 / 表示譜面：${totalCharts}件（タップで登録フォームへ入力）`;
+    const sortedKeys = [...byConst.keys()].sort((a, b) => parseFloat(b) - parseFloat(a));
+    if (!sortedKeys.length) {
+      $('newcList').innerHTML = '<div style="text-align:center;color:#607066;padding:18px;font-size:.82rem">条件に一致する新曲譜面がありません。</div>';
+      return;
+    }
+
+    const dOrder = { ULTIMA:0, MASTER:1, EXPERT:2, ADVANCED:3, BASIC:4 };
+    $('newcList').innerHTML = sortedKeys.map(cStr => {
+      const items = byConst.get(cStr).sort((a, b) => (dOrder[a.d] - dOrder[b.d]) || a.s.t.localeCompare(b.s.t, 'ja'));
+      const rows = items.map(({ s, d }) => {
+        const th = s.img ? `<img class="nc-th" src="${s.img}" loading="lazy" onerror="this.style.visibility='hidden'" />` : `<div class="nc-th"></div>`;
+        return `<div class="nc-it" data-nct="${esc(norm(s.t))}" data-ncd="${d}">${th}<span class="bm" style="background:${DBG[d]};flex-shrink:0">${d.slice(0,3)}</span><div class="nc-tt">${esc(s.t)}</div></div>`;
+      }).join('');
+      return `<div class="nc-grp"><div class="nc-hd"><div>定数 ${cStr}</div><span>${items.length}譜面</span></div>${rows}</div>`;
+    }).join('');
+  }
+  $('inNewcQ').oninput = renderNewConstTable;
+  $('newcList').onclick = e => {
+    const it = e.target.closest('[data-nct]');
+    if (!it) return;
+    const s = dbMap.get(it.dataset.nct);
+    if (!s) return;
+    closeDrw();
+    applySongToForm(s, it.dataset.ncd);
+    window.scrollTo({ top:0, behavior:'smooth' });
+  };
+
+  async function applySongToForm(s, preferDiff) {
+    sel = s; $('inT').value = s.t; $('ac').style.display = 'none';
+    const td = (preferDiff && s.ch[preferDiff] !== undefined) ? preferDiff : (s.ch[diff] !== undefined ? diff : ['MASTER','ULTIMA','EXPERT','ADVANCED','BASIC'].find(d => s.ch[d] !== undefined));
+    if (td) { setD(td); $('inC').value = s.ch[td].toFixed(1); }
+    $('inN').checked = !!s.isNew; live();
+    if (s.img) { jkt = s.img; setTh(s.img); const du = await toData(s.img); if (du) { jkt = du; setTh(du, s.img); } }
+  }
 
   const showSyncMsg = (t, err) => { const e = $('syncMsg'); e.textContent = t; e.className = 'msg-box ' + (err ? 'msg-err' : 'msg-ok'); };
   $('bGenId').onclick = () => {
@@ -557,6 +633,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     dbMap = songMap; db = [...songMap.values()];
+    renderNewConstTable();
     const newCount = db.filter(x => x.isNew).length;
     if (db.length > 50) {
       $('dbB').textContent = currentVerRaw ? `DB適用 (${currentVerRaw} / 新曲${newCount}曲)` : `DB適用済 (${db.length}曲 / 新曲${newCount}曲)`;
@@ -587,14 +664,9 @@ document.addEventListener('DOMContentLoaded', () => {
     el.style.display = 'block';
   };
 
-  $('ac').onclick = async e => {
+  $('ac').onclick = e => {
     const it = e.target.closest('[data-i]'); if (!it || !$('ac')._m) return;
-    const s = $('ac')._m[+it.dataset.i], pd = e.target.closest('[data-pd]')?.dataset.pd;
-    sel = s; $('inT').value = s.t; $('ac').style.display = 'none';
-    const td = (pd && s.ch[pd] !== undefined) ? pd : (s.ch[diff] !== undefined ? diff : ['MASTER','ULTIMA','EXPERT','ADVANCED','BASIC'].find(d => s.ch[d] !== undefined));
-    if (td) { setD(td); $('inC').value = s.ch[td].toFixed(1); }
-    $('inN').checked = !!s.isNew; live();
-    if (s.img) { jkt = s.img; setTh(s.img); const du = await toData(s.img); if (du) { jkt = du; setTh(du, s.img); } }
+    applySongToForm($('ac')._m[+it.dataset.i], e.target.closest('[data-pd]')?.dataset.pd);
   };
 
   document.onclick = e => { if (!e.target.closest('#inT') && !e.target.closest('#ac')) $('ac').style.display = 'none'; };
