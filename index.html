@@ -38,6 +38,7 @@ input:focus{outline:none;border-color:var(--g);box-shadow:0 0 0 3px rgba(34,122,
 .ac-tt{font-size:.85rem;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:flex;align-items:center;gap:5px}
 .ac-c,.bm{padding:2px 6px;border-radius:4px;color:#fff;font-size:.7rem;font-weight:800;display:inline-block}.ac-c{margin:2px 4px 0 0}
 .b-new{background:#e67e22;color:#fff;font-size:.65rem;font-weight:900;padding:1px 5px;border-radius:4px;flex-shrink:0}
+.b-near{background:#0284c7;color:#fff;font-size:.63rem;font-weight:900;padding:1px 5px;border-radius:4px;flex-shrink:0}
 .th-sm{width:52px;height:52px;border-radius:6px;object-fit:cover;border:1px solid #c5d1c9;display:none;background:#2b2e2c}
 .btns{display:flex;flex-wrap:wrap;gap:6px}
 .cb{padding:7px 11px;border-radius:7px;border:1.5px solid #cbd6cf;background:#f8faf9;color:#44544a;font-size:.78rem;font-weight:800;cursor:pointer}
@@ -109,6 +110,7 @@ input:focus{outline:none;border-color:var(--g);box-shadow:0 0 0 3px rgba(34,122,
 .nc-it{display:flex;align-items:center;gap:8px;padding:6px 9px;border-bottom:1px solid #edf2ef;cursor:pointer}.nc-it:last-child{border-bottom:none}.nc-it:hover{background:#eef7f1}
 .nc-th{width:34px;height:34px;border-radius:4px;object-fit:cover;background:#2b2e2c;flex-shrink:0}
 .nc-tt{font-size:.8rem;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:1}
+.nc-sub{font-size:.68rem;color:#4f6357;font-weight:700}
 .gf-frame{width:100%;height:500px;border:1px solid #d5e6dc;border-radius:10px;background:#f8faf9}
 .cloud-box{background:#f3f9f5;border:1px solid #cfe3d7;border-radius:10px;padding:12px;display:flex;flex-direction:column;gap:10px}
 .msg-box{font-size:.8rem;font-weight:800;padding:8px 10px;border-radius:7px;display:none}
@@ -356,12 +358,12 @@ document.addEventListener('DOMContentLoaded', () => {
   $('sPre').innerHTML = [['理論値',1010000],['SSS+',1009000],['SSS',1007500],['SS+',1005000],['SS',1000000],['S+',990000],['S',975000]].map(([l,v]) => `<button type="button" class="adj pre" data-ss="${v}">${l}</button>`).join('');
 
   let db = [], dbMap = new Map(), sel = null, edId = null, diff = 'MASTER', lamp = 'NONE', jkt = '', hist = [];
-  let statMode = 'mine', statScope = 'top', ncFilter = 'all', globalCache = null, lastBest = [];
+  let statMode = 'mine', statScope = 'top', ncFilter = 'all', globalCache = null, lastAll = [], lastBest = [];
   let st = { playerName:'', creditName:'CHUNITHM', showLamp:true, songs:[] };
   let auth = { id:'', pin:'', lastSync:'' };
 
   const save = () => { try { localStorage.setItem(KEY, JSON.stringify(st)); } catch {} };
-  const saveAuth = () => { try { localStorage.setItem(AUTH_KEY, JSON.stringify(auth)); } catch {} updAuthUI(); renderRec(lastBest); };
+  const saveAuth = () => { try { localStorage.setItem(AUTH_KEY, JSON.stringify(auth)); } catch {} updAuthUI(); renderRec(); };
   const pushH = () => { hist.push(JSON.stringify(st)); if (hist.length > 30) hist.shift(); updU(); };
   const updU = () => { $('uBtn').disabled = $('uTop').disabled = !hist.length; };
   const setTh = (s, fb) => { const e = $('jTh'); if (!s) return (e.style.display = 'none', e.src = ''); e.onerror = () => { if (fb && e.src !== fb) e.src = fb; }; e.src = s; e.style.display = 'block'; };
@@ -376,7 +378,7 @@ document.addEventListener('DOMContentLoaded', () => {
   function switchTab(t) {
     document.querySelectorAll('.drw-tab').forEach(b => b.classList.toggle('on', b.dataset.tab === t));
     ['stat','newc','sync','opin'].forEach(k => $('tab' + k[0].toUpperCase() + k.slice(1)).style.display = k === t ? 'flex' : 'none');
-    if (t === 'stat') { renderRec(lastBest); if (statMode === 'global' && !globalCache) loadGlobalStats(); }
+    if (t === 'stat') { renderRec(); if (statMode === 'global' && !globalCache) loadGlobalStats(); }
     if (t === 'newc') renderConstTable();
   }
   const openDrw = t => { if (t) switchTab(t); $('drw').classList.add('open'); $('drwBg').classList.add('open'); };
@@ -387,8 +389,16 @@ document.addEventListener('DOMContentLoaded', () => {
 
   $('bTogPin').onclick = () => { const ip = $('inSyncPin'), show = ip.type === 'password'; ip.type = show ? 'text' : 'password'; $('bTogPin').textContent = show ? '🙈 隠す' : '👁 表示'; };
 
-  function renderRec(best) {
-    const loggedIn = !!auth.id;
+  function startEdit(t) {
+    if (!t) return;
+    edId = t.id; $('inT').value = t.title; $('inC').value = t.const.toFixed(1); $('inS').value = t.score;
+    $('inN').checked = !!t.isNew; jkt = t.jacket || ''; setTh(jkt); setD(t.diff); setL(t.lamp || 'NONE');
+    $('fTtl').textContent = `編集中：${t.title}`; $('bSav').textContent = '変更を更新する'; $('bRst').style.display = 'inline-block';
+    live(); window.scrollTo({ top:0, behavior:'smooth' });
+  }
+
+  function renderRec() {
+    const loggedIn = !!auth.id, best = lastBest;
     $('bRefRec').style.display = loggedIn ? 'inline-block' : 'none';
     if (!loggedIn) {
       $('recMeta').innerHTML = '🔒 この機能は<b>引き継ぎIDを登録・ログインした方限定</b>です。';
@@ -397,8 +407,26 @@ document.addEventListener('DOMContentLoaded', () => {
       return;
     }
     if (!best.length) return ($('recMeta').textContent = 'BEST枠を登録するとおすすめ譜面を表示します', $('recList').innerHTML = '');
-    if (!db.length) return ($('recMeta').textContent = '楽曲DBを読み込み中です...', $('recList').innerHTML = '');
+
     const avg = best.reduce((a, b) => a + b.rt, 0) / best.length;
+    const borderRt = best.length >= 30 ? best[29].rt : Math.max(0, avg - 0.15);
+    const nonNewAll = lastAll.filter(s => !s.isNew);
+    const bench = nonNewAll.slice(30);
+
+    // 1. スコア登録済みで、もう少し伸ばせばBEST枠（30位以内）に入る控え譜面を優先抽出
+    const nearSongs = bench.map(s => {
+      const potSss = calc(s.const, 1007500), potSssp = calc(s.const, 1009000);
+      const maxPot = Math.max(potSss, potSssp);
+      const gap = borderRt - s.rt;
+      const canEnter = maxPot > borderRt + 0.0001;
+      const targetLbl = potSss > borderRt + 0.0001 ? `SSSで+${(potSss - borderRt).toFixed(3)}` : (potSssp > borderRt + 0.0001 ? `SSS+で+${(potSssp - borderRt).toFixed(3)}` : `枠まであと${gap.toFixed(3)}`);
+      return { s, gap, canEnter, targetLbl };
+    }).filter(x => x.canEnter || x.gap <= 0.25)
+      .sort((a, b) => (b.canEnter - a.canEnter) || (a.gap - b.gap));
+
+    const pickedNear = nearSongs.slice(0, 7);
+
+    // 2. 足りない分はBEST30平均から適正定数（平均-1.9〜-1.7）の未登録譜面をランダム補完
     const minC = Math.max(1, Math.round((avg - 1.9) * 10) / 10);
     const maxC = Math.min(16, Math.round((avg - 1.7) * 10) / 10);
     const owned = new Set(st.songs.map(s => `${norm(s.title)}_${s.diff}`));
@@ -407,15 +435,30 @@ document.addEventListener('DOMContentLoaded', () => {
       const c = s.ch[d];
       if (c !== undefined && c >= minC - 0.001 && c <= maxC + 0.001 && !owned.has(`${norm(s.t)}_${d}`)) pool.push({ s, d, c });
     }));
-    $('recMeta').innerHTML = `BEST30平均: <b>${avg.toFixed(3)}</b> → 目安定数: <b>${minC.toFixed(1)} 〜 ${maxC.toFixed(1)}</b>（未登録候補 ${pool.length}譜面）`;
-    if (!pool.length) return ($('recList').innerHTML = '<div style="padding:12px;text-align:center;font-size:.78rem;color:#607066">該当定数帯の未登録譜面が見つかりませんでした。</div>');
     for (let i = pool.length - 1; i > 0; i--) { const j = Math.random() * (i + 1) | 0; [pool[i], pool[j]] = [pool[j], pool[i]]; }
-    $('recList').innerHTML = pool.slice(0, 10).map(({ s, d, c }) => {
+    const pickedRand = pool.slice(0, Math.max(0, 10 - pickedNear.length));
+
+    $('recMeta').innerHTML = `BEST枠ボーダー: <b>${borderRt.toFixed(3)}</b> / 平均: <b>${avg.toFixed(3)}</b><br>`
+      + (pickedNear.length ? `🔥 BEST枠目前の登録曲 <b>${pickedNear.length}件</b> ＋ 未登録候補（定数${minC.toFixed(1)}〜${maxC.toFixed(1)}）` : `該当する登録控え曲がないため、未登録候補（定数${minC.toFixed(1)}〜${maxC.toFixed(1)}）を表示中`);
+
+    if (!pickedNear.length && !pickedRand.length) {
+      return ($('recList').innerHTML = '<div style="padding:12px;text-align:center;font-size:.78rem;color:#607066">該当するおすすめ譜面が見つかりませんでした。</div>');
+    }
+
+    const nearHtml = pickedNear.map(({ s, targetLbl }) => {
+      const img = s.jacket || dbMap.get(norm(s.title))?.img || '';
+      const th = img ? `<img class="nc-th" src="${img}" loading="lazy" onerror="this.style.visibility='hidden'" />` : `<div class="nc-th"></div>`;
+      return `<div class="nc-it" data-edid="${esc(s.id)}">${th}<span class="bm" style="background:${DBG[s.diff]};flex-shrink:0">${s.diff.slice(0,3)} ${s.const.toFixed(1)}</span><span class="b-near">あと少し</span><div style="min-width:0;flex:1"><div class="nc-tt">${esc(s.title)}</div><div class="nc-sub">現在 ${s.score.toLocaleString()} (${s.rt.toFixed(3)}) / ${targetLbl}</div></div></div>`;
+    }).join('');
+
+    const randHtml = pickedRand.map(({ s, d, c }) => {
       const th = s.img ? `<img class="nc-th" src="${s.img}" loading="lazy" onerror="this.style.visibility='hidden'" />` : `<div class="nc-th"></div>`;
       return `<div class="nc-it" data-nct="${esc(norm(s.t))}" data-ncd="${d}">${th}<span class="bm" style="background:${DBG[d]};flex-shrink:0">${d.slice(0,3)} ${c.toFixed(1)}</span>${s.isNew?'<span class="b-new">NEW</span>':''}<div class="nc-tt">${esc(s.t)}</div></div>`;
     }).join('');
+
+    $('recList').innerHTML = nearHtml + randHtml;
   }
-  $('bRefRec').onclick = () => renderRec(lastBest);
+  $('bRefRec').onclick = renderRec;
 
   function renderConstTable() {
     const srcSongs = ncFilter === 'new' ? db.filter(s => s.isNew) : db;
@@ -453,6 +496,8 @@ document.addEventListener('DOMContentLoaded', () => {
   $('inNewcQ').oninput = renderConstTable;
 
   const pickChart = e => {
+    const edIt = e.target.closest('[data-edid]');
+    if (edIt) { const t = st.songs.find(s => s.id === edIt.dataset.edid); if (t) { closeDrw(); startEdit(t); } return; }
     const it = e.target.closest('[data-nct]'); if (!it) return;
     const s = dbMap.get(it.dataset.nct); if (!s) return;
     closeDrw(); applySongToForm(s, it.dataset.ncd); window.scrollTo({ top:0, behavior:'smooth' });
@@ -608,7 +653,7 @@ document.addEventListener('DOMContentLoaded', () => {
       });
     }
 
-    dbMap = songMap; db = [...songMap.values()]; renderConstTable(); renderRec(lastBest);
+    dbMap = songMap; db = [...songMap.values()]; renderConstTable(); renderRec();
     const newCount = db.filter(x => x.isNew).length;
     if (db.length > 50) { $('dbB').textContent = currentVerRaw ? `DB適用 (${currentVerRaw} / 新曲${newCount}曲)` : `DB適用済 (${db.length}曲 / 新曲${newCount}曲)`; $('dbB').classList.add('ok'); }
     else { $('dbB').textContent = 'DB接続失敗（手動入力可）'; $('dbB').classList.add('err'); }
@@ -695,7 +740,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const all = st.songs.map(s => ({ ...s, rt: calc(s.const, s.score) })).sort((a,b) => (b.rt - a.rt) || (b.score - a.score));
     const best = all.filter(s => !s.isNew).slice(0, 30), news = all.filter(s => s.isNew).slice(0, 20);
-    lastBest = best;
+    lastAll = all; lastBest = best;
     const bS = best.reduce((a,b) => a + b.rt, 0), nS = news.reduce((a,b) => a + b.rt, 0), tot = (bS + nS) / 50, top = best[0]?.rt || news[0]?.rt || 0;
 
     const vT = $('vTot'), ts = tot.toFixed(3);
@@ -708,7 +753,7 @@ document.addEventListener('DOMContentLoaded', () => {
     $('gB').innerHTML = best.length ? best.map((s,i) => tile(s,i+1)).join('') : '<div class="emp">対象曲がありません。</div>';
     $('gN').innerHTML = news.length ? news.map((s,i) => tile(s,i+1)).join('') : '<div class="emp">新曲枠の対象曲がありません。</div>';
     renderStats(statScope === 'top' ? [...best, ...news] : all);
-    renderRec(best);
+    renderRec();
 
     $('rCnt').textContent = all.length;
     $('rBd').innerHTML = all.length ? all.map(s => `<tr><td>${s.isNew?'<span class="bm" style="background:#e67e22">NEW</span>':'BEST'}</td><td style="font-weight:800">${esc(s.title)}</td><td><span class="bm bg-${s.diff}">${s.diff}</span></td><td>${s.const.toFixed(1)}</td><td>${s.score.toLocaleString()}</td><td>${s.lamp==='NONE'?'-':s.lamp}</td><td style="font-weight:800;color:var(--g)">${s.rt.toFixed(3)}</td><td style="white-space:nowrap">${s.isNew?`<button type="button" class="bw" data-mv="${s.id}" style="padding:4px 8px;font-size:.72rem">BESTへ</button> `:''}<button type="button" class="bs" data-ed="${s.id}" style="padding:4px 8px;font-size:.72rem">編集</button> <button type="button" class="bd" data-dl="${s.id}" style="padding:4px 8px;font-size:.72rem">削除</button></td></tr>`).join('') : '<tr><td colspan="8" style="text-align:center;color:#607066;padding:18px">登録された譜面はまだありません。</td></tr>';
@@ -718,13 +763,8 @@ document.addEventListener('DOMContentLoaded', () => {
   $('rBd').onclick = e => {
     const { ed, dl, mv } = e.target.dataset;
     if (mv) { pushH(); st.songs = st.songs.map(s => s.id === mv ? { ...s, isNew:false } : s); save(); render(); }
-    else if (ed) {
-      const t = st.songs.find(s => s.id === ed); if (!t) return;
-      edId = t.id; $('inT').value = t.title; $('inC').value = t.const.toFixed(1); $('inS').value = t.score;
-      $('inN').checked = !!t.isNew; jkt = t.jacket || ''; setTh(jkt); setD(t.diff); setL(t.lamp || 'NONE');
-      $('fTtl').textContent = `編集中：${t.title}`; $('bSav').textContent = '変更を更新する'; $('bRst').style.display = 'inline-block';
-      live(); window.scrollTo({ top:0, behavior:'smooth' });
-    } else if (dl) { pushH(); st.songs = st.songs.filter(s => s.id !== dl); if (edId === dl) rst(); save(); render(); }
+    else if (ed) { startEdit(st.songs.find(s => s.id === ed)); }
+    else if (dl) { pushH(); st.songs = st.songs.filter(s => s.id !== dl); if (edId === dl) rst(); save(); render(); }
   };
 
   $('uBtn').onclick = $('uTop').onclick = () => { if (!hist.length) return; st = JSON.parse(hist.pop()); $('inP').value = st.playerName; $('inCr').value = st.creditName; $('cLmp').checked = st.showLamp; rst(); save(); render(); updU(); };
