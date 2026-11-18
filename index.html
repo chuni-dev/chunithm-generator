@@ -47,7 +47,8 @@ input:focus{outline:none;border-color:var(--g);box-shadow:0 0 0 3px rgba(34,122,
 .cb[data-d="EXPERT"].on{background:var(--exp);border-color:var(--exp);color:#fff}
 .cb[data-d="MASTER"].on{background:var(--mas);border-color:var(--mas);color:#fff}
 .cb[data-d="ULTIMA"].on{background:var(--ult);border-color:#ff4757;color:#fff}
-.cb[data-l].on,.cb[data-sc].on,.cb[data-smode].on,.cb[data-ncf].on{background:var(--g);border-color:var(--g);color:#fff}
+.cb[data-l].on,.cb[data-sc].on,.cb[data-smode].on,.cb[data-ncf].on,.cb[data-ncg].on{background:var(--g);border-color:var(--g);color:#fff}
+.cb[data-ncg]{padding:4px 8px;font-size:.72rem}
 .cb[data-l="AJ"].on{background:linear-gradient(135deg,#f39c12,#e67e22);border-color:#d35400;color:#fff}
 .cb[data-l="AJC"].on{background:linear-gradient(135deg,#ff6b81,#f39c12,#2ed573,#1e90ff);border-color:#1e272e;color:#fff}
 .adj{padding:5px 8px;font-size:.75rem;font-weight:800;border:1px solid #c5d1c9;background:#f1f6f3;color:#26382d;border-radius:6px;cursor:pointer}
@@ -183,6 +184,7 @@ input:focus{outline:none;border-color:var(--g);box-shadow:0 0 0 3px rgba(34,122,
         <button type="button" class="cb on" data-ncf="all">全譜面</button>
         <button type="button" class="cb" data-ncf="new">新曲枠のみ</button>
       </div>
+      <div class="btns" id="newcGenre" style="gap:4px"></div>
       <input type="text" id="inNewcQ" placeholder="曲名 または 定数 (例: 15.0 / Garakuta) で検索" style="font-size:.84rem;padding:8px 10px" />
       <div style="font-size:.75rem;color:#52665a" id="newcMeta">タップで登録フォームへ入力</div>
       <div id="newcList" class="col" style="gap:10px"></div>
@@ -358,7 +360,7 @@ document.addEventListener('DOMContentLoaded', () => {
   $('sPre').innerHTML = [['理論値',1010000],['SSS+',1009000],['SSS',1007500],['SS+',1005000],['SS',1000000],['S+',990000],['S',975000]].map(([l,v]) => `<button type="button" class="adj pre" data-ss="${v}">${l}</button>`).join('');
 
   let db = [], dbMap = new Map(), sel = null, edId = null, diff = 'MASTER', lamp = 'NONE', jkt = '', hist = [];
-  let statMode = 'mine', statScope = 'top', ncFilter = 'all', globalCache = null, lastAll = [], lastBest = [];
+  let statMode = 'mine', statScope = 'top', ncFilter = 'all', ncGenre = 'all', globalCache = null, lastAll = [], lastBest = [];
   let st = { playerName:'', creditName:'CHUNITHM', showLamp:true, songs:[] };
   let auth = { id:'', pin:'', lastSync:'' };
 
@@ -410,10 +412,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const avg = best.reduce((a, b) => a + b.rt, 0) / best.length;
     const borderRt = best.length >= 30 ? best[29].rt : Math.max(0, avg - 0.15);
-    const nonNewAll = lastAll.filter(s => !s.isNew);
-    const bench = nonNewAll.slice(30);
+    const bench = lastAll.filter(s => !s.isNew).slice(30);
 
-    // 1. スコア登録済みで、もう少し伸ばせばBEST枠（30位以内）に入る控え譜面を優先抽出
     const nearSongs = bench.map(s => {
       const potSss = calc(s.const, 1007500), potSssp = calc(s.const, 1009000);
       const maxPot = Math.max(potSss, potSssp);
@@ -426,7 +426,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const pickedNear = nearSongs.slice(0, 7);
 
-    // 2. 足りない分はBEST30平均から適正定数（平均-1.9〜-1.7）の未登録譜面をランダム補完
     const minC = Math.max(1, Math.round((avg - 1.9) * 10) / 10);
     const maxC = Math.min(16, Math.round((avg - 1.7) * 10) / 10);
     const owned = new Set(st.songs.map(s => `${norm(s.title)}_${s.diff}`));
@@ -460,8 +459,15 @@ document.addEventListener('DOMContentLoaded', () => {
   }
   $('bRefRec').onclick = renderRec;
 
+  function renderGenreButtons() {
+    const genres = [...new Set(db.map(s => s.cat).filter(Boolean))];
+    if (!genres.includes(ncGenre)) ncGenre = 'all';
+    $('newcGenre').innerHTML = genres.length ? ['all', ...genres].map(g => `<button type="button" class="cb${ncGenre===g?' on':''}" data-ncg="${esc(g)}">${g==='all'?'全ジャンル':esc(g)}</button>`).join('') : '';
+  }
+
   function renderConstTable() {
-    const srcSongs = ncFilter === 'new' ? db.filter(s => s.isNew) : db;
+    let srcSongs = ncFilter === 'new' ? db.filter(s => s.isNew) : db;
+    if (ncGenre !== 'all') srcSongs = srcSongs.filter(s => s.cat === ncGenre);
     const qRaw = $('inNewcQ').value.trim(), qNorm = norm(qRaw);
     if (!srcSongs.length) return ($('newcList').innerHTML = '<div style="text-align:center;color:#607066;padding:18px;font-size:.82rem">データを読み込み中、または該当データがありません。</div>');
 
@@ -477,7 +483,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!sortedKeys.length) return ($('newcList').innerHTML = '<div style="text-align:center;color:#607066;padding:18px;font-size:.82rem">条件に一致する譜面がありません。</div>');
 
     const dOrder = { ULTIMA:0, MASTER:1, EXPERT:2, ADVANCED:3, BASIC:4 };
-    const limit = (!qRaw && ncFilter === 'all') ? 250 : 800;
+    const limit = (!qRaw && ncFilter === 'all' && ncGenre === 'all') ? 250 : 800;
     let shown = 0, html = '';
     for (const cStr of sortedKeys) {
       if (shown >= limit) break;
@@ -493,6 +499,7 @@ document.addEventListener('DOMContentLoaded', () => {
     $('newcList').innerHTML = html;
   }
   $('newcFilter').onclick = e => { const f = e.target.dataset.ncf; if (!f) return; ncFilter = f; document.querySelectorAll('#newcFilter .cb').forEach(b => b.classList.toggle('on', b.dataset.ncf === f)); renderConstTable(); };
+  $('newcGenre').onclick = e => { const g = e.target.dataset.ncg; if (!g) return; ncGenre = g; document.querySelectorAll('#newcGenre .cb').forEach(b => b.classList.toggle('on', b.dataset.ncg === g)); renderConstTable(); };
   $('inNewcQ').oninput = renderConstTable;
 
   const pickChart = e => {
@@ -612,7 +619,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let currentCat = null, inNewBlock = false;
     metaList.forEach(s => {
       const t = s.title || s.name; if (!t) return;
-      const cat = String(s.category || ''); if (cat !== currentCat) { currentCat = cat; inNewBlock = false; }
+      const cat = String(s.category || '').trim(); if (cat !== currentCat) { currentCat = cat; inNewBlock = false; }
       const ver = String(s.version || '').trim(), nv = norm(ver); if (currentVerNorm && nv === currentVerNorm) inNewBlock = true;
       const ch = {}; let sheetIsNew = false;
       (s.sheets || []).forEach(sh => {
@@ -621,7 +628,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (d && v > 0) ch[d] = v; if (sh.isNew) sheetIsNew = true;
       });
       const im = s.imageName || s.image || '', img = im ? (im.startsWith('http') ? im : `https://dp4p6x0xfi5o9.cloudfront.net/chunithm/img/cover/${im}`) : '', key = norm(t);
-      if (!songMap.has(key)) songMap.set(key, { t, ch, ver, isNew: !!(s.isNew || sheetIsNew || inNewBlock || (currentVerNorm && nv === currentVerNorm)), img });
+      if (!songMap.has(key)) songMap.set(key, { t, ch, cat, ver, isNew: !!(s.isNew || sheetIsNew || inNewBlock || (currentVerNorm && nv === currentVerNorm)), img });
     });
 
     if (Array.isArray(reiwaAll)) {
@@ -639,7 +646,8 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!Object.keys(ch).length) return;
         const key = norm(t), prev = songMap.get(key), rVer = String(m.version || m.ver || '').trim(), rNv = norm(rVer), id = Number(m.id ?? m.music_id);
         const isNew = !!(prev?.isNew || m.isNew || m.new || (hasMetaDB && !prev) || (minNewId < Infinity && id >= minNewId) || (currentVerNorm && rNv === currentVerNorm) || (latestR && rNv === latestR));
-        songMap.set(key, { t: prev?.t || t, ch: { ...(prev?.ch || {}), ...ch }, ver: prev?.ver || rVer, isNew, img: prev?.img || '' });
+        const rCat = String(m.genre || m.category || '').trim();
+        songMap.set(key, { t: prev?.t || t, ch: { ...(prev?.ch || {}), ...ch }, cat: prev?.cat || rCat, ver: prev?.ver || rVer, isNew, img: prev?.img || '' });
       });
     }
 
@@ -647,13 +655,14 @@ document.addEventListener('DOMContentLoaded', () => {
       reiwaRec.forEach(r => {
         const t = r.title || r.name, d = DMAP[String(r.diff ?? r.difficulty ?? '').toLowerCase()], v = parseFloat(r.const ?? r.internalLevel ?? r.level);
         if (!t || !d || !(v > 0 && v <= 16.5)) return;
-        const key = norm(t), prev = songMap.get(key), rNv = norm(r.version || r.ver || ''), obj = prev || { t, ch:{}, ver:'', isNew:false, img:'' };
-        obj.ch[d] = v; if ((hasMetaDB && !prev) || r.isNew || r.new || (currentVerNorm && rNv === currentVerNorm)) obj.isNew = true;
+        const key = norm(t), prev = songMap.get(key), rNv = norm(r.version || r.ver || ''), rCat = String(r.genre || r.category || '').trim(), obj = prev || { t, ch:{}, cat:rCat, ver:'', isNew:false, img:'' };
+        obj.ch[d] = v; if (!obj.cat && rCat) obj.cat = rCat;
+        if ((hasMetaDB && !prev) || r.isNew || r.new || (currentVerNorm && rNv === currentVerNorm)) obj.isNew = true;
         songMap.set(key, obj);
       });
     }
 
-    dbMap = songMap; db = [...songMap.values()]; renderConstTable(); renderRec();
+    dbMap = songMap; db = [...songMap.values()]; renderGenreButtons(); renderConstTable(); renderRec();
     const newCount = db.filter(x => x.isNew).length;
     if (db.length > 50) { $('dbB').textContent = currentVerRaw ? `DB適用 (${currentVerRaw} / 新曲${newCount}曲)` : `DB適用済 (${db.length}曲 / 新曲${newCount}曲)`; $('dbB').classList.add('ok'); }
     else { $('dbB').textContent = 'DB接続失敗（手動入力可）'; $('dbB').classList.add('err'); }
