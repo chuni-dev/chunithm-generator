@@ -111,7 +111,7 @@ input:focus{outline:none;border-color:var(--g);box-shadow:0 0 0 3px rgba(34,122,
 .nc-it{display:flex;align-items:center;gap:8px;padding:6px 9px;border-bottom:1px solid #edf2ef;cursor:pointer}.nc-it:last-child{border-bottom:none}.nc-it:hover{background:#eef7f1}
 .nc-th{width:34px;height:34px;border-radius:4px;object-fit:cover;background:#2b2e2c;flex-shrink:0}
 .nc-tt{font-size:.8rem;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:1}
-.nc-sub{font-size:.68rem;color:#4f6357;font-weight:700}
+.nc-sub{font-size:.68rem;color:#354a3e;font-weight:700;line-height:1.35;margin-top:1px}
 .gf-frame{width:100%;height:500px;border:1px solid #d5e6dc;border-radius:10px;background:#f8faf9}
 .cloud-box{background:#f3f9f5;border:1px solid #cfe3d7;border-radius:10px;padding:12px;display:flex;flex-direction:column;gap:10px}
 .msg-box{font-size:.8rem;font-weight:800;padding:8px 10px;border-radius:7px;display:none}
@@ -400,6 +400,19 @@ document.addEventListener('DOMContentLoaded', () => {
     live(); window.scrollTo({ top:0, behavior:'smooth' });
   }
 
+  // 指定定数で目標レート(targetRt)を超えるために必要な最低スコアを逆算
+  function reqScoreForRate(c, targetRt) {
+    if (calc(c, 1010000) <= targetRt + 1e-6) return null;
+    if (calc(c, 800000) > targetRt + 1e-6) return 800000;
+    let lo = 800000, hi = 1010000;
+    while (lo < hi) {
+      const mid = (lo + hi) >>> 1;
+      if (calc(c, mid) > targetRt + 1e-6) hi = mid;
+      else lo = mid + 1;
+    }
+    return lo;
+  }
+
   function renderRec() {
     const loggedIn = !!auth.id, best = lastBest;
     $('bRefRec').style.display = loggedIn ? 'inline-block' : 'none';
@@ -416,14 +429,18 @@ document.addEventListener('DOMContentLoaded', () => {
     const bench = lastAll.filter(s => !s.isNew).slice(30);
 
     const nearSongs = bench.map(s => {
-      const potSss = calc(s.const, 1007500), potSssp = calc(s.const, 1009000);
-      const maxPot = Math.max(potSss, potSssp);
+      const reqSc = reqScoreForRate(s.const, borderRt);
       const gap = borderRt - s.rt;
-      const canEnter = maxPot > borderRt + 0.0001;
-      const targetLbl = potSss > borderRt + 0.0001 ? `SSSで+${(potSss - borderRt).toFixed(3)}` : (potSssp > borderRt + 0.0001 ? `SSS+で+${(potSssp - borderRt).toFixed(3)}` : `枠まであと${gap.toFixed(3)}`);
-      return { s, gap, canEnter, targetLbl };
-    }).filter(x => x.canEnter || x.gap <= 0.25)
-      .sort((a, b) => (b.canEnter - a.canEnter) || (a.gap - b.gap));
+      const canEnter = reqSc !== null;
+      const easyEnter = canEnter && reqSc <= 1007500;
+      const diffSc = canEnter ? Math.max(0, reqSc - s.score) : 0;
+      const newRt = canEnter ? calc(s.const, reqSc) : 0;
+      const targetLbl = canEnter
+        ? `目標 <b>${reqSc.toLocaleString()}</b> (${rank(reqSc).l}) でBEST入り（あと+${diffSc.toLocaleString()}点 / ${newRt.toFixed(3)}）`
+        : `理論値(${calc(s.const,1010000).toFixed(3)})でも30位に届かず`;
+      return { s, gap, canEnter, easyEnter, diffSc, targetLbl };
+    }).filter(x => x.canEnter || x.gap <= 0.15)
+      .sort((a, b) => (b.easyEnter - a.easyEnter) || (b.canEnter - a.canEnter) || (a.diffSc - b.diffSc) || (a.gap - b.gap));
 
     const pickedNear = nearSongs.slice(0, 7);
 
@@ -438,22 +455,24 @@ document.addEventListener('DOMContentLoaded', () => {
     for (let i = pool.length - 1; i > 0; i--) { const j = Math.random() * (i + 1) | 0; [pool[i], pool[j]] = [pool[j], pool[i]]; }
     const pickedRand = pool.slice(0, Math.max(0, 10 - pickedNear.length));
 
-    $('recMeta').innerHTML = `BEST枠ボーダー: <b>${borderRt.toFixed(3)}</b> / 平均: <b>${avg.toFixed(3)}</b><br>`
-      + (pickedNear.length ? `🔥 BEST枠目前の登録曲 <b>${pickedNear.length}件</b> ＋ 未登録候補（定数${minC.toFixed(1)}〜${maxC.toFixed(1)}）` : `該当する登録控え曲がないため、未登録候補（定数${minC.toFixed(1)}〜${maxC.toFixed(1)}）を表示中`);
+    $('recMeta').innerHTML = `BEST枠30位ボーダー: <b>${borderRt.toFixed(3)}</b> / 平均: <b>${avg.toFixed(3)}</b><br>`
+      + (pickedNear.length ? `🔥 30位以内に入れる登録曲 <b>${pickedNear.length}件</b> ＋ 未登録候補（定数${minC.toFixed(1)}〜${maxC.toFixed(1)}）` : `該当する登録控え曲がないため、未登録候補（定数${minC.toFixed(1)}〜${maxC.toFixed(1)}）を表示中`);
 
     if (!pickedNear.length && !pickedRand.length) {
       return ($('recList').innerHTML = '<div style="padding:12px;text-align:center;font-size:.78rem;color:#607066">該当するおすすめ譜面が見つかりませんでした。</div>');
     }
 
-    const nearHtml = pickedNear.map(({ s, targetLbl }) => {
+    const nearHtml = pickedNear.map(({ s, targetLbl, canEnter }) => {
       const img = s.jacket || dbMap.get(norm(s.title))?.img || '';
       const th = img ? `<img class="nc-th" src="${img}" loading="lazy" onerror="this.style.visibility='hidden'" />` : `<div class="nc-th"></div>`;
-      return `<div class="nc-it" data-edid="${esc(s.id)}">${th}<span class="bm" style="background:${DBG[s.diff]};flex-shrink:0">${s.diff.slice(0,3)} ${s.const.toFixed(1)}</span><span class="b-near">あと少し</span><div style="min-width:0;flex:1"><div class="nc-tt">${esc(s.title)}</div><div class="nc-sub">現在 ${s.score.toLocaleString()} (${s.rt.toFixed(3)}) / ${targetLbl}</div></div></div>`;
+      return `<div class="nc-it" data-edid="${esc(s.id)}">${th}<span class="bm" style="background:${DBG[s.diff]};flex-shrink:0">${s.diff.slice(0,3)} ${s.const.toFixed(1)}</span>${canEnter?'<span class="b-near">狙い目</span>':''}<div style="min-width:0;flex:1"><div class="nc-tt">${esc(s.title)}</div><div class="nc-sub">現在 ${s.score.toLocaleString()} (${s.rt.toFixed(3)})<br>${targetLbl}</div></div></div>`;
     }).join('');
 
     const randHtml = pickedRand.map(({ s, d, c }) => {
       const th = s.img ? `<img class="nc-th" src="${s.img}" loading="lazy" onerror="this.style.visibility='hidden'" />` : `<div class="nc-th"></div>`;
-      return `<div class="nc-it" data-nct="${esc(norm(s.t))}" data-ncd="${d}">${th}<span class="bm" style="background:${DBG[d]};flex-shrink:0">${d.slice(0,3)} ${c.toFixed(1)}</span>${s.isNew?'<span class="b-new">NEW</span>':''}<div class="nc-tt">${esc(s.t)}</div></div>`;
+      const reqSc = reqScoreForRate(c, borderRt);
+      const hint = reqSc ? `30位入り目安: ${reqSc.toLocaleString()} (${rank(reqSc).l})` : '';
+      return `<div class="nc-it" data-nct="${esc(norm(s.t))}" data-ncd="${d}">${th}<span class="bm" style="background:${DBG[d]};flex-shrink:0">${d.slice(0,3)} ${c.toFixed(1)}</span>${s.isNew?'<span class="b-new">NEW</span>':''}<div style="min-width:0;flex:1"><div class="nc-tt">${esc(s.t)}</div>${hint?`<div class="nc-sub">${hint}</div>`:''}</div></div>`;
     }).join('');
 
     $('recList').innerHTML = nearHtml + randHtml;
