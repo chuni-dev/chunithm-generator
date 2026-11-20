@@ -38,7 +38,6 @@ input:focus{outline:none;border-color:var(--g);box-shadow:0 0 0 3px rgba(34,122,
 .ac-tt{font-size:.85rem;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:flex;align-items:center;gap:5px}
 .ac-c,.bm{padding:2px 6px;border-radius:4px;color:#fff;font-size:.7rem;font-weight:800;display:inline-block}.ac-c{margin:2px 4px 0 0}
 .b-new{background:#e67e22;color:#fff;font-size:.65rem;font-weight:900;padding:1px 5px;border-radius:4px;flex-shrink:0}
-.b-near{background:#0284c7;color:#fff;font-size:.63rem;font-weight:900;padding:1px 5px;border-radius:4px;flex-shrink:0}
 .th-sm{width:52px;height:52px;border-radius:6px;object-fit:cover;border:1px solid #c5d1c9;display:none;background:#2b2e2c}
 .btns{display:flex;flex-wrap:wrap;gap:6px}
 .cb{padding:7px 11px;border-radius:7px;border:1.5px solid #cbd6cf;background:#f8faf9;color:#44544a;font-size:.78rem;font-weight:800;cursor:pointer}
@@ -430,16 +429,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const nearSongs = bench.map(s => {
       const reqSc = reqScoreForRate(s.const, borderRt);
-      const gap = borderRt - s.rt;
-      const canEnter = reqSc !== null;
-      const easyEnter = canEnter && reqSc <= 1007500;
-      const diffSc = canEnter ? Math.max(0, reqSc - s.score) : 0;
-      const newRt = canEnter ? calc(s.const, reqSc) : 0;
-      const targetLbl = canEnter
-        ? `目標 <b>${reqSc.toLocaleString()}</b> (${rank(reqSc).l}) でBEST入り（あと+${diffSc.toLocaleString()}点 / ${newRt.toFixed(3)}）`
-        : `理論値(${calc(s.const,1010000).toFixed(3)})でも30位に届かず`;
-      return { s, gap, canEnter, easyEnter, diffSc, targetLbl };
-    }).sort((a, b) => (b.easyEnter - a.easyEnter) || (b.canEnter - a.canEnter) || (a.diffSc - b.diffSc) || (a.gap - b.gap));
+      if (reqSc === null) return null;
+      const easyEnter = reqSc <= 1007500;
+      const diffSc = Math.max(0, reqSc - s.score);
+      const newRt = calc(s.const, reqSc);
+      const targetLbl = `目標 <b>${reqSc.toLocaleString()}</b> (${rank(reqSc).l}) でBEST入り（あと+${diffSc.toLocaleString()}点 / ${newRt.toFixed(3)}）`;
+      return { s, easyEnter, diffSc, targetLbl };
+    }).filter(Boolean)
+      .sort((a, b) => (b.easyEnter - a.easyEnter) || (a.diffSc - b.diffSc));
 
     const pickedNear = nearSongs.slice(0, 10);
 
@@ -457,11 +454,11 @@ document.addEventListener('DOMContentLoaded', () => {
     $('recMeta').innerHTML = `BEST枠30位ボーダー: <b>${borderRt.toFixed(3)}</b> / 平均: <b>${avg.toFixed(3)}</b><br>`
       + `プレイ済み候補 <b>${pickedNear.length}曲</b> ／ 未プレイ候補 <b>${pickedRand.length}曲</b>（定数${minC.toFixed(1)}〜${maxC.toFixed(1)}）`;
 
-    const nearHtml = `<div class="nc-sec">🔥 プレイ済み候補（${pickedNear.length} / 10曲）</div>` + (pickedNear.length ? pickedNear.map(({ s, targetLbl, canEnter }) => {
+    const nearHtml = `<div class="nc-sec">🔥 プレイ済み候補（${pickedNear.length} / 10曲）</div>` + (pickedNear.length ? pickedNear.map(({ s, targetLbl }) => {
       const img = s.jacket || dbMap.get(norm(s.title))?.img || '';
       const th = img ? `<img class="nc-th" src="${img}" loading="lazy" onerror="this.style.visibility='hidden'" />` : `<div class="nc-th"></div>`;
-      return `<div class="nc-it" data-edid="${esc(s.id)}">${th}<span class="bm" style="background:${DBG[s.diff]};flex-shrink:0">${s.diff.slice(0,3)} ${s.const.toFixed(1)}</span>${canEnter?'<span class="b-near">狙い目</span>':''}<div style="min-width:0;flex:1"><div class="nc-tt">${esc(s.title)}</div><div class="nc-sub">現在 ${s.score.toLocaleString()} (${s.rt.toFixed(3)})<br>${targetLbl}</div></div></div>`;
-    }).join('') : '<div style="padding:10px;text-align:center;font-size:.75rem;color:#607066">31位以下のプレイ済み登録曲がありません。</div>');
+      return `<div class="nc-it" data-edid="${esc(s.id)}">${th}<span class="bm" style="background:${DBG[s.diff]};flex-shrink:0">${s.diff.slice(0,3)} ${s.const.toFixed(1)}</span><div style="min-width:0;flex:1"><div class="nc-tt">${esc(s.title)}</div><div class="nc-sub">現在 ${s.score.toLocaleString()} (${s.rt.toFixed(3)})<br>${targetLbl}</div></div></div>`;
+    }).join('') : '<div style="padding:10px;text-align:center;font-size:.75rem;color:#607066">30位に届くプレイ済み候補はありません。</div>');
 
     const randHtml = `<div class="nc-sec">🆕 未プレイ候補（${pickedRand.length} / 10曲）</div>` + (pickedRand.length ? pickedRand.map(({ s, d, c }) => {
       const th = s.img ? `<img class="nc-th" src="${s.img}" loading="lazy" onerror="this.style.visibility='hidden'" />` : `<div class="nc-th"></div>`;
