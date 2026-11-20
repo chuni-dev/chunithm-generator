@@ -365,6 +365,18 @@ document.addEventListener('DOMContentLoaded', () => {
   let st = { playerName:'', creditName:'CHUNITHM', showLamp:true, songs:[] };
   let auth = { id:'', pin:'', lastSync:'' };
 
+  // 同一曲・同一難易度の重複を統合（スコアが高い方を残す）
+  function dedupeSongs(list) {
+    const m = new Map();
+    (Array.isArray(list) ? list : []).forEach(s => {
+      if (!s || !s.title) return;
+      const k = `${norm(s.title)}_${s.diff}`;
+      const prev = m.get(k);
+      if (!prev || (Number(s.score) || 0) >= (Number(prev.score) || 0)) m.set(k, s);
+    });
+    return [...m.values()];
+  }
+
   const save = () => { try { localStorage.setItem(KEY, JSON.stringify(st)); } catch {} };
   const saveAuth = () => { try { localStorage.setItem(AUTH_KEY, JSON.stringify(auth)); } catch {} updAuthUI(); renderRec(); };
   const pushH = () => { hist.push(JSON.stringify(st)); if (hist.length > 30) hist.shift(); updU(); };
@@ -560,7 +572,7 @@ document.addEventListener('DOMContentLoaded', () => {
       const { data: d = {} } = await apiPost({ action:'login', id, pin });
       if (!Array.isArray(d.songs)) throw new Error('保存データが見つかりません');
       pushH();
-      st = { playerName:d.playerName||'', creditName:d.creditName||'CHUNITHM', showLamp:d.showLamp!==false, songs:d.songs.map(s => ({ ...s, jacket: s.jacket || dbMap.get(norm(s.title))?.img || '' })) };
+      st = { playerName:d.playerName||'', creditName:d.creditName||'CHUNITHM', showLamp:d.showLamp!==false, songs:dedupeSongs(d.songs).map(s => ({ ...s, jacket: s.jacket || dbMap.get(norm(s.title))?.img || '' })) };
       $('inP').value = st.playerName; $('inCr').value = st.creditName; $('cLmp').checked = st.showLamp;
       save(); render(); auth = { id, pin, lastSync: '読込完了' }; saveAuth();
       showSyncMsg(`ログイン成功！${st.songs.length}曲のデータを復元しました。`);
@@ -723,9 +735,30 @@ document.addEventListener('DOMContentLoaded', () => {
 
   $('bSav').onclick = () => {
     const title = $('inT').value.trim(); if (!title) return alert('楽曲名を入力してください。');
+    const cVal = Math.max(1, Math.min(16, Math.round((+$('inC').value||1)*10)/10));
+    const sVal = Math.max(0, Math.min(1010000, parseInt($('inS').value,10)||0));
+    const dup = st.songs.find(s => s.id !== edId && norm(s.title) === norm(title) && s.diff === diff);
+
+    let targetId = edId;
+    if (dup) {
+      if (!confirm(`「${dup.title}」(${diff}) はすでに登録されています（現在: ${dup.score.toLocaleString()}点）。\n重複して追加はできません。この登録データのスコア・設定を上書き更新しますか？`)) return;
+      targetId = dup.id;
+    }
+
     pushH();
-    const obj = { id: edId || 's_' + Date.now() + Math.random().toString(36).slice(2,5), title, diff, const: Math.max(1, Math.min(16, Math.round((+$('inC').value||1)*10)/10)), score: Math.max(0, Math.min(1010000, parseInt($('inS').value,10)||0)), lamp, isNew: $('inN').checked, jacket: jkt || (edId ? st.songs.find(s => s.id === edId)?.jacket || '' : '') };
-    st.songs = edId ? st.songs.map(s => s.id === edId ? obj : s) : [...st.songs, obj];
+    const obj = {
+      id: targetId || 's_' + Date.now() + Math.random().toString(36).slice(2,5),
+      title: dup ? dup.title : title,
+      diff,
+      const: cVal,
+      score: sVal,
+      lamp,
+      isNew: $('inN').checked,
+      jacket: jkt || (targetId ? st.songs.find(s => s.id === targetId)?.jacket || '' : '')
+    };
+    st.songs = targetId
+      ? dedupeSongs(st.songs.filter(s => s.id !== edId || s.id === targetId).map(s => s.id === targetId ? obj : s))
+      : [...st.songs, obj];
     save(); rst(); render();
   };
 
@@ -761,6 +794,7 @@ document.addEventListener('DOMContentLoaded', () => {
     $('vP').textContent = st.playerName.trim() || '未設定';
     $('vCr').textContent = st.creditName.trim() ? `by ${st.creditName.trim()}` : '';
 
+    st.songs = dedupeSongs(st.songs);
     const all = st.songs.map(s => ({ ...s, rt: calc(s.const, s.score) })).sort((a,b) => (b.rt - a.rt) || (b.score - a.score));
     const best = all.filter(s => !s.isNew).slice(0, 30), news = all.filter(s => s.isNew).slice(0, 20);
     lastAll = all; lastBest = best;
@@ -813,11 +847,11 @@ document.addEventListener('DOMContentLoaded', () => {
   $('bImp').onclick = () => $('jFile').click();
   $('jFile').onchange = e => {
     const f = e.target.files[0]; if (!f) return; const r = new FileReader();
-    r.onload = ev => { try { const p = JSON.parse(ev.target.result); if (Array.isArray(p.songs)) { pushH(); st = { playerName:p.playerName||'', creditName:p.creditName||'CHUNITHM', showLamp:p.showLamp!==false, songs:p.songs }; $('inP').value=st.playerName; $('inCr').value=st.creditName; $('cLmp').checked=st.showLamp; save(); render(); alert('読み込みました！'); } } catch { alert('JSON読込失敗'); } };
+    r.onload = ev => { try { const p = JSON.parse(ev.target.result); if (Array.isArray(p.songs)) { pushH(); st = { playerName:p.playerName||'', creditName:p.creditName||'CHUNITHM', showLamp:p.showLamp!==false, songs:dedupeSongs(p.songs) }; $('inP').value=st.playerName; $('inCr').value=st.creditName; $('cLmp').checked=st.showLamp; save(); render(); alert('読み込みました！'); } } catch { alert('JSON読込失敗'); } };
     r.readAsText(f); e.target.value = '';
   };
 
-  try { const p = JSON.parse(localStorage.getItem(KEY)); if (Array.isArray(p?.songs)) st = { playerName:p.playerName||'', creditName:p.creditName||'CHUNITHM', showLamp:p.showLamp!==false, songs:p.songs }; } catch {}
+  try { const p = JSON.parse(localStorage.getItem(KEY)); if (Array.isArray(p?.songs)) st = { playerName:p.playerName||'', creditName:p.creditName||'CHUNITHM', showLamp:p.showLamp!==false, songs:dedupeSongs(p.songs) }; } catch {}
   try { const a = JSON.parse(localStorage.getItem(AUTH_KEY)); if (a?.id) { auth = a; $('inSyncId').value = a.id; $('inSyncPin').value = a.pin || ''; } } catch {}
   $('inP').value = st.playerName; $('inCr').value = st.creditName; $('cLmp').checked = st.showLamp;
   updAuthUI(); live(); updU(); render(); loadDB();
