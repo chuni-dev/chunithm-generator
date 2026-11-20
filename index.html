@@ -353,6 +353,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const $ = id => document.getElementById(id);
   const esc = s => String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
   const norm = s => String(s||'').toLowerCase().replace(/[！-～]/g, c => String.fromCharCode(c.charCodeAt(0)-0xFEE0)).replace(/[’'“”"・･\-‐‑–—―〜~：:！!？?（）()［］\[\]\s]/g,'');
+  const isWE = s => /world.?s.?end|ワールズエンド/i.test(String(s||''));
 
   $('dGrp').innerHTML = DIFFS.map(d => `<button type="button" class="cb${d==='MASTER'?' on':''}" data-d="${d}">${d}</button>`).join('');
   $('lGrp').innerHTML = [['NONE','なし'],['FC','FULL COMBO'],['AJ','ALL JUSTICE'],['AJC','AJC']].map(([k,v],i) => `<button type="button" class="cb${!i?' on':''}" data-l="${k}">${v}</button>`).join('');
@@ -460,7 +461,7 @@ document.addEventListener('DOMContentLoaded', () => {
   $('bRefRec').onclick = renderRec;
 
   function renderGenreButtons() {
-    const genres = [...new Set(db.map(s => s.cat).filter(Boolean))];
+    const genres = [...new Set(db.map(s => s.cat).filter(g => g && !isWE(g)))];
     if (!genres.includes(ncGenre)) ncGenre = 'all';
     $('newcGenre').innerHTML = genres.length ? ['all', ...genres].map(g => `<button type="button" class="cb${ncGenre===g?' on':''}" data-ncg="${esc(g)}">${g==='all'?'全ジャンル':esc(g)}</button>`).join('') : '';
   }
@@ -620,6 +621,7 @@ document.addEventListener('DOMContentLoaded', () => {
     metaList.forEach(s => {
       const t = s.title || s.name; if (!t) return;
       const cat = String(s.category || '').trim(); if (cat !== currentCat) { currentCat = cat; inNewBlock = false; }
+      if (isWE(cat)) return;
       const ver = String(s.version || '').trim(), nv = norm(ver); if (currentVerNorm && nv === currentVerNorm) inNewBlock = true;
       const ch = {}; let sheetIsNew = false;
       (s.sheets || []).forEach(sh => {
@@ -627,6 +629,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const v = raw.endsWith('+') ? parseFloat(raw) + .5 : parseFloat(raw);
         if (d && v > 0) ch[d] = v; if (sh.isNew) sheetIsNew = true;
       });
+      if (!Object.keys(ch).length && s.sheets?.length) return;
       const im = s.imageName || s.image || '', img = im ? (im.startsWith('http') ? im : `https://dp4p6x0xfi5o9.cloudfront.net/chunithm/img/cover/${im}`) : '', key = norm(t);
       if (!songMap.has(key)) songMap.set(key, { t, ch, cat, ver, isNew: !!(s.isNew || sheetIsNew || inNewBlock || (currentVerNorm && nv === currentVerNorm)), img });
     });
@@ -640,22 +643,22 @@ document.addEventListener('DOMContentLoaded', () => {
       });
       const latestR = rVers.at(-1) || '';
       reiwaAll.forEach(it => {
-        const m = it.meta || it, t = m.title || m.name; if (!t) return;
+        const m = it.meta || it, t = m.title || m.name, rCat = String(m.genre || m.category || '').trim();
+        if (!t || isWE(rCat)) return;
         const ch = {};
         Object.entries(it.data || it.const || {}).forEach(([k, o]) => { const d = DMAP[k.toLowerCase()], v = parseFloat(typeof o === 'object' ? (o.const ?? o.level) : o); if (d && v > 0 && v <= 16.5) ch[d] = v; });
         if (!Object.keys(ch).length) return;
         const key = norm(t), prev = songMap.get(key), rVer = String(m.version || m.ver || '').trim(), rNv = norm(rVer), id = Number(m.id ?? m.music_id);
         const isNew = !!(prev?.isNew || m.isNew || m.new || (hasMetaDB && !prev) || (minNewId < Infinity && id >= minNewId) || (currentVerNorm && rNv === currentVerNorm) || (latestR && rNv === latestR));
-        const rCat = String(m.genre || m.category || '').trim();
         songMap.set(key, { t: prev?.t || t, ch: { ...(prev?.ch || {}), ...ch }, cat: prev?.cat || rCat, ver: prev?.ver || rVer, isNew, img: prev?.img || '' });
       });
     }
 
     if (Array.isArray(reiwaRec)) {
       reiwaRec.forEach(r => {
-        const t = r.title || r.name, d = DMAP[String(r.diff ?? r.difficulty ?? '').toLowerCase()], v = parseFloat(r.const ?? r.internalLevel ?? r.level);
-        if (!t || !d || !(v > 0 && v <= 16.5)) return;
-        const key = norm(t), prev = songMap.get(key), rNv = norm(r.version || r.ver || ''), rCat = String(r.genre || r.category || '').trim(), obj = prev || { t, ch:{}, cat:rCat, ver:'', isNew:false, img:'' };
+        const t = r.title || r.name, d = DMAP[String(r.diff ?? r.difficulty ?? '').toLowerCase()], v = parseFloat(r.const ?? r.internalLevel ?? r.level), rCat = String(r.genre || r.category || '').trim();
+        if (!t || !d || !(v > 0 && v <= 16.5) || isWE(rCat)) return;
+        const key = norm(t), prev = songMap.get(key), rNv = norm(r.version || r.ver || ''), obj = prev || { t, ch:{}, cat:rCat, ver:'', isNew:false, img:'' };
         obj.ch[d] = v; if (!obj.cat && rCat) obj.cat = rCat;
         if ((hasMetaDB && !prev) || r.isNew || r.new || (currentVerNorm && rNv === currentVerNorm)) obj.isNew = true;
         songMap.set(key, obj);
