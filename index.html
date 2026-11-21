@@ -21,7 +21,7 @@ body{font:700 1rem/1.5 'M PLUS 1p',sans-serif;background:#f4f7f5;color:#1f2923;p
 .drw{position:fixed;top:0;right:0;bottom:0;width:min(480px,95vw);background:#fff;z-index:1201;box-shadow:-6px 0 24px rgba(0,0,0,.22);display:flex;flex-direction:column;transform:translateX(100%);transition:transform .22s}.drw.open{transform:translateX(0)}
 .drw-hd{background:#1b3828;color:#fff;padding:14px 16px;display:flex;align-items:center;justify-content:space-between}
 .drw-tabs{display:flex;border-bottom:2px solid #e4ede7;background:#f4f8f5;overflow-x:auto}
-.drw-tab{flex:1;padding:10px 4px;border:none;background:none;font:800 .75rem inherit;color:#4f6357;cursor:pointer;border-bottom:3px solid transparent;margin-bottom:-2px;white-space:nowrap}
+.drw-tab{flex:1;padding:10px 4px;border:none;background:none;font:800 .73rem inherit;color:#4f6357;cursor:pointer;border-bottom:3px solid transparent;margin-bottom:-2px;white-space:nowrap}
 .drw-tab.on{color:#1b3828;border-bottom-color:var(--g);background:#fff}
 .drw-bd{flex:1;overflow-y:auto;padding:14px;display:flex;flex-direction:column;gap:12px}
 .pnl{background:#fff;border:1px solid #dce4de;border-radius:12px;padding:16px;box-shadow:0 2px 6px rgba(0,0,0,.04)}
@@ -30,8 +30,9 @@ body{font:700 1rem/1.5 'M PLUS 1p',sans-serif;background:#f4f7f5;color:#1f2923;p
 .col{display:flex;flex-direction:column;gap:12px}
 .fg{display:flex;flex-direction:column;gap:6px;position:relative}
 .lbl{font-size:.82rem;color:#36453c}
-input[type="text"],input[type="number"],input[type="password"]{width:100%;padding:9px 12px;border:1px solid #c5d1c9;border-radius:8px;font:700 .95rem inherit;background:#fff}
-input:focus{outline:none;border-color:var(--g);box-shadow:0 0 0 3px rgba(34,122,75,.15)}
+input[type="text"],input[type="number"],input[type="password"],textarea{width:100%;padding:9px 12px;border:1px solid #c5d1c9;border-radius:8px;font:700 .95rem inherit;background:#fff}
+textarea{font-family:monospace;font-size:.78rem;resize:vertical}
+input:focus,textarea:focus{outline:none;border-color:var(--g);box-shadow:0 0 0 3px rgba(34,122,75,.15)}
 .ac{position:absolute;top:100%;left:0;right:0;z-index:999;background:#fff;border:1.5px solid var(--g);border-radius:8px;margin-top:4px;max-height:280px;overflow-y:auto;box-shadow:0 8px 20px rgba(0,0,0,.16);display:none}
 .ac-i{padding:8px 10px;border-bottom:1px solid #edf2ef;cursor:pointer;display:flex;align-items:center;gap:10px}.ac-i:hover{background:#eef7f1}
 .ac-th{width:42px;height:42px;border-radius:4px;object-fit:cover;background:#2b2e2c;flex-shrink:0}
@@ -114,10 +115,12 @@ input:focus{outline:none;border-color:var(--g);box-shadow:0 0 0 3px rgba(34,122,
 .nc-sub{font-size:.68rem;color:#354a3e;font-weight:700;line-height:1.35;margin-top:1px}
 .gf-frame{width:100%;height:500px;border:1px solid #d5e6dc;border-radius:10px;background:#f8faf9}
 .cloud-box{background:#f3f9f5;border:1px solid #cfe3d7;border-radius:10px;padding:12px;display:flex;flex-direction:column;gap:10px}
-.msg-box{font-size:.8rem;font-weight:800;padding:8px 10px;border-radius:7px;display:none}
+.msg-box{font-size:.8rem;font-weight:800;padding:8px 10px;border-radius:7px;display:none;line-height:1.45}
 .msg-ok{background:#d4edda;color:#155724;border:1px solid #c3e6cb;display:block}
 .msg-err{background:#f8d7da;color:#721c24;border:1px solid #f5c6cb;display:block}
 .warn-note{font-size:.75rem;color:#991b1b;background:#fef2f2;border:1px solid #fecaca;padding:8px 10px;border-radius:7px;line-height:1.45}
+.step-box{background:#f8fafc;border:1px solid #cbd5e1;border-radius:9px;padding:11px;display:flex;flex-direction:column;gap:8px}
+.step-badge{display:inline-block;background:#1e293b;color:#38bdf8;font-size:.7rem;font-weight:900;padding:2px 7px;border-radius:4px;margin-right:5px}
 </style>
 </head>
 <body>
@@ -131,6 +134,7 @@ input:focus{outline:none;border-color:var(--g);box-shadow:0 0 0 3px rgba(34,122,
     <div class="btns" style="align-items:center">
       <span class="b-db" id="dbB">楽曲DB読込中...</span>
       <span class="b-db" id="authBadge" style="cursor:pointer">未ログイン</span>
+      <button type="button" class="bi" id="bOpenNet" style="font-weight:900">🌐 NET連携</button>
       <button type="button" class="bs" id="uTop" disabled>↩ 元に戻す</button>
       <button type="button" class="bs" id="bExp">JSON保存</button>
       <button type="button" class="bs" id="bImp">JSON読込</button>
@@ -144,13 +148,53 @@ input:focus{outline:none;border-color:var(--g);box-shadow:0 0 0 3px rgba(34,122,
 <aside class="drw" id="drw">
   <div class="drw-hd"><strong style="font-size:.98rem">メニュー</strong><button type="button" class="bs" id="bClsDrw" style="padding:4px 10px">✕ 閉じる</button></div>
   <div class="drw-tabs">
-    <button type="button" class="drw-tab on" data-tab="stat">📊 定数別統計</button>
+    <button type="button" class="drw-tab on" data-tab="net">🌐 NET連携</button>
+    <button type="button" class="drw-tab" data-tab="stat">📊 定数別統計</button>
     <button type="button" class="drw-tab" data-tab="newc">📋 全譜面定数表</button>
     <button type="button" class="drw-tab" data-tab="sync">🔑 クラウド同期</button>
     <button type="button" class="drw-tab" data-tab="opin">📮 意見箱</button>
   </div>
   <div class="drw-bd">
-    <div id="tabStat" class="col" style="gap:10px">
+    <!-- 🌐 CHUNITHM-NET 連携タブ -->
+    <div id="tabNet" class="col" style="gap:10px">
+      <div style="font-size:.79rem;color:#1e3a2f;background:#eef7f1;border:1px solid #cce3d4;padding:10px 11px;border-radius:8px;line-height:1.5">
+        CHUNITHM-NET（無料会員OK）の<b>「ランキング ＞ 楽曲別」</b>から、あなたのマイレコード（プレイ済みスコア）を全曲一括取得して反映できます。
+      </div>
+
+      <div class="step-box">
+        <div style="font-size:.82rem;font-weight:900;color:#0f172a"><span class="step-badge">STEP 1</span>ブックマークレットを登録</div>
+        <div style="font-size:.74rem;color:#475569;line-height:1.45">
+          下のボタンを押してコードをコピーし、ブラウザの適当なページをお気に入り（ブックマーク）登録したあと、URL欄をコピーしたコードに書き換えて保存してください。
+        </div>
+        <textarea id="bmCode" rows="3" readonly onclick="this.select()"></textarea>
+        <button type="button" class="bi" id="bCopyBm" style="width:100%;padding:9px;font-size:.84rem">📋 ブックマークレットをコピー</button>
+        <div id="bmCopyMsg" class="msg-box"></div>
+      </div>
+
+      <div class="step-box">
+        <div style="font-size:.82rem;font-weight:900;color:#0f172a"><span class="step-badge">STEP 2</span>CHUNITHM-NETでデータ取得</div>
+        <div style="font-size:.74rem;color:#475569;line-height:1.5">
+          1. CHUNITHM-NETにログインし、<b>ランキング ＞ 楽曲別 ＞ MASTER</b>（またはEXPERT / ULTIMA等）を開く<br>
+          2. 登録したブックマークレットを実行する<br>
+          3. 完了後に画面へ出る<b>「結果をコピー」</b>を押す
+        </div>
+        <a class="bs" href="https://new.chunithm-net.com/chuni-mobile/html/mobile/ranking/master" target="_blank" rel="noopener noreferrer" style="text-align:center;text-decoration:none;font-weight:800;color:#1d4ed8">CHUNITHM-NET 楽曲別ランキングを開く ↗</a>
+      </div>
+
+      <div class="step-box">
+        <div style="font-size:.82rem;font-weight:900;color:#0f172a"><span class="step-badge">STEP 3</span>取得データを貼り付けて一括反映</div>
+        <textarea id="inNetJson" rows="4" placeholder='ここにコピーしたデータ（[{"title":"...","diff":"MASTER","score":1005998},...]）を貼り付け'></textarea>
+        <label class="chk" style="font-size:.76rem;padding:6px 8px">
+          <input type="checkbox" id="cNetForce" />
+          <span>既存スコアより低い場合でも上書きする（通常は高い方のみ残します）</span>
+        </label>
+        <button type="button" class="bp" id="bImportNet" style="font-size:.9rem;padding:11px">⚡ 一括取り込みを実行する</button>
+        <div id="netImpMsg" class="msg-box"></div>
+      </div>
+    </div>
+
+    <!-- 📊 定数別統計タブ -->
+    <div id="tabStat" style="display:none;flex-direction:column;gap:10px">
       <div class="btns" id="statMode">
         <button type="button" class="cb on" data-smode="mine">あなたの統計</button>
         <button type="button" class="cb" data-smode="global">みんなの全体統計</button>
@@ -179,6 +223,7 @@ input:focus{outline:none;border-color:var(--g);box-shadow:0 0 0 3px rgba(34,122,
       </div>
     </div>
 
+    <!-- 📋 全譜面定数表タブ -->
     <div id="tabNewc" style="display:none;flex-direction:column;gap:8px">
       <div class="btns" id="newcFilter">
         <button type="button" class="cb on" data-ncf="all">全譜面</button>
@@ -190,6 +235,7 @@ input:focus{outline:none;border-color:var(--g);box-shadow:0 0 0 3px rgba(34,122,
       <div id="newcList" class="col" style="gap:10px"></div>
     </div>
 
+    <!-- 🔑 クラウド同期タブ -->
     <div id="tabSync" style="display:none;flex-direction:column;gap:10px">
       <div style="font-size:.78rem;color:#36453c;background:#f2f8f4;border:1px solid #d5e6dc;padding:9px 11px;border-radius:8px">
         引き継ぎIDと暗証番号（PIN）を設定すると、データをクラウドに保存し別端末から復元できます。
@@ -222,6 +268,7 @@ input:focus{outline:none;border-color:var(--g);box-shadow:0 0 0 3px rgba(34,122,
       <button type="button" class="bd" id="bLogout" style="display:none;width:100%">ログアウト（この端末のID記憶を解除）</button>
     </div>
 
+    <!-- 📮 意見箱タブ -->
     <div id="tabOpin" style="display:none;flex-direction:column;gap:10px">
       <div style="font-size:.8rem;color:#36453c;background:#f2f8f4;border:1px solid #d5e6dc;padding:9px 11px;border-radius:8px">
         機能追加のリクエスト・定数修正要望・不具合報告はこちらから送信できます。
@@ -355,6 +402,74 @@ document.addEventListener('DOMContentLoaded', () => {
   const norm = s => String(s||'').toLowerCase().replace(/[！-～]/g, c => String.fromCharCode(c.charCodeAt(0)-0xFEE0)).replace(/[’'“”"・･\-‐‑–—―〜~：:！!？?（）()［］\[\]\s]/g,'');
   const isWE = s => /world.?s.?end|ワールズエンド/i.test(String(s||''));
 
+  // CHUNITHM-NET ランキング一括取得ブックマークレット生成
+  const BOOKMARKLET_SRC = `javascript:(async()=>{if(window.__cnetRunning)return;const forms=[...document.querySelectorAll('form[action*="sendRankingDetail"]')];if(!forms.length)return alert('CHUNITHM-NETの「ランキング ＞ 楽曲別」（MASTERやEXPERT等）を開いた状態で実行してください');window.__cnetRunning=true;const diffMap={'0':'BASIC','1':'ADVANCED','2':'EXPERT','3':'MASTER','4':'ULTIMA'};let stop=false;const results=[];const ui=document.createElement('div');ui.style='position:fixed;top:14px;left:14px;right:14px;max-width:440px;margin:auto;background:#0f172a;color:#fff;padding:16px;border-radius:12px;z-index:999999;box-shadow:0 12px 30px rgba(0,0,0,.6);font-family:sans-serif;border:2px solid #38bdf8';ui.innerHTML='<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px"><strong style="font-size:14px;color:#38bdf8">CHUNITHM-NET マイレコード取得</strong><button id="c_cls" style="background:none;border:none;color:#94a3b8;font-size:16px;cursor:pointer">✕</button></div><div id="c_st" style="font-size:12.5px;margin-bottom:8px">準備中...</div><div style="background:#1e293b;height:8px;border-radius:4px;overflow:hidden;margin-bottom:10px"><div id="c_bar" style="width:0%;height:100%;background:#38bdf8;transition:width .2s"></div></div><div style="display:flex;gap:8px"><button id="c_stop" style="flex:1;background:#ef4444;color:#fff;border:none;padding:8px;border-radius:7px;cursor:pointer;font-weight:bold;font-size:12px">停止してここまでの結果を出力</button><button id="c_copy" style="display:none;flex:1;background:#22c55e;color:#fff;border:none;padding:8px;border-radius:7px;cursor:pointer;font-weight:bold;font-size:13px">📋 結果をコピー</button></div><textarea id="c_out" readonly style="display:none;width:100%;height:110px;margin-top:10px;background:#020617;color:#4ade80;border:1px solid #334155;border-radius:6px;padding:6px;font-size:11px"></textarea>';document.body.appendChild(ui);document.getElementById('c_cls').onclick=()=>{stop=true;ui.remove();window.__cnetRunning=false};document.getElementById('c_stop').onclick=()=>{stop=true};const stEl=document.getElementById('c_st'),barEl=document.getElementById('c_bar'),parser=new DOMParser();for(let i=0;i<forms.length;i++){if(stop)break;const f=forms[i],title=f.querySelector('.music_title')?.textContent.trim()||'',diff=diffMap[f.querySelector('input[name="diff"]')?.value||'3']||'MASTER',body=new URLSearchParams(new FormData(f));stEl.textContent='取得中 ('+(i+1)+'/'+forms.length+'曲): '+title+' [発見:'+results.length+'曲]';barEl.style.width=Math.round(((i+1)/forms.length)*100)+'%';try{const res=await fetch(f.action,{method:'POST',body,credentials:'same-origin'}),html=await res.text(),doc=parser.parseFromString(html,'text/html'),scTxt=doc.querySelector('.rank_playdata_highscore .text_b')?.textContent.trim();if(scTxt){const score=parseInt(scTxt.replace(/,/g,''),10);if(!isNaN(score)&&score>0)results.push({title,diff,score})}}catch(e){}await new Promise(r=>setTimeout(r,600))}window.__cnetRunning=false;stEl.textContent='完了！プレイ済み '+results.length+' 曲を取得しました。下のボタンでコピーしてください。';document.getElementById('c_stop').style.display='none';const out=document.getElementById('c_out'),cpBtn=document.getElementById('c_copy');out.style.display='block';cpBtn.style.display='block';out.value=JSON.stringify(results);out.select();cpBtn.onclick=async()=>{out.select();try{await navigator.clipboard.writeText(out.value);cpBtn.textContent='✅ コピー完了！ジェネレーターへ貼付'}catch(e){document.execCommand('copy');cpBtn.textContent='✅ コピー完了！'}}})();`;
+  $('bmCode').value = BOOKMARKLET_SRC;
+
+  $('bCopyBm').onclick = async () => {
+    const el = $('bmCode'), msg = $('bmCopyMsg');
+    el.select();
+    try { await navigator.clipboard.writeText(el.value); } catch { document.execCommand('copy'); }
+    msg.textContent = '✅ ブックマークレットをコピーしました！ブラウザのブックマークURL欄に貼り付けて保存してください。';
+    msg.className = 'msg-box msg-ok';
+  };
+
+  $('bImportNet').onclick = () => {
+    const raw = $('inNetJson').value.trim(), msg = $('netImpMsg'), force = $('cNetForce').checked;
+    if (!raw) { msg.textContent = '取得したJSONデータを貼り付けてください。'; msg.className = 'msg-box msg-err'; return; }
+    let arr;
+    try { arr = JSON.parse(raw); } catch { msg.textContent = 'JSONの形式が正しくありません。コピーした文字列全体をそのまま貼り付けてください。'; msg.className = 'msg-box msg-err'; return; }
+    if (!Array.isArray(arr) || !arr.length) { msg.textContent = '取り込める楽曲データが見つかりませんでした。'; msg.className = 'msg-box msg-err'; return; }
+
+    pushH();
+    const map = new Map(st.songs.map(s => [`${norm(s.title)}_${s.diff}`, { ...s }]));
+    let added = 0, updated = 0, skipped = 0, unmatched = 0;
+
+    arr.forEach(item => {
+      const rawTitle = String(item.title || '').trim();
+      const diff = DMAP[String(item.diff || '').toLowerCase()] || 'MASTER';
+      const score = Math.max(0, Math.min(1010000, parseInt(item.score, 10) || 0));
+      if (!rawTitle || score <= 0) return;
+
+      const key = `${norm(rawTitle)}_${diff}`;
+      const dbInfo = dbMap.get(norm(rawTitle));
+      const cVal = dbInfo?.ch?.[diff];
+      if (!dbInfo || cVal === undefined) unmatched++;
+
+      const prev = map.get(key);
+      if (prev) {
+        if (force || score > prev.score) {
+          prev.score = score;
+          if (score === 1010000) prev.lamp = 'AJC';
+          if (cVal !== undefined) prev.const = cVal;
+          if (dbInfo) { prev.isNew = !!dbInfo.isNew; if (!prev.jacket && dbInfo.img) prev.jacket = dbInfo.img; }
+          updated++;
+        } else {
+          skipped++;
+        }
+      } else {
+        map.set(key, {
+          id: 's_' + Date.now() + Math.random().toString(36).slice(2, 6),
+          title: dbInfo?.t || rawTitle,
+          diff,
+          const: cVal !== undefined ? cVal : 14.0,
+          score,
+          lamp: score === 1010000 ? 'AJC' : 'NONE',
+          isNew: !!dbInfo?.isNew,
+          jacket: dbInfo?.img || ''
+        });
+        added++;
+      }
+    });
+
+    st.songs = [...map.values()];
+    save(); render();
+    $('inNetJson').value = '';
+    msg.innerHTML = `✅ 取り込み完了！<br>新規追加: <b>${added}曲</b> ／ スコア更新: <b>${updated}曲</b> ／ スキップ(既存が上位): <b>${skipped}曲</b>`
+      + (unmatched > 0 ? `<br><span style="color:#b45309;font-size:.73rem">※うち ${unmatched}曲 はDB未収録のため仮定数(14.0)で登録しました。</span>` : '');
+    msg.className = 'msg-box msg-ok';
+  };
+
   $('dGrp').innerHTML = DIFFS.map(d => `<button type="button" class="cb${d==='MASTER'?' on':''}" data-d="${d}">${d}</button>`).join('');
   $('lGrp').innerHTML = [['NONE','なし'],['FC','FULL COMBO'],['AJ','ALL JUSTICE'],['AJC','AJC']].map(([k,v],i) => `<button type="button" class="cb${!i?' on':''}" data-l="${k}">${v}</button>`).join('');
   $('sAdj').innerHTML = [-1000,-100,-10,-1,1,10,100,1000].map(n => `<button type="button" class="adj" data-sd="${n}">${n>0?'+'+n:n}</button>`).join('');
@@ -365,7 +480,6 @@ document.addEventListener('DOMContentLoaded', () => {
   let st = { playerName:'', creditName:'CHUNITHM', showLamp:true, songs:[] };
   let auth = { id:'', pin:'', lastSync:'' };
 
-  // 同一曲・同一難易度の重複を統合（スコアが高い方を残す）
   function dedupeSongs(list) {
     const m = new Map();
     (Array.isArray(list) ? list : []).forEach(s => {
@@ -392,13 +506,15 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function switchTab(t) {
     document.querySelectorAll('.drw-tab').forEach(b => b.classList.toggle('on', b.dataset.tab === t));
-    ['stat','newc','sync','opin'].forEach(k => $('tab' + k[0].toUpperCase() + k.slice(1)).style.display = k === t ? 'flex' : 'none');
+    ['net','stat','newc','sync','opin'].forEach(k => $('tab' + k[0].toUpperCase() + k.slice(1)).style.display = k === t ? 'flex' : 'none');
     if (t === 'stat') { renderRec(); if (statMode === 'global' && !globalCache) loadGlobalStats(); }
     if (t === 'newc') renderConstTable();
   }
   const openDrw = t => { if (t) switchTab(t); $('drw').classList.add('open'); $('drwBg').classList.add('open'); };
   const closeDrw = () => { $('drw').classList.remove('open'); $('drwBg').classList.remove('open'); };
-  $('bMenu').onclick = () => openDrw(); $('authBadge').onclick = () => openDrw('sync');
+  $('bMenu').onclick = () => openDrw();
+  $('bOpenNet').onclick = () => openDrw('net');
+  $('authBadge').onclick = () => openDrw('sync');
   $('bClsDrw').onclick = $('drwBg').onclick = closeDrw;
   document.querySelectorAll('.drw-tab').forEach(b => b.onclick = () => switchTab(b.dataset.tab));
 
