@@ -442,7 +442,7 @@ document.addEventListener('DOMContentLoaded', () => {
           prev.score = score;
           if (score === 1010000) prev.lamp = 'AJC';
           if (cVal !== undefined) prev.const = cVal;
-          if (dbInfo) prev.isNew = !!dbInfo.isNew;
+          if (dbInfo) { prev.isNew = !!dbInfo.isNew; if (!prev.jacket && dbInfo.img) prev.jacket = dbInfo.img; }
           updated++;
         } else {
           skipped++;
@@ -456,7 +456,7 @@ document.addEventListener('DOMContentLoaded', () => {
           score,
           lamp: score === 1010000 ? 'AJC' : 'NONE',
           isNew: !!dbInfo?.isNew,
-          jacket: ''
+          jacket: dbInfo?.img || ''
         });
         added++;
       }
@@ -476,7 +476,7 @@ document.addEventListener('DOMContentLoaded', () => {
   $('sPre').innerHTML = [['理論値',1010000],['SSS+',1009000],['SSS',1007500],['SS+',1005000],['SS',1000000],['S+',990000],['S',975000]].map(([l,v]) => `<button type="button" class="adj pre" data-ss="${v}">${l}</button>`).join('');
 
   let db = [], dbMap = new Map(), sel = null, edId = null, diff = 'MASTER', lamp = 'NONE', jkt = '', hist = [];
-  let statMode = 'mine', statScope = 'top', ncFilter = 'all', ncGenre = 'all', globalCache = null, lastAll = [], lastBest = [], lastNews = [];
+  let statMode = 'mine', statScope = 'top', ncFilter = 'all', ncGenre = 'all', globalCache = null, lastAll = [], lastBest = [];
   let st = { playerName:'', creditName:'CHUNITHM', showLamp:true, songs:[] };
   let auth = { id:'', pin:'', lastSync:'' };
 
@@ -523,7 +523,7 @@ document.addEventListener('DOMContentLoaded', () => {
   function startEdit(t) {
     if (!t) return;
     edId = t.id; $('inT').value = t.title; $('inC').value = t.const.toFixed(1); $('inS').value = t.score;
-    $('inN').checked = !!t.isNew; jkt = t.jacket || dbMap.get(norm(t.title))?.img || ''; setTh(jkt); setD(t.diff); setL(t.lamp || 'NONE');
+    $('inN').checked = !!t.isNew; jkt = t.jacket || ''; setTh(jkt); setD(t.diff); setL(t.lamp || 'NONE');
     $('fTtl').textContent = `編集中：${t.title}`; $('bSav').textContent = '変更を更新する'; $('bRst').style.display = 'inline-block';
     live(); window.scrollTo({ top:0, behavior:'smooth' });
   }
@@ -688,7 +688,7 @@ document.addEventListener('DOMContentLoaded', () => {
       const { data: d = {} } = await apiPost({ action:'login', id, pin });
       if (!Array.isArray(d.songs)) throw new Error('保存データが見つかりません');
       pushH();
-      st = { playerName:d.playerName||'', creditName:d.creditName||'CHUNITHM', showLamp:d.showLamp!==false, songs:dedupeSongs(d.songs).map(s => ({ ...s, jacket: '' })) };
+      st = { playerName:d.playerName||'', creditName:d.creditName||'CHUNITHM', showLamp:d.showLamp!==false, songs:dedupeSongs(d.songs).map(s => ({ ...s, jacket: s.jacket || dbMap.get(norm(s.title))?.img || '' })) };
       $('inP').value = st.playerName; $('inCr').value = st.creditName; $('cLmp').checked = st.showLamp;
       save(); render(); auth = { id, pin, lastSync: '読込完了' }; saveAuth();
       showSyncMsg(`ログイン成功！${st.songs.length}曲のデータを復元しました。`);
@@ -735,41 +735,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
   async function toData(url) {
     if (!url || url.startsWith('data:')) return url || '';
-    for (const src of [`https://wsrv.nl/?url=${encodeURIComponent(url)}&w=140&h=140&fit=cover&output=jpg&q=80`, url]) {
-      const r = await new Promise(ok => {
-        const im = new Image(); im.crossOrigin = 'anonymous';
-        const tm = setTimeout(() => { im.src = ''; ok(null); }, 4000);
-        im.onload = () => { clearTimeout(tm); try { const cv = document.createElement('canvas'); cv.width = cv.height = 140; cv.getContext('2d').drawImage(im,0,0,140,140); ok(cv.toDataURL('image/jpeg',.82)); } catch { ok(null); } };
-        im.onerror = () => { clearTimeout(tm); ok(null); };
-        im.src = src;
-      });
+    for (const src of [`https://wsrv.nl/?url=${encodeURIComponent(url)}&w=180&h=180&fit=cover&output=jpg`, url]) {
+      const r = await new Promise(ok => { const im = new Image(); im.crossOrigin = 'anonymous'; im.onload = () => { try { const cv = document.createElement('canvas'); cv.width = cv.height = 180; cv.getContext('2d').drawImage(im,0,0,180,180); ok(cv.toDataURL('image/jpeg',.85)); } catch { ok(null); } }; im.onerror = () => ok(null); im.src = src; });
       if (r) return r;
     }
-    return '';
-  }
-
-  // 対象枠（BEST30＋NEW20）の最大50曲だけDataURLを取得して保持する
-  let hydrating = false;
-  async function hydrateTopJackets() {
-    if (hydrating || !dbMap.size) return;
-    const targets = [...lastBest, ...lastNews].filter(s => !s.jacket || !s.jacket.startsWith('data:'));
-    if (!targets.length) return;
-    hydrating = true;
-    let changed = false;
-    try {
-      for (const t of targets) {
-        const rawUrl = t.jacket || dbMap.get(norm(t.title))?.img || '';
-        if (!rawUrl) continue;
-        const du = await toData(rawUrl);
-        if (du && du.startsWith('data:')) {
-          const item = st.songs.find(x => x.id === t.id);
-          if (item) { item.jacket = du; changed = true; }
-        }
-      }
-      if (changed) { save(); render(); }
-    } finally {
-      hydrating = false;
-    }
+    return url;
   }
 
   async function fetchJson(urls) { for (const u of urls) { try { const r = await fetch(u, { cache:'no-store' }); if (r.ok) return await r.json(); } catch {} } return null; }
@@ -835,7 +805,6 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     dbMap = songMap; db = [...songMap.values()]; renderGenreButtons(); renderConstTable(); renderRec();
-    hydrateTopJackets();
     const newCount = db.filter(x => x.isNew).length;
     if (db.length > 50) { $('dbB').textContent = currentVerRaw ? `DB適用 (${currentVerRaw} / 新曲${newCount}曲)` : `DB適用済 (${db.length}曲 / 新曲${newCount}曲)`; $('dbB').classList.add('ok'); }
     else { $('dbB').textContent = 'DB接続失敗（手動入力可）'; $('dbB').classList.add('err'); }
@@ -872,7 +841,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   $('inJ').onchange = e => {
     const f = e.target.files[0]; if (!f) return; const r = new FileReader();
-    r.onload = ev => { const im = new Image(); im.onload = () => { const cv = document.createElement('canvas'); cv.width = cv.height = 140; const m = Math.min(im.width, im.height); cv.getContext('2d').drawImage(im,(im.width-m)/2,(im.height-m)/2,m,m,0,0,140,140); jkt = cv.toDataURL('image/jpeg',.82); setTh(jkt); }; im.src = ev.target.result; };
+    r.onload = ev => { const im = new Image(); im.onload = () => { const cv = document.createElement('canvas'); cv.width = cv.height = 180; const m = Math.min(im.width, im.height); cv.getContext('2d').drawImage(im,(im.width-m)/2,(im.height-m)/2,m,m,0,0,180,180); jkt = cv.toDataURL('image/jpeg',.82); setTh(jkt); }; im.src = ev.target.result; };
     r.readAsDataURL(f);
   };
   $('bClrJ').onclick = () => { $('inJ').value = ''; jkt = ''; setTh(''); };
@@ -919,7 +888,7 @@ document.addEventListener('DOMContentLoaded', () => {
       if (!globalCache) return;
       $('globalMeta').textContent = `クラウド登録人数: ${globalCache.userCount || 0}人（全登録譜面の平均）`;
       const list = globalCache.stats || [];
-      $('statGrid').innerHTML = list.length ? list.map(g => statCard(g.c, `計${g.count}件`, g.avgScore, '全体平均レート', calc(g.c, g.avgScore).toFixed(3))).join('') : '<div style="grid-column:1/-: '<div style="grid-column:1/-1;text-align:center;color:#607066;padding:14px;font-size:.82rem">まだクラウドに統計データがありません。</div>';
+      $('statGrid').innerHTML = list.length ? list.map(g => statCard(g.c, `計${g.count}件`, g.avgScore, '全体平均レート', calc(g.c, g.avgScore).toFixed(3))).join('') : '<div style="grid-column:1/-1;text-align:center;color:#607066;padding:14px;font-size:.82rem">まだクラウドに統計データがありません。</div>';
       return;
     }
     $('statMeta').textContent = `集計対象：${statScope === 'top' ? '対象枠（BEST30＋NEW20）' : '登録済み全曲'}（${targetSongs.length}曲）`;
@@ -930,11 +899,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   const tile = (s, i) => {
-    const rk = rank(s.score);
-    const imgUrl = s.jacket || dbMap.get(norm(s.title))?.img || '';
-    const ji = imgUrl
-      ? `<img src="${imgUrl}" crossorigin="anonymous" onerror="this.style.display='none'" />`
-      : `<div class="tl-p" style="background:linear-gradient(135deg,${DBG[s.diff]},#1f2937)">${esc(s.title)}</div>`;
+    const rk = rank(s.score), ji = s.jacket ? `<img src="${s.jacket}" crossorigin="anonymous" />` : `<div class="tl-p" style="background:linear-gradient(135deg,${DBG[s.diff]},#1f2937)">${esc(s.title)}</div>`;
     const mp = st.showLamp && s.lamp !== 'NONE' ? `<span class="tl-mp mp-${s.lamp}">${s.lamp}</span>` : '';
     return `<div class="tl"><div class="tl-t"><div class="tl-s"><div class="tl-r">#${i}</div><div><span class="tl-l">CONST</span><span class="tl-n">${s.const.toFixed(1)}</span></div><div><span class="tl-l">RATE</span><span class="tl-n" style="color:#ffeaa7">${s.rt.toFixed(3)}</span></div></div><div class="tl-j">${ji}<div class="tl-d bg-${s.diff}"><span>${s.diff[0]}</span></div>${mp}<div class="tl-sb"><span style="color:#fff">${s.score.toLocaleString()}</span><span style="font-size:10px;color:${rk.c}">${rk.l}</span></div></div></div><div class="tl-tt">${esc(s.title)}</div></div>`;
   };
@@ -948,19 +913,7 @@ document.addEventListener('DOMContentLoaded', () => {
     st.songs = dedupeSongs(st.songs);
     const all = st.songs.map(s => ({ ...s, rt: calc(s.const, s.score) })).sort((a,b) => (b.rt - a.rt) || (b.score - a.score));
     const best = all.filter(s => !s.isNew).slice(0, 30), news = all.filter(s => s.isNew).slice(0, 20);
-
-    // ★ BEST30＋NEW20に入っている曲だけジャケット画像を残し、圏外は破棄して軽量化
-    const activeIds = new Set([...best, ...news].map(s => s.id));
-    st.songs.forEach(s => {
-      if (activeIds.has(s.id)) {
-        if (!s.jacket) s.jacket = dbMap.get(norm(s.title))?.img || '';
-      } else {
-        s.jacket = '';
-      }
-    });
-    save();
-
-    lastAll = all; lastBest = best; lastNews = news;
+    lastAll = all; lastBest = best;
     const bS = best.reduce((a,b) => a + b.rt, 0), nS = news.reduce((a,b) => a + b.rt, 0), tot = (bS + nS) / 50, top = best[0]?.rt || news[0]?.rt || 0;
 
     const vT = $('vTot'), ts = tot.toFixed(3);
@@ -974,7 +927,6 @@ document.addEventListener('DOMContentLoaded', () => {
     $('gN').innerHTML = news.length ? news.map((s,i) => tile(s,i+1)).join('') : '<div class="emp">新曲枠の対象曲がありません。</div>';
     renderStats(statScope === 'top' ? [...best, ...news] : all);
     renderRec();
-    hydrateTopJackets();
 
     $('rCnt').textContent = all.length;
     $('rBd').innerHTML = all.length ? all.map(s => `<tr><td>${s.isNew?'<span class="bm" style="background:#e67e22">NEW</span>':'BEST'}</td><td style="font-weight:800">${esc(s.title)}</td><td><span class="bm bg-${s.diff}">${s.diff}</span></td><td>${s.const.toFixed(1)}</td><td>${s.score.toLocaleString()}</td><td>${s.lamp==='NONE'?'-':s.lamp}</td><td style="font-weight:800;color:var(--g)">${s.rt.toFixed(3)}</td><td style="white-space:nowrap">${s.isNew?`<button type="button" class="bw" data-mv="${s.id}" style="padding:4px 8px;font-size:.72rem">BESTへ</button> `:''}<button type="button" class="bs" data-ed="${s.id}" style="padding:4px 8px;font-size:.72rem">編集</button> <button type="button" class="bd" data-dl="${s.id}" style="padding:4px 8px;font-size:.72rem">削除</button></td></tr>`).join('') : '<tr><td colspan="8" style="text-align:center;color:#607066;padding:18px">登録された譜面はまだありません。</td></tr>';
@@ -983,293 +935,27 @@ document.addEventListener('DOMContentLoaded', () => {
 
   $('rBd').onclick = e => {
     const { ed, dl, mv } = e.target.dataset;
-    if (mv) { pushH(); st.songs = st.songs.map(s => s.id === mv ? { ...s, isNew:false } : s); render(); }
+    if (mv) { pushH(); st.songs = st.songs.map(s => s.id === mv ? { ...s, isNew:false } : s); save(); render(); }
     else if (ed) { startEdit(st.songs.find(s => s.id === ed)); }
-    else if (dl) { pushH(); st.songs = st.songs.filter(s => s.id !== dl); if (edId === dl) rst(); render(); }
+    else if (dl) { pushH(); st.songs = st.songs.filter(s => s.id !== dl); if (edId === dl) rst(); save(); render(); }
   };
 
-  $('uBtn').onclick = $('uTop').onclick = () => { if (!hist.length) return; st = JSON.parse(hist.pop()); $('inP').value = st.playerName; $('inCr').value = st.creditName; $('cLmp').checked = st.showLamp; rst(); render(); updU(); };
-  $('bN2B').onclick = () => { const n = st.songs.filter(s => s.isNew).length; if (!n) return alert('新曲枠（NEW）に登録されている曲はありません。'); if (confirm(`新曲枠の ${n} 曲をすべてベスト枠へ移行しますか？`)) { pushH(); st.songs = st.songs.map(s => s.isNew ? { ...s, isNew:false } : s); render(); } };
-  $('bClr').onclick = () => { if (st.songs.length && confirm('すべて削除しますか？')) { pushH(); st.songs = []; rst(); render(); } };
-  $('inP').oninput = e => { st.playerName = e.target.value; render(); };
-  $('inCr').oninput = e => { st.creditName = e.target.value; render(); };
-  $('cLmp').onchange = e => { st.showLamp = e.target.checked; render(); };
+  $('uBtn').onclick = $('uTop').onclick = () => { if (!hist.length) return; st = JSON.parse(hist.pop()); $('inP').value = st.playerName; $('inCr').value = st.creditName; $('cLmp').checked = st.showLamp; rst(); save(); render(); updU(); };
+  $('bN2B').onclick = () => { const n = st.songs.filter(s => s.isNew).length; if (!n) return alert('新曲枠（NEW）に登録されている曲はありません。'); if (confirm(`新曲枠の ${n} 曲をすべてベスト枠へ移行しますか？`)) { pushH(); st.songs = st.songs.map(s => s.isNew ? { ...s, isNew:false } : s); save(); render(); } };
+  $('bClr').onclick = () => { if (st.songs.length && confirm('すべて削除しますか？')) { pushH(); st.songs = []; rst(); save(); render(); } };
+  $('inP').oninput = e => { st.playerName = e.target.value; save(); render(); };
+  $('inCr').oninput = e => { st.creditName = e.target.value; save(); render(); };
+  $('cLmp').onchange = e => { st.showLamp = e.target.checked; save(); render(); };
 
-  // スマホでもフリーズせず一瞬で保存できる純正Canvas PNG生成
   $('bPng').onclick = async () => {
-    const b = $('bPng');
-    b.disabled = true;
+    const b = $('bPng'), cp = $('cap'), pv = cp.style.transform; b.textContent = '生成中...'; b.disabled = true;
     try {
-      const best = lastBest, news = lastNews;
-      const topSongs = [...best, ...news];
-
-      b.textContent = 'ジャケット準備中...';
-      await hydrateTopJackets();
-
-      b.textContent = 'PNG描画中...';
-      await new Promise(r => requestAnimationFrame(r));
-
-      const bRows = Math.max(1, Math.ceil(best.length / 5));
-      const nRows = Math.max(1, Math.ceil(news.length / 5));
-      const rowH = 114, gap = 6, pad = 8;
-      const bBoxH = best.length ? (pad * 2 + bRows * rowH + (bRows - 1) * gap) : 80;
-      const nBoxH = news.length ? (pad * 2 + nRows * rowH + (nRows - 1) * gap) : 80;
-
-      const W = 920;
-      const H = 20 + 96 + 34 + bBoxH + 34 + nBoxH + 38;
-      const sc = 1.5;
-      const cv = document.createElement('canvas');
-      cv.width = W * sc;
-      cv.height = H * sc;
-      const ctx = cv.getContext('2d');
-      ctx.scale(sc, sc);
-
-      ctx.fillStyle = '#e4f1d8';
-      ctx.fillRect(0, 0, W, H);
-      ctx.save();
-      ctx.beginPath();
-      ctx.rect(0, 0, W, H);
-      ctx.clip();
-      ctx.strokeStyle = 'rgba(255,255,255,0.42)';
-      ctx.lineWidth = 18;
-      for (let x = -H; x < W + H; x += 36) {
-        ctx.beginPath();
-        ctx.moveTo(x, 0);
-        ctx.lineTo(x + H, H);
-        ctx.stroke();
-      }
-      ctx.restore();
-      ctx.strokeStyle = '#c3d9b4';
-      ctx.lineWidth = 1;
-      ctx.strokeRect(0.5, 0.5, W - 1, H - 1);
-
-      const rRect = (x, y, w, h, r, fill, stroke, lw = 1) => {
-        ctx.beginPath();
-        if (ctx.roundRect) ctx.roundRect(x, y, w, h, r);
-        else ctx.rect(x, y, w, h);
-        if (fill) { ctx.fillStyle = fill; ctx.fill(); }
-        if (stroke) { ctx.strokeStyle = stroke; ctx.lineWidth = lw; ctx.stroke(); }
-      };
-
-      ctx.textBaseline = 'top';
-      ctx.fillStyle = '#227a43';
-      ctx.font = '900 25px "M PLUS 1p", sans-serif';
-      ctx.fillText('ベスト枠・新曲枠対象楽曲', 22, 20);
-      const tW = ctx.measureText('ベスト枠・新曲枠対象楽曲').width;
-      if (st.creditName.trim()) {
-        ctx.fillStyle = '#2e8b52';
-        ctx.font = '800 16px "M PLUS 1p", sans-serif';
-        ctx.fillText(`by ${st.creditName.trim()}`, 22 + tW + 10, 28);
-      }
-      ctx.fillStyle = '#4f6353';
-      ctx.font = '800 12px "M PLUS 1p", sans-serif';
-      ctx.fillText('PLAYER NAME', 22, 55);
-      rRect(22, 74, 390, 40, 6, 'rgba(255,255,255,0.65)');
-      ctx.fillStyle = '#3a4a3d';
-      ctx.font = '800 18px "M PLUS 1p", sans-serif';
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'middle';
-      ctx.fillText(st.playerName.trim() || '未設定', 22 + 195, 74 + 20);
-
-      const rx = W - 22 - 470;
-      ctx.textAlign = 'left';
-      ctx.textBaseline = 'top';
-      ctx.fillStyle = '#4f6353';
-      ctx.font = '800 12px "M PLUS 1p", sans-serif';
-      ctx.fillText('RATING', rx, 20);
-      ctx.textAlign = 'right';
-      ctx.font = '700 13px "Oswald", sans-serif';
-      ctx.fillText($('vTm').textContent, rx + 470, 20);
-
-      rRect(rx, 38, 470, 50, 6, 'rgba(255,255,255,0.85)');
-      const totStr = $('vTot').textContent;
-      const totVal = parseFloat(totStr) || 0;
-      ctx.font = '700 36px "Oswald", sans-serif';
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'middle';
-      if (totVal >= 16) {
-        const chars = totStr.split('');
-        const totalW = ctx.measureText(totStr).width;
-        let cx = rx + 235 - totalW / 2;
-        ctx.textAlign = 'left';
-        chars.forEach((ch, idx) => {
-          ctx.fillStyle = RBW[idx % RBW.length];
-          ctx.fillText(ch, cx, 38 + 26);
-          cx += ctx.measureText(ch).width;
-        });
-      } else {
-        ctx.fillStyle = totVal >= 15.25 ? '#6366f1' : totVal >= 14.5 ? '#ca8a04' : totVal >= 13.25 ? '#64748b' : totVal >= 12 ? '#a16207' : totVal >= 10 ? '#7e22ce' : totVal >= 7 ? '#dc2626' : totVal >= 4 ? '#ea580c' : '#16a34a';
-        ctx.fillText(totStr, rx + 235, 38 + 26);
-      }
-
-      rRect(rx, 92, 470, 22, 5, 'rgba(255,255,255,0.55)');
-      ctx.textAlign = 'center';
-      ctx.fillStyle = '#2c3a2e';
-      ctx.font = '800 12.5px "M PLUS 1p", sans-serif';
-      ctx.fillText(`BEST ${$('vB').textContent}    NEW ${$('vN').textContent}    MAX ${$('vM').textContent}`, rx + 235, 92 + 11);
-
-      const loadedImgs = new Map();
-      await Promise.all(topSongs.map(s => new Promise(ok => {
-        if (!s.jacket || !s.jacket.startsWith('data:') || loadedImgs.has(s.id)) return ok();
-        const im = new Image();
-        im.onload = () => { loadedImgs.set(s.id, im); ok(); };
-        im.onerror = () => ok();
-        im.src = s.jacket;
-      })));
-
-      const drawSection = (title, list, startY, boxH, emptyMsg) => {
-        ctx.textAlign = 'left';
-        ctx.textBaseline = 'top';
-        ctx.fillStyle = '#222823';
-        ctx.font = '900 18px "M PLUS 1p", sans-serif';
-        ctx.fillText(title, 22, startY);
-
-        const gy = startY + 28;
-        rRect(22, gy, W - 44, boxH, 4, '#7c7e7c');
-
-        if (!list.length) {
-          ctx.textAlign = 'center';
-          ctx.textBaseline = 'middle';
-          ctx.fillStyle = '#e6eae6';
-          ctx.font = '700 13px "M PLUS 1p", sans-serif';
-          ctx.fillText(emptyMsg, W / 2, gy + boxH / 2);
-          return;
-        }
-
-        const innerW = W - 44 - pad * 2;
-        const tileW = (innerW - gap * 4) / 5;
-
-        list.forEach((s, idx) => {
-          const col = idx % 5, row = (idx / 5) | 0;
-          const tx = 22 + pad + col * (tileW + gap);
-          const ty = gy + pad + row * (rowH + gap);
-
-          const grad = ctx.createLinearGradient(0, ty, 0, ty + rowH);
-          grad.addColorStop(0, '#989a98');
-          grad.addColorStop(1, '#7d7f7d');
-          rRect(tx, ty, tileW, rowH, 4, grad, '#636563', 1);
-
-          const sx = tx + 5 + 26;
-          ctx.textAlign = 'center';
-          ctx.textBaseline = 'top';
-          ctx.fillStyle = '#ffffff';
-          ctx.font = '700 14px "Oswald", sans-serif';
-          ctx.fillText(`#${idx + 1}`, sx, ty + 5);
-
-          ctx.fillStyle = '#e2e6e2';
-          ctx.font = '800 8.5px "M PLUS 1p", sans-serif';
-          ctx.fillText('CONST', sx, ty + 28);
-          ctx.fillStyle = '#ffffff';
-          ctx.font = '700 13.5px "Oswald", sans-serif';
-          ctx.fillText(s.const.toFixed(1), sx, ty + 38);
-
-          ctx.fillStyle = '#e2e6e2';
-          ctx.font = '800 8.5px "M PLUS 1p", sans-serif';
-          ctx.fillText('RATE', sx, ty + 62);
-          ctx.fillStyle = '#ffeaa7';
-          ctx.font = '700 13.5px "Oswald", sans-serif';
-          ctx.fillText(s.rt.toFixed(3), sx, ty + 72);
-
-          const jx = tx + 5 + 52 + 4, jy = ty + 4, jw = tileW - 10 - 56, jh = 86;
-          rRect(jx, jy, jw, jh, 3, '#2b2e2c');
-          const imObj = loadedImgs.get(s.id);
-          ctx.save();
-          ctx.beginPath();
-          if (ctx.roundRect) ctx.roundRect(jx, jy, jw, jh, 3);
-          else ctx.rect(jx, jy, jw, jh);
-          ctx.clip();
-          if (imObj) {
-            ctx.drawImage(imObj, jx, jy, jw, jh);
-          } else {
-            ctx.fillStyle = DBG[s.diff] || '#334155';
-            ctx.fillRect(jx, jy, jw, jh);
-            ctx.fillStyle = '#ffffff';
-            ctx.font = '800 10px "M PLUS 1p", sans-serif';
-            ctx.textAlign = 'center';
-            ctx.textBaseline = 'middle';
-            ctx.fillText(s.title.slice(0, 10), jx + jw / 2, jy + jh / 2 - 6);
-          }
-
-          ctx.fillStyle = 'rgba(10,12,11,0.9)';
-          ctx.fillRect(jx, jy + jh - 16, jw, 16);
-          const rk = rank(s.score);
-          ctx.textBaseline = 'middle';
-          ctx.textAlign = 'left';
-          ctx.fillStyle = '#ffffff';
-          ctx.font = '700 11px "Oswald", sans-serif';
-          ctx.fillText(s.score.toLocaleString(), jx + 4, jy + jh - 8);
-          ctx.textAlign = 'right';
-          ctx.fillStyle = rk.c;
-          ctx.font = '700 10px "Oswald", sans-serif';
-          ctx.fillText(rk.l, jx + jw - 4, jy + jh - 8);
-
-          if (st.showLamp && s.lamp !== 'NONE') {
-            const lw = s.lamp === 'AJC' ? 24 : 20;
-            rRect(jx + jw - lw - 2, jy + jh - 31, lw, 13, 2, 'rgba(15,18,16,0.9)', s.lamp === 'FC' ? '#7bed9f' : '#ffd32a', 1);
-            ctx.textAlign = 'center';
-            ctx.fillStyle = s.lamp === 'FC' ? '#7bed9f' : '#ffd32a';
-            ctx.font = '900 8.5px "M PLUS 1p", sans-serif';
-            ctx.fillText(s.lamp, jx + jw - lw / 2 - 2, jy + jh - 24.5);
-          }
-          ctx.restore();
-
-          ctx.save();
-          ctx.translate(jx + jw - 10.5, jy + 10.5);
-          ctx.rotate(Math.PI / 4);
-          rRect(-7.5, -7.5, 15, 15, 3, DBG[s.diff], s.diff === 'ULTIMA' ? '#ff4757' : '#ffffff', 1.5);
-          ctx.rotate(-Math.PI / 4);
-          ctx.textAlign = 'center';
-          ctx.textBaseline = 'middle';
-          ctx.fillStyle = '#ffffff';
-          ctx.font = '900 8px "M PLUS 1p", sans-serif';
-          ctx.fillText(s.diff[0], 0, 0.5);
-          ctx.restore();
-
-          ctx.textAlign = 'center';
-          ctx.textBaseline = 'top';
-          ctx.fillStyle = '#ffffff';
-          ctx.font = '800 11px "M PLUS 1p", sans-serif';
-          let dispT = s.title;
-          while (dispT.length > 1 && ctx.measureText(dispT).width > tileW - 8) {
-            dispT = dispT.slice(0, -1);
-          }
-          if (dispT !== s.title) dispT += '…';
-          ctx.fillText(dispT, tx + tileW / 2, ty + 94);
-        });
-      };
-
-      const y1 = 128;
-      drawSection('BEST枠（上位30曲）', best, y1, bBoxH, '対象曲がありません。');
-      const y2 = y1 + 28 + bBoxH + 10;
-      drawSection('NEW枠（上位20曲）', news, y2, nBoxH, '新曲枠の対象曲がありません。');
-
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'top';
-      ctx.fillStyle = '#465749';
-      ctx.font = '700 10.5px "M PLUS 1p", sans-serif';
-      ctx.fillText('※掲載されている楽曲ジャケット画像等の著作権・各種権利は、各権利者に帰属します。本ツールは非公式のファン制作物です。', W / 2, y2 + 28 + nBoxH + 12);
-
-      const u = cv.toDataURL('image/png');
-      $('iPrv').src = u;
-      $('mod').style.display = 'block';
-
-      cv.toBlob(blob => {
-        if (!blob) return;
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.download = `chunithm_rating_${Date.now()}.png`;
-        a.href = url;
-        document.body.appendChild(a);
-        a.click();
-        a.remove();
-        setTimeout(() => URL.revokeObjectURL(url), 5000);
-      }, 'image/png');
-    } catch (e) {
-      alert('画像生成失敗: ' + e.message);
-    } finally {
-      b.textContent = '選択した画像をPNGで保存';
-      b.disabled = false;
-    }
+      cp.style.transform = 'none';
+      const u = (await html2canvas(cp, { scale:2, useCORS:true, backgroundColor:'#e4f1d8' })).toDataURL('image/png');
+      $('iPrv').src = u; $('mod').style.display = 'block';
+      const a = document.createElement('a'); a.download = `chunithm_rating_${Date.now()}.png`; a.href = u; a.click();
+    } catch (e) { alert('画像生成失敗: ' + e.message); }
+    finally { cp.style.transform = pv; fit(); b.textContent = '選択した画像をPNGで保存'; b.disabled = false; }
   };
 
   $('bClsM').onclick = () => $('mod').style.display = 'none';
@@ -1277,7 +963,7 @@ document.addEventListener('DOMContentLoaded', () => {
   $('bImp').onclick = () => $('jFile').click();
   $('jFile').onchange = e => {
     const f = e.target.files[0]; if (!f) return; const r = new FileReader();
-    r.onload = ev => { try { const p = JSON.parse(ev.target.result); if (Array.isArray(p.songs)) { pushH(); st = { playerName:p.playerName||'', creditName:p.creditName||'CHUNITHM', showLamp:p.showLamp!==false, songs:dedupeSongs(p.songs) }; $('inP').value=st.playerName; $('inCr').value=st.creditName; $('cLmp').checked=st.showLamp; render(); alert('読み込みました！'); } } catch { alert('JSON読込失敗'); } };
+    r.onload = ev => { try { const p = JSON.parse(ev.target.result); if (Array.isArray(p.songs)) { pushH(); st = { playerName:p.playerName||'', creditName:p.creditName||'CHUNITHM', showLamp:p.showLamp!==false, songs:dedupeSongs(p.songs) }; $('inP').value=st.playerName; $('inCr').value=st.creditName; $('cLmp').checked=st.showLamp; save(); render(); alert('読み込みました！'); } } catch { alert('JSON読込失敗'); } };
     r.readAsText(f); e.target.value = '';
   };
 
