@@ -1,977 +1,2593 @@
 <!DOCTYPE html>
+
 <html lang="ja">
+
 <head>
+
 <meta charset="UTF-8" />
+
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
 <title>CHUNITHM レート対象曲 画像ジェネレーター</title>
-<script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+
 <link href="https://fonts.googleapis.com/css2?family=M+PLUS+1p:wght@700;800;900&family=Oswald:wght@700&display=swap" rel="stylesheet" />
+
 <style>
+
 :root{--g:#227a4b;--bas:#2ecc71;--adv:#f39c12;--exp:#e74c3c;--mas:#9b59b6;--ult:#1e272e}
+
 *{box-sizing:border-box;margin:0;padding:0}
+
 body{font:700 1rem/1.5 'M PLUS 1p',sans-serif;background:#f4f7f5;color:#1f2923;padding-bottom:40px;overflow-x:hidden}
+
 .hd{background:linear-gradient(135deg,#1b3828,#2b583e);color:#fff;padding:14px 18px;box-shadow:0 2px 8px rgba(0,0,0,.15);position:sticky;top:0;z-index:900}
+
 .hd-in,.wrap{max-width:1120px;margin:0 auto}
+
 .hd-in{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px}
+
 .wrap{margin:16px auto;padding:0 12px;display:flex;flex-direction:column;gap:16px}
+
 .b-db{padding:3px 8px;border-radius:6px;font-size:.72rem;font-weight:800;background:rgba(255,255,255,.16);color:#ffeaa7}
+
 .b-db.ok{background:#27ae60;color:#fff}.b-db.err{background:#c0392b;color:#fff}
+
 .ham{width:40px;height:36px;border-radius:8px;border:1px solid rgba(255,255,255,.35);background:rgba(255,255,255,.14);color:#fff;font-size:1.25rem;font-weight:900;cursor:pointer;display:flex;align-items:center;justify-content:center}
+
 .drw-bg{position:fixed;inset:0;background:rgba(15,25,19,.55);z-index:1200;display:none}.drw-bg.open{display:block}
+
 .drw{position:fixed;top:0;right:0;bottom:0;width:min(480px,95vw);background:#fff;z-index:1201;box-shadow:-6px 0 24px rgba(0,0,0,.22);display:flex;flex-direction:column;transform:translateX(100%);transition:transform .22s}.drw.open{transform:translateX(0)}
+
 .drw-hd{background:#1b3828;color:#fff;padding:14px 16px;display:flex;align-items:center;justify-content:space-between}
+
 .drw-tabs{display:flex;border-bottom:2px solid #e4ede7;background:#f4f8f5;overflow-x:auto}
+
 .drw-tab{flex:1;padding:10px 4px;border:none;background:none;font:800 .73rem inherit;color:#4f6357;cursor:pointer;border-bottom:3px solid transparent;margin-bottom:-2px;white-space:nowrap}
+
 .drw-tab.on{color:#1b3828;border-bottom-color:var(--g);background:#fff}
+
 .drw-bd{flex:1;overflow-y:auto;padding:14px;display:flex;flex-direction:column;gap:12px}
+
 .pnl{background:#fff;border:1px solid #dce4de;border-radius:12px;padding:16px;box-shadow:0 2px 6px rgba(0,0,0,.04)}
+
 .pnl-t{font-size:.98rem;font-weight:800;color:#1b3828;margin-bottom:12px;padding-bottom:8px;border-bottom:2px solid #e4ede7;display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px}
+
 .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:14px}
+
 .col{display:flex;flex-direction:column;gap:12px}
+
 .fg{display:flex;flex-direction:column;gap:6px;position:relative}
+
 .lbl{font-size:.82rem;color:#36453c}
+
 input[type="text"],input[type="number"],input[type="password"],textarea{width:100%;padding:9px 12px;border:1px solid #c5d1c9;border-radius:8px;font:700 .95rem inherit;background:#fff}
+
 textarea{font-family:monospace;font-size:.78rem;resize:vertical}
+
 input:focus,textarea:focus{outline:none;border-color:var(--g);box-shadow:0 0 0 3px rgba(34,122,75,.15)}
+
 .ac{position:absolute;top:100%;left:0;right:0;z-index:999;background:#fff;border:1.5px solid var(--g);border-radius:8px;margin-top:4px;max-height:280px;overflow-y:auto;box-shadow:0 8px 20px rgba(0,0,0,.16);display:none}
+
 .ac-i{padding:8px 10px;border-bottom:1px solid #edf2ef;cursor:pointer;display:flex;align-items:center;gap:10px}.ac-i:hover{background:#eef7f1}
+
 .ac-th{width:42px;height:42px;border-radius:4px;object-fit:cover;background:#2b2e2c;flex-shrink:0}
+
 .ac-tt{font-size:.85rem;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:flex;align-items:center;gap:5px}
+
 .ac-c,.bm{padding:2px 6px;border-radius:4px;color:#fff;font-size:.7rem;font-weight:800;display:inline-block}.ac-c{margin:2px 4px 0 0}
+
 .b-new{background:#e67e22;color:#fff;font-size:.65rem;font-weight:900;padding:1px 5px;border-radius:4px;flex-shrink:0}
+
 .th-sm{width:52px;height:52px;border-radius:6px;object-fit:cover;border:1px solid #c5d1c9;display:none;background:#2b2e2c}
+
 .btns{display:flex;flex-wrap:wrap;gap:6px}
+
 .cb{padding:7px 11px;border-radius:7px;border:1.5px solid #cbd6cf;background:#f8faf9;color:#44544a;font-size:.78rem;font-weight:800;cursor:pointer}
+
 .cb[data-d="BASIC"].on{background:var(--bas);border-color:var(--bas);color:#fff}
+
 .cb[data-d="ADVANCED"].on{background:var(--adv);border-color:var(--adv);color:#fff}
+
 .cb[data-d="EXPERT"].on{background:var(--exp);border-color:var(--exp);color:#fff}
+
 .cb[data-d="MASTER"].on{background:var(--mas);border-color:var(--mas);color:#fff}
+
 .cb[data-d="ULTIMA"].on{background:var(--ult);border-color:#ff4757;color:#fff}
+
 .cb[data-l].on,.cb[data-sc].on,.cb[data-smode].on,.cb[data-ncf].on,.cb[data-ncg].on{background:var(--g);border-color:var(--g);color:#fff}
+
 .cb[data-ncg]{padding:4px 8px;font-size:.72rem}
+
 .cb[data-l="AJ"].on{background:linear-gradient(135deg,#f39c12,#e67e22);border-color:#d35400;color:#fff}
+
 .cb[data-l="AJC"].on{background:linear-gradient(135deg,#ff6b81,#f39c12,#2ed573,#1e90ff);border-color:#1e272e;color:#fff}
+
 .adj{padding:5px 8px;font-size:.75rem;font-weight:800;border:1px solid #c5d1c9;background:#f1f6f3;color:#26382d;border-radius:6px;cursor:pointer}
+
 .adj.pre{background:#eef5ff;border-color:#bcd3f5;color:#1e4b8f}
+
 .chk{display:flex;align-items:center;gap:8px;padding:8px 10px;background:#f4f9f6;border:1px solid #d5e6dc;border-radius:8px;cursor:pointer;font-size:.85rem}
+
 .chk input{width:17px;height:17px;accent-color:var(--g)}
+
 .cbox{display:flex;align-items:center;justify-content:space-between;background:#1e2d24;color:#fff;padding:10px 14px;border-radius:8px;margin-top:4px}
+
 .cval{font:700 1.35rem 'Oswald',sans-serif;color:#ffeaa7}
+
 .bp{width:100%;padding:12px;background:var(--g);color:#fff;border:none;border-radius:9px;font-size:.98rem;font-weight:800;cursor:pointer;text-align:center}.bp:disabled{opacity:.55;cursor:not-allowed}
+
 .bs,.bw,.bd,.bi{padding:7px 12px;border-radius:7px;font-size:.78rem;cursor:pointer}
+
 .bs{background:#fff;color:#2d4236;border:1px solid #c2d1c8}.bs:disabled{opacity:.45;cursor:not-allowed}
+
 .bw{background:#fff8eb;color:#b45309;border:1px solid #fcd34d;font-weight:800}
+
 .bi{background:#eff6ff;color:#1d4ed8;border:1px solid #bfdbfe;font-weight:800}
+
 .bd{background:#fff5f5;color:#c0392b;border:1px solid #f5c6cb}
-.bpng{background:#237a4b;color:#fff;border:none;border-radius:10px;padding:13px 32px;font-size:1.05rem;font-weight:800;cursor:pointer;box-shadow:0 4px 12px rgba(35,122,75,.3)}
+
+.bpng{background:#237a4b;color:#fff;border:none;border-radius:10px;padding:13px 32px;font-size:1.05rem;font-weight:800;cursor:pointer;box-shadow:0 4px 12px rgba(35,122,75,.3)}.bpng:disabled{opacity:.6;cursor:not-allowed}
+
 #mod{display:none;margin-top:12px;padding:14px;background:#eef6f1;border:2px solid #237a4b;border-radius:10px;text-align:center;width:100%}
+
 #mod img{max-width:100%;border:1px solid #ccc;border-radius:6px;margin-top:8px}
+
 .fit{width:100%;overflow:hidden;display:flex;justify-content:center;align-items:flex-start}
+
 #cap{width:920px;min-width:920px;padding:20px 22px 18px;color:#203122;background:#e4f1d8 repeating-linear-gradient(-45deg,rgba(255,255,255,.42) 0,rgba(255,255,255,.42) 18px,rgba(198,226,174,.35) 18px,rgba(198,226,174,.35) 36px);border:1px solid #c3d9b4;transform-origin:top left}
+
 .ihd{display:flex;justify-content:space-between;align-items:flex-start;gap:16px;margin-bottom:12px}
+
 .ittl{font-size:25px;font-weight:900;color:#227a43;line-height:1.15;display:flex;align-items:baseline;gap:10px}
+
 .ipb{background:rgba(255,255,255,.65);border-radius:6px;padding:7px 14px;font-size:18px;font-weight:800;color:#3a4a3d;text-align:center;min-height:40px;display:flex;align-items:center;justify-content:center}
+
 .irb{background:rgba(255,255,255,.85);border-radius:6px;padding:6px 16px;display:flex;align-items:center;justify-content:center;min-height:50px}
+
 .irv{font:700 36px/1 'Oswald',sans-serif;letter-spacing:.02em}
+
 .rg{color:#16a34a}.ro{color:#ea580c}.rr{color:#dc2626}.rp{color:#7e22ce}.rb{color:#a16207}.rs{color:#64748b}.rgd{color:#ca8a04}.rpl{color:#6366f1}
+
 .isub{background:rgba(255,255,255,.55);border-radius:5px;padding:4px 12px;text-align:center;font-size:12.5px;font-weight:800;color:#2c3a2e}
+
 .isub span{font:700 13.5px 'Oswald',sans-serif;margin:0 12px 0 3px}
+
 .sttl{font-size:18px;font-weight:900;color:#222823;margin:10px 0 6px}
+
 .tgrd{background:#7c7e7c;border-radius:4px;padding:8px;display:grid;grid-template-columns:repeat(5,1fr);gap:6px;min-height:80px}
+
 .emp{grid-column:1/-1;color:#e6eae6;font-size:13px;text-align:center;padding:24px 0}
+
 .tl{background:linear-gradient(180deg,#989a98,#7d7f7d);border:1px solid #636563;border-radius:4px;padding:4px 5px;display:flex;flex-direction:column;justify-content:space-between;overflow:hidden}
+
 .tl-t{display:flex;gap:4px;height:86px}
+
 .tl-s{width:52px;flex-shrink:0;display:flex;flex-direction:column;justify-content:space-between;align-items:center;text-align:center}
+
 .tl-r{font:700 14px/1 'Oswald',sans-serif;color:#fff}
+
 .tl-l{font-size:8.5px;font-weight:800;color:#e2e6e2;display:block;line-height:1.05}
+
 .tl-n{font:700 13.5px/1.05 'Oswald',sans-serif;color:#fff}
+
 .tl-j{flex:1;position:relative;border-radius:3px;overflow:hidden;background:#2b2e2c;border:1px solid rgba(0,0,0,.35)}
+
 .tl-j img{width:100%;height:100%;object-fit:cover;display:block}
+
 .tl-p{width:100%;height:100%;display:flex;align-items:center;justify-content:center;padding:4px;text-align:center;font-size:10px;font-weight:800;color:#fff;line-height:1.2;word-break:break-all}
+
 .tl-d{position:absolute;top:3px;right:3px;width:15px;height:15px;border-radius:3px;transform:rotate(45deg);border:1.5px solid #fff;display:flex;align-items:center;justify-content:center}
+
 .tl-d span{transform:rotate(-45deg);font-size:8px;font-weight:900;color:#fff;line-height:1}
+
 .bg-BASIC{background:var(--bas)}.bg-ADVANCED{background:var(--adv)}.bg-EXPERT{background:var(--exp)}.bg-MASTER{background:var(--mas)}.bg-ULTIMA{background:#111;border-color:#ff4757}
+
 .tl-mp{position:absolute;bottom:17px;right:2px;padding:1px 4px;border-radius:2px;font-size:8.5px;font-weight:900;line-height:1.1;color:#fff;background:rgba(15,18,16,.88);border:1px solid rgba(255,255,255,.55)}
+
 .mp-FC{color:#7bed9f;border-color:#7bed9f}.mp-AJ{color:#ffd32a;border-color:#ffd32a}.mp-AJC{background:linear-gradient(90deg,#ff4757,#ffa502,#2ed573,#1e90ff);color:#fff;border-color:#fff}
+
 .tl-sb{position:absolute;bottom:0;left:0;right:0;height:16px;background:rgba(10,12,11,.9);display:flex;align-items:center;justify-content:space-between;padding:0 4px;font:700 11px 'Oswald',sans-serif}
+
 .tl-tt{margin-top:3px;font-size:11px;font-weight:800;color:#fff;text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-shadow:0 1px 2px rgba(0,0,0,.65)}
+
 .tbl{width:100%;border-collapse:collapse;font-size:.84rem}
+
 .tbl th{text-align:left;padding:8px 10px;background:#eef4f0;color:#2f4236;font-weight:800;border-bottom:2px solid #d5e2da}
+
 .tbl td{padding:8px 10px;border-bottom:1px solid #e6eee9}
+
 .stat-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(165px,1fr));gap:8px}
+
 .stat-card{background:#f7faf8;border:1px solid #d6e4dc;border-radius:9px;padding:10px 12px;display:flex;flex-direction:column;gap:3px}
+
 .stat-top{display:flex;justify-content:space-between;align-items:baseline}
+
 .stat-c{font:700 1.2rem 'Oswald',sans-serif;color:#1b3828}
+
 .stat-n{font-size:.73rem;font-weight:800;color:#52665a;background:#e4ede8;padding:1px 7px;border-radius:10px}
+
 .stat-sc{font:700 1.08rem 'Oswald',sans-serif;color:#1f2923}
+
 .stat-sub{font-size:.72rem;color:#4f6357;display:flex;justify-content:space-between}
+
 .nc-grp{border:1px solid #d6e4dc;border-radius:9px;overflow:hidden;background:#fff}
+
 .nc-hd{background:#1b3828;color:#fff;padding:5px 10px;display:flex;justify-content:space-between;align-items:center;font:700 1rem 'Oswald',sans-serif}
+
 .nc-hd span{font:700 .72rem 'M PLUS 1p',sans-serif;color:#bce3cc}
+
 .nc-sec{background:#e8f2ec;color:#1b3828;font-size:.74rem;font-weight:900;padding:5px 10px;border-top:1px solid #d6e4dc;border-bottom:1px solid #d6e4dc}
+
 .nc-it{display:flex;align-items:center;gap:8px;padding:6px 9px;border-bottom:1px solid #edf2ef;cursor:pointer}.nc-it:last-child{border-bottom:none}.nc-it:hover{background:#eef7f1}
+
 .nc-th{width:34px;height:34px;border-radius:4px;object-fit:cover;background:#2b2e2c;flex-shrink:0}
+
 .nc-tt{font-size:.8rem;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:1}
+
 .nc-sub{font-size:.68rem;color:#354a3e;font-weight:700;line-height:1.35;margin-top:1px}
+
 .gf-frame{width:100%;height:500px;border:1px solid #d5e6dc;border-radius:10px;background:#f8faf9}
+
 .cloud-box{background:#f3f9f5;border:1px solid #cfe3d7;border-radius:10px;padding:12px;display:flex;flex-direction:column;gap:10px}
+
 .msg-box{font-size:.8rem;font-weight:800;padding:8px 10px;border-radius:7px;display:none;line-height:1.45}
+
 .msg-ok{background:#d4edda;color:#155724;border:1px solid #c3e6cb;display:block}
+
 .msg-err{background:#f8d7da;color:#721c24;border:1px solid #f5c6cb;display:block}
+
 .warn-note{font-size:.75rem;color:#991b1b;background:#fef2f2;border:1px solid #fecaca;padding:8px 10px;border-radius:7px;line-height:1.45}
+
 .step-box{background:#f8fafc;border:1px solid #cbd5e1;border-radius:9px;padding:11px;display:flex;flex-direction:column;gap:8px}
+
 .step-badge{display:inline-block;background:#1e293b;color:#38bdf8;font-size:.7rem;font-weight:900;padding:2px 7px;border-radius:4px;margin-right:5px}
+
 </style>
+
 </head>
+
 <body>
 
+
+
 <header class="hd">
+
   <div class="hd-in">
+
     <div>
+
       <div style="font-size:1.1rem;font-weight:800">CHUNITHM レート対象曲 手動入力式画像ジェネレーター</div>
-      <div style="font-size:.76rem;color:#bce3cc">BEST枠（上位30曲）＋ NEW枠（上位20曲） 自動集計・PNG出力</div>
+
+      <div style="font-size:.76rem;color:#bce3cc">BEST枠（上位30曲）＋ NEW枠（上位20曲） 自動集計・JPEG出力</div>
+
     </div>
+
     <div class="btns" style="align-items:center">
+
       <span class="b-db" id="dbB">楽曲DB読込中...</span>
+
       <span class="b-db" id="authBadge" style="cursor:pointer">未ログイン</span>
+
       <button type="button" class="bi" id="bOpenNet" style="font-weight:900">🌐 NET連携</button>
+
       <button type="button" class="bs" id="uTop" disabled>↩ 元に戻す</button>
+
       <button type="button" class="bs" id="bExp">JSON保存</button>
+
       <button type="button" class="bs" id="bImp">JSON読込</button>
+
       <input type="file" id="jFile" accept=".json" hidden />
+
       <button type="button" class="ham" id="bMenu" aria-label="メニューを開く">☰</button>
+
     </div>
+
   </div>
+
 </header>
 
+
+
 <div class="drw-bg" id="drwBg"></div>
+
 <aside class="drw" id="drw">
+
   <div class="drw-hd"><strong style="font-size:.98rem">メニュー</strong><button type="button" class="bs" id="bClsDrw" style="padding:4px 10px">✕ 閉じる</button></div>
+
   <div class="drw-tabs">
+
     <button type="button" class="drw-tab on" data-tab="net">🌐 NET連携</button>
+
     <button type="button" class="drw-tab" data-tab="stat">📊 定数別統計</button>
+
     <button type="button" class="drw-tab" data-tab="newc">📋 全譜面定数表</button>
+
     <button type="button" class="drw-tab" data-tab="sync">🔑 クラウド同期</button>
+
     <button type="button" class="drw-tab" data-tab="opin">📮 意見箱</button>
+
   </div>
+
   <div class="drw-bd">
+
     <!-- 🌐 CHUNITHM-NET 連携タブ -->
+
     <div id="tabNet" class="col" style="gap:10px">
+
       <div style="font-size:.79rem;color:#1e3a2f;background:#eef7f1;border:1px solid #cce3d4;padding:10px 11px;border-radius:8px;line-height:1.5">
+
         CHUNITHM-NET（無料会員OK）の<b>「ランキング ＞ 楽曲別」</b>から、あなたのマイレコード（プレイ済みスコア）を全曲一括取得して反映できます。
+
       </div>
 
+
+
       <div class="step-box">
+
         <div style="font-size:.82rem;font-weight:900;color:#0f172a"><span class="step-badge">STEP 1</span>ブックマークレットを登録</div>
+
         <div style="font-size:.74rem;color:#475569;line-height:1.45">
+
           下のボタンを押してコードをコピーし、ブラウザの適当なページをお気に入り（ブックマーク）登録したあと、URL欄をコピーしたコードに書き換えて保存してください。
+
         </div>
+
         <textarea id="bmCode" rows="3" readonly onclick="this.select()"></textarea>
+
         <button type="button" class="bi" id="bCopyBm" style="width:100%;padding:9px;font-size:.84rem">📋 ブックマークレットをコピー</button>
+
         <div id="bmCopyMsg" class="msg-box"></div>
+
       </div>
 
+
+
       <div class="step-box">
+
         <div style="font-size:.82rem;font-weight:900;color:#0f172a"><span class="step-badge">STEP 2</span>CHUNITHM-NETでデータ取得</div>
+
         <div style="font-size:.74rem;color:#475569;line-height:1.5">
+
           1. CHUNITHM-NETにログインし、<b>ランキング ＞ 楽曲別 ＞ MASTER</b>（またはEXPERT / ULTIMA等）を開く<br>
+
           2. 登録したブックマークレットを実行する<br>
+
           3. 完了後に画面へ出る<b>「結果をコピー」</b>を押す
+
         </div>
+
         <a class="bs" href="https://new.chunithm-net.com/chuni-mobile/html/mobile/ranking/master" target="_blank" rel="noopener noreferrer" style="text-align:center;text-decoration:none;font-weight:800;color:#1d4ed8">CHUNITHM-NET 楽曲別ランキングを開く ↗</a>
+
       </div>
 
+
+
       <div class="step-box">
+
         <div style="font-size:.82rem;font-weight:900;color:#0f172a"><span class="step-badge">STEP 3</span>取得データを貼り付けて一括反映</div>
+
         <textarea id="inNetJson" rows="4" placeholder='ここにコピーしたデータ（[{"title":"...","diff":"MASTER","score":1005998},...]）を貼り付け'></textarea>
+
         <label class="chk" style="font-size:.76rem;padding:6px 8px">
+
           <input type="checkbox" id="cNetForce" />
+
           <span>既存スコアより低い場合でも上書きする（通常は高い方のみ残します）</span>
+
         </label>
+
         <button type="button" class="bp" id="bImportNet" style="font-size:.9rem;padding:11px">⚡ 一括取り込みを実行する</button>
+
         <div id="netImpMsg" class="msg-box"></div>
+
       </div>
+
     </div>
+
+
 
     <!-- 📊 定数別統計タブ -->
+
     <div id="tabStat" style="display:none;flex-direction:column;gap:10px">
+
       <div class="btns" id="statMode">
+
         <button type="button" class="cb on" data-smode="mine">あなたの統計</button>
+
         <button type="button" class="cb" data-smode="global">みんなの全体統計</button>
+
       </div>
+
       <div id="mineStatCtrl" class="col" style="gap:8px">
+
         <div style="font-size:.78rem;color:#52665a" id="statMeta">集計対象：対象枠（BEST30＋NEW20）</div>
+
         <div class="btns" id="statScope">
+
           <button type="button" class="cb on" data-sc="top">対象枠のみ（BEST30＋NEW20）</button>
+
           <button type="button" class="cb" data-sc="all">登録済み全曲</button>
+
         </div>
+
       </div>
+
       <div id="globalStatCtrl" style="display:none;flex-direction:column;gap:8px">
+
         <div style="display:flex;justify-content:space-between;align-items:center">
+
           <span style="font-size:.78rem;color:#52665a" id="globalMeta">クラウド登録ユーザーの平均スコア</span>
+
           <button type="button" class="bs" id="bReloadStats" style="padding:4px 9px;font-size:.74rem">🔄 再読込</button>
+
         </div>
+
       </div>
+
       <div class="stat-grid" id="statGrid"></div>
+
       <div class="nc-grp" id="recBox">
+
         <div class="nc-hd">
+
           <div>🎯 おすすめ譜面（ID登録者限定）</div>
+
           <button type="button" class="bs" id="bRefRec" style="padding:2px 8px;font-size:.7rem">🔄 未プレイ入替</button>
+
         </div>
+
         <div style="padding:6px 10px;font-size:.74rem;color:#36453c;background:#f4f9f6;border-bottom:1px solid #d6e4dc" id="recMeta"></div>
+
         <div id="recList"></div>
+
       </div>
+
     </div>
+
+
 
     <!-- 📋 全譜面定数表タブ -->
+
     <div id="tabNewc" style="display:none;flex-direction:column;gap:8px">
+
       <div class="btns" id="newcFilter">
+
         <button type="button" class="cb on" data-ncf="all">全譜面</button>
+
         <button type="button" class="cb" data-ncf="new">新曲枠のみ</button>
+
       </div>
+
       <div class="btns" id="newcGenre" style="gap:4px"></div>
+
       <input type="text" id="inNewcQ" placeholder="曲名 または 定数 (例: 15.0 / Garakuta) で検索" style="font-size:.84rem;padding:8px 10px" />
+
       <div style="font-size:.75rem;color:#52665a" id="newcMeta">タップで登録フォームへ入力</div>
+
       <div id="newcList" class="col" style="gap:10px"></div>
+
     </div>
+
+
 
     <!-- 🔑 クラウド同期タブ -->
+
     <div id="tabSync" style="display:none;flex-direction:column;gap:10px">
+
       <div style="font-size:.78rem;color:#36453c;background:#f2f8f4;border:1px solid #d5e6dc;padding:9px 11px;border-radius:8px">
+
         引き継ぎIDと暗証番号（PIN）を設定すると、データをクラウドに保存し別端末から復元できます。
+
       </div>
+
       <div class="warn-note">
+
         ⚠️ <b>重要：</b>自動再発行機能はありません。IDとPINを忘れるとクラウド上のデータを復元できなくなるため、必ずスクリーンショットやメモ等で控えてください。（どうしても忘れた場合は「意見箱」からIDとプレイヤー名をご連絡ください）
+
       </div>
+
       <div class="cloud-box">
+
         <div class="fg">
+
           <label class="lbl">引き継ぎID（半角英数字・大文字小文字区別なし）</label>
+
           <div style="display:flex;gap:6px">
+
             <input type="text" id="inSyncId" placeholder="例: CHUNI1234" maxlength="20" style="text-transform:uppercase" />
+
             <button type="button" class="bs" id="bGenId" style="white-space:nowrap">自動発行</button>
+
           </div>
+
         </div>
+
         <div class="fg">
+
           <label class="lbl">暗証番号（PIN・4桁以上の数字など）</label>
+
           <div style="display:flex;gap:6px">
+
             <input type="password" id="inSyncPin" placeholder="例: 1234" maxlength="20" />
+
             <button type="button" class="bs" id="bTogPin" style="white-space:nowrap">👁 表示</button>
+
           </div>
+
         </div>
+
         <div id="syncMsg" class="msg-box"></div>
+
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:2px">
+
           <button type="button" class="bp" id="bCloudSave" style="font-size:.86rem;padding:10px">☁ クラウドへ保存</button>
+
           <button type="button" class="bi" id="bCloudLoad" style="font-size:.86rem;padding:10px">📥 クラウドから読込</button>
+
         </div>
+
         <div id="syncStatusText" style="font-size:.75rem;color:#4f6357;text-align:center"></div>
+
       </div>
+
       <button type="button" class="bd" id="bLogout" style="display:none;width:100%">ログアウト（この端末のID記憶を解除）</button>
+
     </div>
+
+
 
     <!-- 📮 意見箱タブ -->
+
     <div id="tabOpin" style="display:none;flex-direction:column;gap:10px">
+
       <div style="font-size:.8rem;color:#36453c;background:#f2f8f4;border:1px solid #d5e6dc;padding:9px 11px;border-radius:8px">
+
         機能追加のリクエスト・定数修正要望・不具合報告はこちらから送信できます。
+
       </div>
+
       <iframe class="gf-frame" src="https://docs.google.com/forms/d/e/1FAIpQLSekhjaOsxZfqBYXhSwN-nE8LscsGbMgP1K3d6wsG1hQpk66Wg/viewform?embedded=true" loading="lazy">読み込んでいます…</iframe>
+
       <a class="bs" href="https://docs.google.com/forms/d/e/1FAIpQLSekhjaOsxZfqBYXhSwN-nE8LscsGbMgP1K3d6wsG1hQpk66Wg/viewform?usp=header" target="_blank" rel="noopener noreferrer" style="text-align:center;text-decoration:none">別タブでGoogleフォームを開く ↗</a>
+
     </div>
+
   </div>
+
 </aside>
 
+
+
 <main class="wrap">
-  <section class="pnl">
-    <div class="pnl-t"><span id="fTtl">譜面を登録・更新</span><button type="button" class="bs" id="bRst" style="display:none">新規登録に戻す</button></div>
-    <div class="grid">
-      <div class="col">
-        <div class="fg">
-          <label class="lbl">楽曲名（文字入力で候補から定数・新曲枠・ジャケット自動入力） *</label>
-          <input type="text" id="inT" autocomplete="off" placeholder="例: Titania / 混沌を越えし / 祈" />
-          <div class="ac" id="ac"></div>
-        </div>
-        <div class="fg"><label class="lbl">難易度</label><div class="btns" id="dGrp"></div></div>
-        <div class="fg">
-          <label class="lbl">譜面定数 (1.0 〜 16.0)</label>
-          <div style="display:flex;gap:6px">
-            <input type="number" id="inC" step="0.1" min="1" max="16" value="14.5" />
-            <button type="button" class="adj" data-cd="-0.1">-0.1</button>
-            <button type="button" class="adj" data-cd="0.1">+0.1</button>
-          </div>
-        </div>
-        <label class="chk"><input type="checkbox" id="inN" /><span>新曲枠（NEW枠）の対象にする（※BEST枠には入りません）</span></label>
-      </div>
-      <div class="col">
-        <div class="fg">
-          <label class="lbl">スコア (0 〜 1,010,000)</label>
-          <input type="number" id="inS" min="0" max="1010000" value="1007500" />
-          <div class="btns" id="sAdj" style="gap:5px"></div>
-          <div class="btns" id="sPre" style="gap:5px"></div>
-        </div>
-        <div class="fg"><label class="lbl">ランプ</label><div class="btns" id="lGrp"></div></div>
-        <div class="fg">
-          <label class="lbl">ジャケット画像（候補選択で自動設定／手動変更も可）</label>
-          <div style="display:flex;align-items:center;gap:10px">
-            <img id="jTh" class="th-sm" src="" alt="" />
-            <input type="file" id="inJ" accept="image/*" style="font-size:.8rem" />
-            <button type="button" class="bs" id="bClrJ">クリア</button>
-          </div>
-        </div>
-      </div>
-    </div>
-    <div class="col" style="margin-top:14px">
-      <div class="cbox">
-        <div><div style="font-size:.78rem;color:#a9c7b5">単曲レート / ランク</div><div style="font-size:.75rem;color:#cde3d6" id="lHnt"></div></div>
-        <div class="cval" id="lRt"></div>
-      </div>
-      <button type="button" class="bp" id="bSav">この譜面を登録する</button>
-    </div>
-  </section>
 
   <section class="pnl">
-    <div class="pnl-t"><span>画像設定・PNG出力</span></div>
-    <div class="grid" style="align-items:end">
-      <div class="fg"><label class="lbl">PLAYER NAME</label><input type="text" id="inP" placeholder="未設定" maxlength="20" /></div>
-      <div class="fg"><label class="lbl">クレジット表記（右上 by ○○）</label><input type="text" id="inCr" value="CHUNITHM" maxlength="20" /></div>
-      <label class="chk"><input type="checkbox" id="cLmp" checked /><span>ジャケットにFC/AJランプを表示</span></label>
-    </div>
-    <div style="margin-top:18px;display:flex;flex-direction:column;align-items:center;gap:10px">
-      <button type="button" class="bpng" id="bPng">選択した画像をPNGで保存</button>
-      <div id="mod">
-        <div style="display:flex;justify-content:space-between;align-items:center">
-          <strong style="font-size:.88rem;color:#1b3828">画像を生成しました（長押しまたは右クリックで保存できます）</strong>
-          <button type="button" class="bs" id="bClsM">閉じる</button>
+
+    <div class="pnl-t"><span id="fTtl">譜面を登録・更新</span><button type="button" class="bs" id="bRst" style="display:none">新規登録に戻す</button></div>
+
+    <div class="grid">
+
+      <div class="col">
+
+        <div class="fg">
+
+          <label class="lbl">楽曲名（文字入力で候補から定数・新曲枠・ジャケット自動入力） *</label>
+
+          <input type="text" id="inT" autocomplete="off" placeholder="例: Titania / 混沌を越えし / 祈" />
+
+          <div class="ac" id="ac"></div>
+
         </div>
-        <img id="iPrv" src="" alt="" />
+
+        <div class="fg"><label class="lbl">難易度</label><div class="btns" id="dGrp"></div></div>
+
+        <div class="fg">
+
+          <label class="lbl">譜面定数 (1.0 〜 16.0)</label>
+
+          <div style="display:flex;gap:6px">
+
+            <input type="number" id="inC" step="0.1" min="1" max="16" value="14.5" />
+
+            <button type="button" class="adj" data-cd="-0.1">-0.1</button>
+
+            <button type="button" class="adj" data-cd="0.1">+0.1</button>
+
+          </div>
+
+        </div>
+
+        <label class="chk"><input type="checkbox" id="inN" /><span>新曲枠（NEW枠）の対象にする（※BEST枠には入りません）</span></label>
+
       </div>
+
+      <div class="col">
+
+        <div class="fg">
+
+          <label class="lbl">スコア (0 〜 1,010,000)</label>
+
+          <input type="number" id="inS" min="0" max="1010000" value="1007500" />
+
+          <div class="btns" id="sAdj" style="gap:5px"></div>
+
+          <div class="btns" id="sPre" style="gap:5px"></div>
+
+        </div>
+
+        <div class="fg"><label class="lbl">ランプ</label><div class="btns" id="lGrp"></div></div>
+
+        <div class="fg">
+
+          <label class="lbl">ジャケット画像（候補選択で自動設定／手動変更も可）</label>
+
+          <div style="display:flex;align-items:center;gap:10px">
+
+            <img id="jTh" class="th-sm" src="" alt="" />
+
+            <input type="file" id="inJ" accept="image/*" style="font-size:.8rem" />
+
+            <button type="button" class="bs" id="bClrJ">クリア</button>
+
+          </div>
+
+        </div>
+
+      </div>
+
     </div>
+
+    <div class="col" style="margin-top:14px">
+
+      <div class="cbox">
+
+        <div><div style="font-size:.78rem;color:#a9c7b5">単曲レート / ランク</div><div style="font-size:.75rem;color:#cde3d6" id="lHnt"></div></div>
+
+        <div class="cval" id="lRt"></div>
+
+      </div>
+
+      <button type="button" class="bp" id="bSav">この譜面を登録する</button>
+
+    </div>
+
   </section>
+
+
+
+  <section class="pnl">
+
+    <div class="pnl-t"><span>画像設定・JPEG出力</span></div>
+
+    <div class="grid" style="align-items:end">
+
+      <div class="fg"><label class="lbl">PLAYER NAME</label><input type="text" id="inP" placeholder="未設定" maxlength="20" /></div>
+
+      <div class="fg"><label class="lbl">クレジット表記（右上 by ○○）</label><input type="text" id="inCr" value="CHUNITHM" maxlength="20" /></div>
+
+      <label class="chk"><input type="checkbox" id="cLmp" checked /><span>ジャケットにFC/AJランプを表示</span></label>
+
+    </div>
+
+    <div style="margin-top:18px;display:flex;flex-direction:column;align-items:center;gap:10px">
+
+      <button type="button" class="bpng" id="bPng">選択した画像をJPEGで保存</button>
+
+      <div id="mod">
+
+        <div style="display:flex;justify-content:space-between;align-items:center">
+
+          <strong style="font-size:.88rem;color:#1b3828">画像を生成しました（長押しまたは右クリックで保存できます）</strong>
+
+          <button type="button" class="bs" id="bClsM">閉じる</button>
+
+        </div>
+
+        <img id="iPrv" src="" alt="" />
+
+      </div>
+
+    </div>
+
+  </section>
+
+
 
   <div class="fit" id="fit">
+
     <div id="sBox" style="position:relative">
+
       <div id="cap">
+
         <div class="ihd">
+
           <div style="flex:1;display:flex;flex-direction:column;gap:6px">
+
             <div class="ittl">ベスト枠・新曲枠対象楽曲 <span style="font-size:16px;font-weight:800;color:#2e8b52" id="vCr">by CHUNITHM</span></div>
+
             <div style="font-size:12px;font-weight:800;color:#4f6353">PLAYER NAME</div>
+
             <div class="ipb" id="vP">未設定</div>
+
           </div>
+
           <div style="width:470px;display:flex;flex-direction:column;gap:4px">
+
             <div style="display:flex;justify-content:space-between;font-size:12px;font-weight:800;color:#4f6353"><span>RATING</span><span style="font:700 13px 'Oswald',sans-serif" id="vTm"></span></div>
+
             <div class="irb"><div class="irv rg" id="vTot">0.000</div></div>
+
             <div class="isub">BEST<span id="vB">0.000</span>NEW<span id="vN">0.000</span>MAX<span id="vM">0.000</span></div>
+
           </div>
+
         </div>
+
         <div class="sttl">BEST枠（上位30曲）</div><div class="tgrd" id="gB"></div>
+
         <div class="sttl">NEW枠（上位20曲）</div><div class="tgrd" id="gN"></div>
+
         <div style="margin-top:14px;text-align:center;font-size:10.5px;color:#465749">
+
           ※掲載されている楽曲ジャケット画像等の著作権・各種権利は、各権利者に帰属します。本ツールは非公式のファン制作物です。
+
         </div>
+
       </div>
+
     </div>
+
   </div>
 
+
+
   <section class="pnl">
+
     <div class="pnl-t">
+
       <span>登録済みの譜面（<span id="rCnt">0</span>件）</span>
+
       <div class="btns">
+
         <button type="button" class="bs" id="uBtn" disabled>↩ 元に戻す</button>
+
         <button type="button" class="bi" id="bSync">登録曲の定数を最新DBで更新</button>
+
         <button type="button" class="bw" id="bN2B">新曲枠 → ベスト枠へ移行</button>
+
         <button type="button" class="bd" id="bClr">すべて削除</button>
+
       </div>
+
     </div>
+
     <div style="overflow-x:auto">
+
       <table class="tbl">
+
         <thead><tr><th>枠</th><th>楽曲名</th><th>難易度</th><th>定数</th><th>スコア</th><th>ランプ</th><th>単曲レート</th><th>操作</th></tr></thead>
+
         <tbody id="rBd"></tbody>
+
       </table>
+
     </div>
+
   </section>
+
 </main>
 
+
+
 <script>
+
 document.addEventListener('DOMContentLoaded', () => {
+
   const GAS_URL = 'https://script.google.com/macros/s/AKfycbyB-2Za3qHMx2uBFfLIKza0ITievN2DVDmZyiqdFus1tCfJ7WJnTbiUDhuUEr3OtMXv/exec';
+
   const [KEY, AUTH_KEY] = ['chunithm_miig_style_rating_v1', 'chunithm_gas_auth_v1'];
+
   const DIFFS = ['BASIC','ADVANCED','EXPERT','MASTER','ULTIMA'];
+
   const DBG = { BASIC:'#2ecc71', ADVANCED:'#f39c12', EXPERT:'#e74c3c', MASTER:'#8e44ad', ULTIMA:'#1e272e' };
+
   const DMAP = { bas:'BASIC', basic:'BASIC', adv:'ADVANCED', advanced:'ADVANCED', exp:'EXPERT', expert:'EXPERT', mas:'MASTER', master:'MASTER', ult:'ULTIMA', ultima:'ULTIMA', 0:'BASIC', 1:'ADVANCED', 2:'EXPERT', 3:'MASTER', 4:'ULTIMA' };
+
   const RBW = ['#ff2a5f','#ff7b00','#eab308','#10b981','#0ea5e9','#9333ea'];
+
   const $ = id => document.getElementById(id);
+
   const esc = s => String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+
   const norm = s => String(s||'').toLowerCase().replace(/[！-～]/g, c => String.fromCharCode(c.charCodeAt(0)-0xFEE0)).replace(/[’'“”"・･\-‐‑–—―〜~：:！!？?（）()［］\[\]\s]/g,'');
+
   const isWE = s => /world.?s.?end|ワールズエンド/i.test(String(s||''));
 
-  // CHUNITHM-NET ランキング一括取得ブックマークレット生成
+
+
+  const imgCache = new Map();
+
+
+
+  async function toData(url) {
+
+    if (!url || url.startsWith('data:')) return url || '';
+
+    if (typeof imgCache.get(url) === 'string') return imgCache.get(url);
+
+    for (const src of [`https://wsrv.nl/?url=${encodeURIComponent(url)}&w=140&h=140&fit=cover&output=jpg&q=80`, url]) {
+
+      const r = await new Promise(ok => {
+
+        const im = new Image(); im.crossOrigin = 'anonymous';
+
+        const tm = setTimeout(() => { im.src = ''; ok(null); }, 3500);
+
+        im.onload = () => {
+
+          clearTimeout(tm);
+
+          try {
+
+            const cv = document.createElement('canvas'); cv.width = cv.height = 140;
+
+            cv.getContext('2d').drawImage(im, 0, 0, 140, 140);
+
+            ok(cv.toDataURL('image/jpeg', .80));
+
+          } catch { ok(null); }
+
+        };
+
+        im.onerror = () => { clearTimeout(tm); ok(null); };
+
+        im.src = src;
+
+      });
+
+      if (r && r.startsWith('data:')) {
+
+        imgCache.set(url, r);
+
+        return r;
+
+      }
+
+    }
+
+    return '';
+
+  }
+
+
+
+  // CHUNITHM-NET ランキング一括取得ブックマークレット
+
   const BOOKMARKLET_SRC = `javascript:(async()=>{if(window.__cnetRunning)return;const forms=[...document.querySelectorAll('form[action*="sendRankingDetail"]')];if(!forms.length)return alert('CHUNITHM-NETの「ランキング ＞ 楽曲別」（MASTERやEXPERT等）を開いた状態で実行してください');window.__cnetRunning=true;const diffMap={'0':'BASIC','1':'ADVANCED','2':'EXPERT','3':'MASTER','4':'ULTIMA'};let stop=false;const results=[];const ui=document.createElement('div');ui.style='position:fixed;top:14px;left:14px;right:14px;max-width:440px;margin:auto;background:#0f172a;color:#fff;padding:16px;border-radius:12px;z-index:999999;box-shadow:0 12px 30px rgba(0,0,0,.6);font-family:sans-serif;border:2px solid #38bdf8';ui.innerHTML='<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px"><strong style="font-size:14px;color:#38bdf8">CHUNITHM-NET マイレコード取得</strong><button id="c_cls" style="background:none;border:none;color:#94a3b8;font-size:16px;cursor:pointer">✕</button></div><div id="c_st" style="font-size:12.5px;margin-bottom:8px">準備中...</div><div style="background:#1e293b;height:8px;border-radius:4px;overflow:hidden;margin-bottom:10px"><div id="c_bar" style="width:0%;height:100%;background:#38bdf8;transition:width .2s"></div></div><div style="display:flex;gap:8px"><button id="c_stop" style="flex:1;background:#ef4444;color:#fff;border:none;padding:8px;border-radius:7px;cursor:pointer;font-weight:bold;font-size:12px">停止してここまでの結果を出力</button><button id="c_copy" style="display:none;flex:1;background:#22c55e;color:#fff;border:none;padding:8px;border-radius:7px;cursor:pointer;font-weight:bold;font-size:13px">📋 結果をコピー</button></div><textarea id="c_out" readonly style="display:none;width:100%;height:110px;margin-top:10px;background:#020617;color:#4ade80;border:1px solid #334155;border-radius:6px;padding:6px;font-size:11px"></textarea>';document.body.appendChild(ui);document.getElementById('c_cls').onclick=()=>{stop=true;ui.remove();window.__cnetRunning=false};document.getElementById('c_stop').onclick=()=>{stop=true};const stEl=document.getElementById('c_st'),barEl=document.getElementById('c_bar'),parser=new DOMParser();for(let i=0;i<forms.length;i++){if(stop)break;const f=forms[i],title=f.querySelector('.music_title')?.textContent.trim()||'',diff=diffMap[f.querySelector('input[name="diff"]')?.value||'3']||'MASTER',body=new URLSearchParams(new FormData(f));stEl.textContent='取得中 ('+(i+1)+'/'+forms.length+'曲): '+title+' [発見:'+results.length+'曲]';barEl.style.width=Math.round(((i+1)/forms.length)*100)+'%';try{const res=await fetch(f.action,{method:'POST',body,credentials:'same-origin'}),html=await res.text(),doc=parser.parseFromString(html,'text/html'),scTxt=doc.querySelector('.rank_playdata_highscore .text_b')?.textContent.trim();if(scTxt){const score=parseInt(scTxt.replace(/,/g,''),10);if(!isNaN(score)&&score>0)results.push({title,diff,score})}}catch(e){}await new Promise(r=>setTimeout(r,600))}window.__cnetRunning=false;stEl.textContent='完了！プレイ済み '+results.length+' 曲を取得しました。下のボタンでコピーしてください。';document.getElementById('c_stop').style.display='none';const out=document.getElementById('c_out'),cpBtn=document.getElementById('c_copy');out.style.display='block';cpBtn.style.display='block';out.value=JSON.stringify(results);out.select();cpBtn.onclick=async()=>{out.select();try{await navigator.clipboard.writeText(out.value);cpBtn.textContent='✅ コピー完了！ジェネレーターへ貼付'}catch(e){document.execCommand('copy');cpBtn.textContent='✅ コピー完了！'}}})();`;
+
   $('bmCode').value = BOOKMARKLET_SRC;
 
+
+
   $('bCopyBm').onclick = async () => {
+
     const el = $('bmCode'), msg = $('bmCopyMsg');
+
     el.select();
+
     try { await navigator.clipboard.writeText(el.value); } catch { document.execCommand('copy'); }
+
     msg.textContent = '✅ ブックマークレットをコピーしました！ブラウザのブックマークURL欄に貼り付けて保存してください。';
+
     msg.className = 'msg-box msg-ok';
+
   };
+
+
 
   $('bImportNet').onclick = () => {
+
     const raw = $('inNetJson').value.trim(), msg = $('netImpMsg'), force = $('cNetForce').checked;
+
     if (!raw) { msg.textContent = '取得したJSONデータを貼り付けてください。'; msg.className = 'msg-box msg-err'; return; }
+
     let arr;
+
     try { arr = JSON.parse(raw); } catch { msg.textContent = 'JSONの形式が正しくありません。コピーした文字列全体をそのまま貼り付けてください。'; msg.className = 'msg-box msg-err'; return; }
+
     if (!Array.isArray(arr) || !arr.length) { msg.textContent = '取り込める楽曲データが見つかりませんでした。'; msg.className = 'msg-box msg-err'; return; }
 
+
+
     pushH();
+
     const map = new Map(st.songs.map(s => [`${norm(s.title)}_${s.diff}`, { ...s }]));
+
     let added = 0, updated = 0, skipped = 0, unmatched = 0;
 
+
+
     arr.forEach(item => {
+
       const rawTitle = String(item.title || '').trim();
+
       const diff = DMAP[String(item.diff || '').toLowerCase()] || 'MASTER';
+
       const score = Math.max(0, Math.min(1010000, parseInt(item.score, 10) || 0));
+
       if (!rawTitle || score <= 0) return;
 
+
+
       const key = `${norm(rawTitle)}_${diff}`;
+
       const dbInfo = dbMap.get(norm(rawTitle));
+
       const cVal = dbInfo?.ch?.[diff];
+
       if (!dbInfo || cVal === undefined) unmatched++;
 
+
+
       const prev = map.get(key);
+
       if (prev) {
+
         if (force || score > prev.score) {
+
           prev.score = score;
+
           if (score === 1010000) prev.lamp = 'AJC';
+
           if (cVal !== undefined) prev.const = cVal;
-          if (dbInfo) { prev.isNew = !!dbInfo.isNew; if (!prev.jacket && dbInfo.img) prev.jacket = dbInfo.img; }
+
+          if (dbInfo) prev.isNew = !!dbInfo.isNew;
+
           updated++;
+
         } else {
+
           skipped++;
+
         }
+
       } else {
+
         map.set(key, {
+
           id: 's_' + Date.now() + Math.random().toString(36).slice(2, 6),
+
           title: dbInfo?.t || rawTitle,
+
           diff,
+
           const: cVal !== undefined ? cVal : 14.0,
+
           score,
+
           lamp: score === 1010000 ? 'AJC' : 'NONE',
+
           isNew: !!dbInfo?.isNew,
-          jacket: dbInfo?.img || ''
+
+          jacket: ''
+
         });
+
         added++;
+
       }
+
     });
+
+
 
     st.songs = [...map.values()];
-    save(); render();
+
+    render();
+
     $('inNetJson').value = '';
+
     msg.innerHTML = `✅ 取り込み完了！<br>新規追加: <b>${added}曲</b> ／ スコア更新: <b>${updated}曲</b> ／ スキップ(既存が上位): <b>${skipped}曲</b>`
+
       + (unmatched > 0 ? `<br><span style="color:#b45309;font-size:.73rem">※うち ${unmatched}曲 はDB未収録のため仮定数(14.0)で登録しました。</span>` : '');
+
     msg.className = 'msg-box msg-ok';
+
   };
 
+
+
   $('dGrp').innerHTML = DIFFS.map(d => `<button type="button" class="cb${d==='MASTER'?' on':''}" data-d="${d}">${d}</button>`).join('');
+
   $('lGrp').innerHTML = [['NONE','なし'],['FC','FULL COMBO'],['AJ','ALL JUSTICE'],['AJC','AJC']].map(([k,v],i) => `<button type="button" class="cb${!i?' on':''}" data-l="${k}">${v}</button>`).join('');
+
   $('sAdj').innerHTML = [-1000,-100,-10,-1,1,10,100,1000].map(n => `<button type="button" class="adj" data-sd="${n}">${n>0?'+'+n:n}</button>`).join('');
+
   $('sPre').innerHTML = [['理論値',1010000],['SSS+',1009000],['SSS',1007500],['SS+',1005000],['SS',1000000],['S+',990000],['S',975000]].map(([l,v]) => `<button type="button" class="adj pre" data-ss="${v}">${l}</button>`).join('');
 
+
+
   let db = [], dbMap = new Map(), sel = null, edId = null, diff = 'MASTER', lamp = 'NONE', jkt = '', hist = [];
-  let statMode = 'mine', statScope = 'top', ncFilter = 'all', ncGenre = 'all', globalCache = null, lastAll = [], lastBest = [];
+
+  let statMode = 'mine', statScope = 'top', ncFilter = 'all', ncGenre = 'all', globalCache = null, lastAll = [], lastBest = [], lastNews = [];
+
   let st = { playerName:'', creditName:'CHUNITHM', showLamp:true, songs:[] };
+
   let auth = { id:'', pin:'', lastSync:'' };
 
+
+
   function dedupeSongs(list) {
+
     const m = new Map();
+
     (Array.isArray(list) ? list : []).forEach(s => {
+
       if (!s || !s.title) return;
+
       const k = `${norm(s.title)}_${s.diff}`;
+
       const prev = m.get(k);
+
       if (!prev || (Number(s.score) || 0) >= (Number(prev.score) || 0)) m.set(k, s);
+
     });
+
     return [...m.values()];
+
   }
+
+
 
   const save = () => { try { localStorage.setItem(KEY, JSON.stringify(st)); } catch {} };
+
   const saveAuth = () => { try { localStorage.setItem(AUTH_KEY, JSON.stringify(auth)); } catch {} updAuthUI(); renderRec(); };
-  const pushH = () => { hist.push(JSON.stringify(st)); if (hist.length > 30) hist.shift(); updU(); };
+
+  const pushH = () => { hist.push(JSON.stringify(st)); if (hist.length > 20) hist.shift(); updU(); };
+
   const updU = () => { $('uBtn').disabled = $('uTop').disabled = !hist.length; };
+
   const setTh = (s, fb) => { const e = $('jTh'); if (!s) return (e.style.display = 'none', e.src = ''); e.onerror = () => { if (fb && e.src !== fb) e.src = fb; }; e.src = s; e.style.display = 'block'; };
 
+
+
   function updAuthUI() {
+
     const b = $('authBadge'), on = !!auth.id;
+
     b.textContent = on ? `ID: ${auth.id}` : '未ログイン'; b.classList.toggle('ok', on);
+
     $('bLogout').style.display = on ? 'block' : 'none';
+
     $('syncStatusText').textContent = on ? (auth.lastSync ? `最終クラウド同期: ${auth.lastSync}` : `ログイン中: ${auth.id}`) : '未ログイン（端末内のみ保存中）';
+
   }
 
+
+
   function switchTab(t) {
+
     document.querySelectorAll('.drw-tab').forEach(b => b.classList.toggle('on', b.dataset.tab === t));
+
     ['net','stat','newc','sync','opin'].forEach(k => $('tab' + k[0].toUpperCase() + k.slice(1)).style.display = k === t ? 'flex' : 'none');
+
     if (t === 'stat') { renderRec(); if (statMode === 'global' && !globalCache) loadGlobalStats(); }
+
     if (t === 'newc') renderConstTable();
+
   }
+
   const openDrw = t => { if (t) switchTab(t); $('drw').classList.add('open'); $('drwBg').classList.add('open'); };
+
   const closeDrw = () => { $('drw').classList.remove('open'); $('drwBg').classList.remove('open'); };
+
   $('bMenu').onclick = () => openDrw();
+
   $('bOpenNet').onclick = () => openDrw('net');
+
   $('authBadge').onclick = () => openDrw('sync');
+
   $('bClsDrw').onclick = $('drwBg').onclick = closeDrw;
+
   document.querySelectorAll('.drw-tab').forEach(b => b.onclick = () => switchTab(b.dataset.tab));
+
+
 
   $('bTogPin').onclick = () => { const ip = $('inSyncPin'), show = ip.type === 'password'; ip.type = show ? 'text' : 'password'; $('bTogPin').textContent = show ? '🙈 隠す' : '👁 表示'; };
 
+
+
   function startEdit(t) {
+
     if (!t) return;
+
     edId = t.id; $('inT').value = t.title; $('inC').value = t.const.toFixed(1); $('inS').value = t.score;
-    $('inN').checked = !!t.isNew; jkt = t.jacket || ''; setTh(jkt); setD(t.diff); setL(t.lamp || 'NONE');
+
+    $('inN').checked = !!t.isNew; jkt = t.jacket || dbMap.get(norm(t.title))?.img || ''; setTh(jkt); setD(t.diff); setL(t.lamp || 'NONE');
+
     $('fTtl').textContent = `編集中：${t.title}`; $('bSav').textContent = '変更を更新する'; $('bRst').style.display = 'inline-block';
+
     live(); window.scrollTo({ top:0, behavior:'smooth' });
+
   }
+
+
 
   function reqScoreForRate(c, targetRt) {
+
     if (calc(c, 1010000) <= targetRt + 1e-6) return null;
+
     if (calc(c, 800000) > targetRt + 1e-6) return 800000;
+
     let lo = 800000, hi = 1010000;
+
     while (lo < hi) {
+
       const mid = (lo + hi) >>> 1;
+
       if (calc(c, mid) > targetRt + 1e-6) hi = mid;
+
       else lo = mid + 1;
+
     }
+
     return lo;
+
   }
 
+
+
   function renderRec() {
+
     const loggedIn = !!auth.id, best = lastBest;
+
     $('bRefRec').style.display = loggedIn ? 'inline-block' : 'none';
+
     if (!loggedIn) {
+
       $('recMeta').innerHTML = '🔒 この機能は<b>引き継ぎIDを登録・ログインした方限定</b>です。';
+
       $('recList').innerHTML = `<div style="padding:12px;text-align:center"><button type="button" class="bp" id="bGoSync" style="font-size:.82rem;padding:8px 12px">🔑 クラウド同期でIDを登録する</button></div>`;
+
       $('bGoSync').onclick = () => switchTab('sync');
+
       return;
+
     }
+
     if (!best.length) return ($('recMeta').textContent = 'BEST枠を登録するとおすすめ譜面を表示します', $('recList').innerHTML = '');
 
+
+
     const avg = best.reduce((a, b) => a + b.rt, 0) / best.length;
+
     const borderRt = best.length >= 30 ? best[29].rt : Math.max(0, avg - 0.15);
+
     const bench = lastAll.filter(s => !s.isNew).slice(30);
 
+
+
     const nearSongs = bench.map(s => {
+
       const reqSc = reqScoreForRate(s.const, borderRt);
+
       if (reqSc === null) return null;
+
       const easyEnter = reqSc <= 1007500;
+
       const diffSc = Math.max(0, reqSc - s.score);
+
       const newRt = calc(s.const, reqSc);
+
       const targetLbl = `目標 <b>${reqSc.toLocaleString()}</b> (${rank(reqSc).l}) でBEST入り（あと+${diffSc.toLocaleString()}点 / ${newRt.toFixed(3)}）`;
+
       return { s, easyEnter, diffSc, targetLbl };
+
     }).filter(Boolean)
+
       .sort((a, b) => (b.easyEnter - a.easyEnter) || (a.diffSc - b.diffSc));
+
+
 
     const pickedNear = nearSongs.slice(0, 10);
 
+
+
     const minC = Math.max(1, Math.round((avg - 1.9) * 10) / 10);
+
     const maxC = Math.min(16, Math.round((avg - 1.7) * 10) / 10);
+
     const owned = new Set(st.songs.map(s => `${norm(s.title)}_${s.diff}`));
+
     const pool = [];
+
     db.forEach(s => DIFFS.forEach(d => {
+
       const c = s.ch[d];
+
       if (c !== undefined && c >= minC - 0.001 && c <= maxC + 0.001 && !owned.has(`${norm(s.t)}_${d}`)) pool.push({ s, d, c });
+
     }));
+
     for (let i = pool.length - 1; i > 0; i--) { const j = Math.random() * (i + 1) | 0; [pool[i], pool[j]] = [pool[j], pool[i]]; }
+
     const pickedRand = pool.slice(0, 10);
 
+
+
     $('recMeta').innerHTML = `BEST枠30位ボーダー: <b>${borderRt.toFixed(3)}</b> / 平均: <b>${avg.toFixed(3)}</b><br>`
+
       + `プレイ済み候補 <b>${pickedNear.length}曲</b> ／ 未プレイ候補 <b>${pickedRand.length}曲</b>（定数${minC.toFixed(1)}〜${maxC.toFixed(1)}）`;
 
+
+
     const nearHtml = `<div class="nc-sec">🔥 プレイ済み候補（${pickedNear.length} / 10曲）</div>` + (pickedNear.length ? pickedNear.map(({ s, targetLbl }) => {
+
       const img = s.jacket || dbMap.get(norm(s.title))?.img || '';
+
       const th = img ? `<img class="nc-th" src="${img}" loading="lazy" onerror="this.style.visibility='hidden'" />` : `<div class="nc-th"></div>`;
+
       return `<div class="nc-it" data-edid="${esc(s.id)}">${th}<span class="bm" style="background:${DBG[s.diff]};flex-shrink:0">${s.diff.slice(0,3)} ${s.const.toFixed(1)}</span><div style="min-width:0;flex:1"><div class="nc-tt">${esc(s.title)}</div><div class="nc-sub">現在 ${s.score.toLocaleString()} (${s.rt.toFixed(3)})<br>${targetLbl}</div></div></div>`;
+
     }).join('') : '<div style="padding:10px;text-align:center;font-size:.75rem;color:#607066">30位に届くプレイ済み候補はありません。</div>');
 
+
+
     const randHtml = `<div class="nc-sec">🆕 未プレイ候補（${pickedRand.length} / 10曲）</div>` + (pickedRand.length ? pickedRand.map(({ s, d, c }) => {
+
       const th = s.img ? `<img class="nc-th" src="${s.img}" loading="lazy" onerror="this.style.visibility='hidden'" />` : `<div class="nc-th"></div>`;
+
       const reqSc = reqScoreForRate(c, borderRt);
+
       const hint = reqSc ? `30位入り目安: ${reqSc.toLocaleString()} (${rank(reqSc).l})` : '';
+
       return `<div class="nc-it" data-nct="${esc(norm(s.t))}" data-ncd="${d}">${th}<span class="bm" style="background:${DBG[d]};flex-shrink:0">${d.slice(0,3)} ${c.toFixed(1)}</span>${s.isNew?'<span class="b-new">NEW</span>':''}<div style="min-width:0;flex:1"><div class="nc-tt">${esc(s.t)}</div>${hint?`<div class="nc-sub">${hint}</div>`:''}</div></div>`;
+
     }).join('') : '<div style="padding:10px;text-align:center;font-size:.75rem;color:#607066">該当する未プレイ候補が見つかりませんでした。</div>');
 
+
+
     $('recList').innerHTML = nearHtml + randHtml;
+
   }
+
   $('bRefRec').onclick = renderRec;
 
+
+
   function renderGenreButtons() {
+
     const genres = [...new Set(db.map(s => s.cat).filter(g => g && !isWE(g)))];
+
     if (!genres.includes(ncGenre)) ncGenre = 'all';
+
     $('newcGenre').innerHTML = genres.length ? ['all', ...genres].map(g => `<button type="button" class="cb${ncGenre===g?' on':''}" data-ncg="${esc(g)}">${g==='all'?'全ジャンル':esc(g)}</button>`).join('') : '';
+
   }
+
+
 
   function renderConstTable() {
+
     let srcSongs = ncFilter === 'new' ? db.filter(s => s.isNew) : db;
+
     if (ncGenre !== 'all') srcSongs = srcSongs.filter(s => s.cat === ncGenre);
+
     const qRaw = $('inNewcQ').value.trim(), qNorm = norm(qRaw);
+
     if (!srcSongs.length) return ($('newcList').innerHTML = '<div style="text-align:center;color:#607066;padding:18px;font-size:.82rem">データを読み込み中、または該当データがありません。</div>');
 
+
+
     const byConst = new Map(); let totalCharts = 0;
+
     srcSongs.forEach(s => DIFFS.forEach(d => {
+
       const c = s.ch[d]; if (c === undefined) return;
+
       const cStr = c.toFixed(1);
+
       if (qRaw && !norm(s.t).includes(qNorm) && !cStr.includes(qRaw)) return;
+
       totalCharts++; (byConst.get(cStr) || byConst.set(cStr, []).get(cStr)).push({ s, d });
+
     }));
 
+
+
     const sortedKeys = [...byConst.keys()].sort((a, b) => parseFloat(b) - parseFloat(a));
+
     if (!sortedKeys.length) return ($('newcList').innerHTML = '<div style="text-align:center;color:#607066;padding:18px;font-size:.82rem">条件に一致する譜面がありません。</div>');
 
+
+
     const dOrder = { ULTIMA:0, MASTER:1, EXPERT:2, ADVANCED:3, BASIC:4 };
-    const limit = (!qRaw && ncFilter === 'all' && ncGenre === 'all') ? 250 : 800;
+
+    const limit = (!qRaw && ncFilter === 'all' && ncGenre === 'all') ? 200 : 600;
+
     let shown = 0, html = '';
+
     for (const cStr of sortedKeys) {
+
       if (shown >= limit) break;
+
       const items = byConst.get(cStr).sort((a, b) => (dOrder[a.d] - dOrder[b.d]) || a.s.t.localeCompare(b.s.t, 'ja'));
+
       const slice = items.slice(0, limit - shown); shown += slice.length;
+
       const rows = slice.map(({ s, d }) => {
+
         const th = s.img ? `<img class="nc-th" src="${s.img}" loading="lazy" onerror="this.style.visibility='hidden'" />` : `<div class="nc-th"></div>`;
+
         return `<div class="nc-it" data-nct="${esc(norm(s.t))}" data-ncd="${d}">${th}<span class="bm" style="background:${DBG[d]};flex-shrink:0">${d.slice(0,3)}</span>${s.isNew?'<span class="b-new">NEW</span>':''}<div class="nc-tt">${esc(s.t)}</div></div>`;
+
       }).join('');
+
       html += `<div class="nc-grp"><div class="nc-hd"><div>定数 ${cStr}</div><span>${items.length}譜面</span></div>${rows}</div>`;
+
     }
+
     $('newcMeta').textContent = `該当：${totalCharts}譜面${totalCharts > shown ? `（上位${shown}件を表示中・検索で全件絞り込み可）` : ''}（タップで入力欄へセット）`;
+
     $('newcList').innerHTML = html;
+
   }
+
   $('newcFilter').onclick = e => { const f = e.target.dataset.ncf; if (!f) return; ncFilter = f; document.querySelectorAll('#newcFilter .cb').forEach(b => b.classList.toggle('on', b.dataset.ncf === f)); renderConstTable(); };
+
   $('newcGenre').onclick = e => { const g = e.target.dataset.ncg; if (!g) return; ncGenre = g; document.querySelectorAll('#newcGenre .cb').forEach(b => b.classList.toggle('on', b.dataset.ncg === g)); renderConstTable(); };
+
   $('inNewcQ').oninput = renderConstTable;
 
+
+
   const pickChart = e => {
+
     const edIt = e.target.closest('[data-edid]');
+
     if (edIt) { const t = st.songs.find(s => s.id === edIt.dataset.edid); if (t) { closeDrw(); startEdit(t); } return; }
+
     const it = e.target.closest('[data-nct]'); if (!it) return;
+
     const s = dbMap.get(it.dataset.nct); if (!s) return;
+
     closeDrw(); applySongToForm(s, it.dataset.ncd); window.scrollTo({ top:0, behavior:'smooth' });
+
   };
+
   $('newcList').onclick = $('recList').onclick = pickChart;
 
-  async function applySongToForm(s, preferDiff) {
+
+
+  function applySongToForm(s, preferDiff) {
+
     sel = s; $('inT').value = s.t; $('ac').style.display = 'none';
+
     const td = (preferDiff && s.ch[preferDiff] !== undefined) ? preferDiff : (s.ch[diff] !== undefined ? diff : ['MASTER','ULTIMA','EXPERT','ADVANCED','BASIC'].find(d => s.ch[d] !== undefined));
+
     if (td) { setD(td); $('inC').value = s.ch[td].toFixed(1); }
+
     $('inN').checked = !!s.isNew; live();
-    if (s.img) { jkt = s.img; setTh(s.img); const du = await toData(s.img); if (du) { jkt = du; setTh(du, s.img); } }
+
+    jkt = s.img || '';
+
+    setTh(jkt);
+
   }
+
+
 
   const showSyncMsg = (t, err) => { const e = $('syncMsg'); e.textContent = t; e.className = 'msg-box ' + (err ? 'msg-err' : 'msg-ok'); };
+
   $('bGenId').onclick = () => { const c = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; $('inSyncId').value = 'CHU-' + Array.from({length:6}, () => c[Math.random()*c.length|0]).join(''); };
 
+
+
   async function apiPost(payload) {
+
     const json = await (await fetch(GAS_URL, { method:'POST', body:JSON.stringify(payload) })).json();
+
     if (!json.ok) throw new Error(json.error || '通信エラー');
+
     return json;
+
   }
 
+
+
   $('bCloudSave').onclick = async () => {
+
     const id = $('inSyncId').value.trim().toUpperCase(), pin = $('inSyncPin').value.trim();
+
     if (!id || pin.length < 4) return showSyncMsg('引き継ぎIDと、4桁以上の暗証番号（PIN）を入力してください。', true);
+
     $('bCloudSave').disabled = $('bCloudLoad').disabled = true; showSyncMsg('クラウドへ保存しています...');
+
     try {
+
       const json = await apiPost({ action:'save', id, pin, data:{ playerName:st.playerName, creditName:st.creditName, showLamp:st.showLamp, songs:st.songs.map(({id,title,diff,const:c,score,lamp,isNew}) => ({id,title,diff,const:c,score,lamp,isNew})) } });
+
       auth = { id, pin, lastSync: json.updatedAt || 'たった今' }; saveAuth(); globalCache = null;
+
       showSyncMsg(`保存完了！ID「${id}」とPIN「${pin}」でクラウドに同期しました。`);
+
     } catch (e) { showSyncMsg('エラー: ' + e.message, true); }
+
     finally { $('bCloudSave').disabled = $('bCloudLoad').disabled = false; }
+
   };
 
+
+
   $('bCloudLoad').onclick = async () => {
+
     const id = $('inSyncId').value.trim().toUpperCase(), pin = $('inSyncPin').value.trim();
+
     if (!id || !pin) return showSyncMsg('引き継ぎIDと暗証番号（PIN）を入力してください。', true);
+
     $('bCloudSave').disabled = $('bCloudLoad').disabled = true; showSyncMsg('クラウドからデータを取得中...');
+
     try {
+
       const { data: d = {} } = await apiPost({ action:'login', id, pin });
+
       if (!Array.isArray(d.songs)) throw new Error('保存データが見つかりません');
+
       pushH();
-      st = { playerName:d.playerName||'', creditName:d.creditName||'CHUNITHM', showLamp:d.showLamp!==false, songs:dedupeSongs(d.songs).map(s => ({ ...s, jacket: s.jacket || dbMap.get(norm(s.title))?.img || '' })) };
+
+      st = { playerName:d.playerName||'', creditName:d.creditName||'CHUNITHM', showLamp:d.showLamp!==false, songs:dedupeSongs(d.songs).map(s => ({ ...s, jacket: '' })) };
+
       $('inP').value = st.playerName; $('inCr').value = st.creditName; $('cLmp').checked = st.showLamp;
-      save(); render(); auth = { id, pin, lastSync: '読込完了' }; saveAuth();
+
+      render(); auth = { id, pin, lastSync: '読込完了' }; saveAuth();
+
       showSyncMsg(`ログイン成功！${st.songs.length}曲のデータを復元しました。`);
+
     } catch (e) { showSyncMsg('エラー: ' + e.message, true); }
+
     finally { $('bCloudSave').disabled = $('bCloudLoad').disabled = false; }
+
   };
+
+
 
   $('bLogout').onclick = () => { auth = { id:'', pin:'', lastSync:'' }; $('inSyncId').value = $('inSyncPin').value = ''; $('syncMsg').className = 'msg-box'; saveAuth(); };
 
+
+
   async function loadGlobalStats() {
+
     $('globalMeta').textContent = 'クラウドから全体統計を取得中...';
+
     $('statGrid').innerHTML = '<div style="grid-column:1/-1;text-align:center;color:#607066;padding:14px;font-size:.82rem">読み込み中...</div>';
+
     try { const json = await (await fetch(`${GAS_URL}?action=stats`)).json(); if (!json.ok) throw new Error(json.error || '統計取得失敗'); globalCache = json; render(); }
+
     catch (e) { $('globalMeta').textContent = '統計の取得に失敗しました'; $('statGrid').innerHTML = `<div style="grid-column:1/-1;text-align:center;color:#c0392b;padding:14px;font-size:.82rem">${esc(e.message)}</div>`; }
+
   }
+
   $('bReloadStats').onclick = loadGlobalStats;
 
+
+
   function calc(c, s) {
+
     c = +c || 0; s = Math.max(0, Math.min(1010000, +s || 0));
+
     if (s < 800000) return 0;
+
     const b = s >= 1009000 ? 2.15 : s >= 1007500 ? 2 + Math.floor((s - 1007500) / 100) * .01
+
       : s >= 1005000 ? 1.5 + Math.floor((s - 1005000) / 50) * .01 : s >= 1000000 ? 1 + Math.floor((s - 1000000) / 100) * .01
+
       : s >= 975000 ? Math.floor((s - 975000) / 250) * .01 : s >= 925000 ? -3 + ((s - 925000) / 50000) * 3
+
       : s >= 900000 ? -5 + ((s - 900000) / 25000) * 2 : ((c - 5) / 2) - c + ((s - 800000) / 100000) * ((c - 5) / 2);
+
     return Math.max(0, Math.floor((c + b) * 1000 + 1e-6) / 1000);
+
   }
+
+
 
   function rank(s) {
+
     for (const [m, l, c] of [[1009000,'SSS+','#fffa65'],[1007500,'SSS','#ffd32a'],[1005000,'SS+','#ff9f43'],[1000000,'SS','#ff9f43'],[990000,'S+','#ff6b6b'],[975000,'S','#ff6b6b'],[950000,'AAA','#54a0ff'],[925000,'AA','#54a0ff'],[900000,'A','#54a0ff']])
+
       if (s >= m) return { l, c };
+
     return { l:'BBB', c:'#c8d6e5' };
+
   }
+
+
 
   function live() {
+
     const c = +$('inC').value || 0, s = +$('inS').value || 0, r = calc(c, s), rk = rank(s), d = (r - c).toFixed(2);
+
     $('lRt').textContent = `${r.toFixed(3)} (${rk.l})`; $('lHnt').textContent = `${s.toLocaleString()} (${rk.l}) = 定数 ${c.toFixed(1)} ${d >= 0 ? '+' : ''}${d}`;
+
   }
+
+
 
   function setD(d) { diff = d; document.querySelectorAll('#dGrp .cb').forEach(b => b.classList.toggle('on', b.dataset.d === d)); if (sel?.ch[d] !== undefined) { $('inC').value = sel.ch[d].toFixed(1); live(); } }
+
   const setL = l => { lamp = l; document.querySelectorAll('#lGrp .cb').forEach(b => b.classList.toggle('on', b.dataset.l === l)); };
 
+
+
   function fit() { const w = $('fit').clientWidth; if (!w) return; const sc = Math.min(1, w / 920), cp = $('cap'); cp.style.transform = `scale(${sc})`; $('sBox').style.width = `${920 * sc}px`; $('sBox').style.height = `${cp.offsetHeight * sc}px`; }
+
   window.addEventListener('resize', fit);
 
-  async function toData(url) {
-    if (!url || url.startsWith('data:')) return url || '';
-    for (const src of [`https://wsrv.nl/?url=${encodeURIComponent(url)}&w=180&h=180&fit=cover&output=jpg`, url]) {
-      const r = await new Promise(ok => { const im = new Image(); im.crossOrigin = 'anonymous'; im.onload = () => { try { const cv = document.createElement('canvas'); cv.width = cv.height = 180; cv.getContext('2d').drawImage(im,0,0,180,180); ok(cv.toDataURL('image/jpeg',.85)); } catch { ok(null); } }; im.onerror = () => ok(null); im.src = src; });
-      if (r) return r;
-    }
-    return url;
-  }
+
 
   async function fetchJson(urls) { for (const u of urls) { try { const r = await fetch(u, { cache:'no-store' }); if (r.ok) return await r.json(); } catch {} } return null; }
 
+
+
   async function loadDB() {
+
     const [reiwaRec, reiwaAll, metaData] = await Promise.all([
+
       fetchJson(['https://reiwa.f5.si/chunithm_record.json','https://corsproxy.io/?'+encodeURIComponent('https://reiwa.f5.si/chunithm_record.json'),'https://api.allorigins.win/raw?url='+encodeURIComponent('https://reiwa.f5.si/chunithm_record.json')]),
+
       fetchJson(['https://reiwa.f5.si/chunirec_all.json','https://corsproxy.io/?'+encodeURIComponent('https://reiwa.f5.si/chunirec_all.json')]),
+
       fetchJson(['https://dp4p6x0xfi5o9.cloudfront.net/chunithm/data.json','https://cdn.jsdelivr.net/gh/zetaraku/arcade-songs-fetch@master/data/chunithm/songs.json'])
+
     ]);
 
+
+
     const songMap = new Map(), metaList = Array.isArray(metaData?.songs) ? metaData.songs : Array.isArray(metaData) ? metaData : [], hasMetaDB = metaList.length > 500;
+
     const verDefs = Array.isArray(metaData?.versions) ? metaData.versions.map(v => typeof v === 'string' ? v : (v.version || v.name || '')).filter(Boolean) : [], seenRaw = [];
+
     metaList.forEach(s => { const raw = String(s.version || '').trim(); if (raw && !seenRaw.some(x => norm(x) === norm(raw))) seenRaw.push(raw); });
+
     const currentVerRaw = verDefs.at(-1) || seenRaw.at(-1) || '', currentVerNorm = norm(currentVerRaw);
 
+
+
     let currentCat = null, inNewBlock = false;
+
     metaList.forEach(s => {
+
       const t = s.title || s.name; if (!t) return;
+
       const cat = String(s.category || '').trim(); if (cat !== currentCat) { currentCat = cat; inNewBlock = false; }
+
       if (isWE(cat)) return;
+
       const ver = String(s.version || '').trim(), nv = norm(ver); if (currentVerNorm && nv === currentVerNorm) inNewBlock = true;
+
       const ch = {}; let sheetIsNew = false;
+
       (s.sheets || []).forEach(sh => {
+
         const d = DMAP[String(sh.difficulty || sh.diff || '').toLowerCase()], raw = String(sh.internalLevelValue ?? sh.internalLevel ?? sh.levelValue ?? sh.level ?? '').trim();
+
         const v = raw.endsWith('+') ? parseFloat(raw) + .5 : parseFloat(raw);
+
         if (d && v > 0) ch[d] = v; if (sh.isNew) sheetIsNew = true;
+
       });
+
       if (!Object.keys(ch).length && s.sheets?.length) return;
+
       const im = s.imageName || s.image || '', img = im ? (im.startsWith('http') ? im : `https://dp4p6x0xfi5o9.cloudfront.net/chunithm/img/cover/${im}`) : '', key = norm(t);
+
       if (!songMap.has(key)) songMap.set(key, { t, ch, cat, ver, isNew: !!(s.isNew || sheetIsNew || inNewBlock || (currentVerNorm && nv === currentVerNorm)), img });
+
     });
 
+
+
     if (Array.isArray(reiwaAll)) {
+
       const rVers = []; let minNewId = Infinity;
+
       reiwaAll.forEach(it => {
+
         const m = it.meta || it, nv = norm(m.version || m.ver || ''); if (nv && !rVers.includes(nv)) rVers.push(nv);
+
         const t = m.title || m.name, id = Number(m.id ?? m.music_id);
+
         if (((t && songMap.get(norm(t))?.isNew) || (currentVerNorm && nv === currentVerNorm)) && id > 0 && id < minNewId) minNewId = id;
+
       });
+
       const latestR = rVers.at(-1) || '';
+
       reiwaAll.forEach(it => {
+
         const m = it.meta || it, t = m.title || m.name, rCat = String(m.genre || m.category || '').trim();
+
         if (!t || isWE(rCat)) return;
+
         const ch = {};
+
         Object.entries(it.data || it.const || {}).forEach(([k, o]) => { const d = DMAP[k.toLowerCase()], v = parseFloat(typeof o === 'object' ? (o.const ?? o.level) : o); if (d && v > 0 && v <= 16.5) ch[d] = v; });
+
         if (!Object.keys(ch).length) return;
+
         const key = norm(t), prev = songMap.get(key), rVer = String(m.version || m.ver || '').trim(), rNv = norm(rVer), id = Number(m.id ?? m.music_id);
+
         const isNew = !!(prev?.isNew || m.isNew || m.new || (hasMetaDB && !prev) || (minNewId < Infinity && id >= minNewId) || (currentVerNorm && rNv === currentVerNorm) || (latestR && rNv === latestR));
+
         songMap.set(key, { t: prev?.t || t, ch: { ...(prev?.ch || {}), ...ch }, cat: prev?.cat || rCat, ver: prev?.ver || rVer, isNew, img: prev?.img || '' });
+
       });
+
     }
+
+
 
     if (Array.isArray(reiwaRec)) {
+
       reiwaRec.forEach(r => {
+
         const t = r.title || r.name, d = DMAP[String(r.diff ?? r.difficulty ?? '').toLowerCase()], v = parseFloat(r.const ?? r.internalLevel ?? r.level), rCat = String(r.genre || r.category || '').trim();
+
         if (!t || !d || !(v > 0 && v <= 16.5) || isWE(rCat)) return;
+
         const key = norm(t), prev = songMap.get(key), rNv = norm(r.version || r.ver || ''), obj = prev || { t, ch:{}, cat:rCat, ver:'', isNew:false, img:'' };
+
         obj.ch[d] = v; if (!obj.cat && rCat) obj.cat = rCat;
+
         if ((hasMetaDB && !prev) || r.isNew || r.new || (currentVerNorm && rNv === currentVerNorm)) obj.isNew = true;
+
         songMap.set(key, obj);
+
       });
+
     }
 
-    dbMap = songMap; db = [...songMap.values()]; renderGenreButtons(); renderConstTable(); renderRec();
+
+
+    dbMap = songMap; db = [...songMap.values()]; renderGenreButtons(); render();
+
     const newCount = db.filter(x => x.isNew).length;
+
     if (db.length > 50) { $('dbB').textContent = currentVerRaw ? `DB適用 (${currentVerRaw} / 新曲${newCount}曲)` : `DB適用済 (${db.length}曲 / 新曲${newCount}曲)`; $('dbB').classList.add('ok'); }
+
     else { $('dbB').textContent = 'DB接続失敗（手動入力可）'; $('dbB').classList.add('err'); }
+
   }
 
+
+
   $('bSync').onclick = () => {
+
     if (!st.songs.length) return alert('登録済みの譜面がありません。');
+
     if (!dbMap.size) return alert('楽曲DBが読み込まれていません。');
+
     let upd = 0; const next = st.songs.map(s => { const nc = dbMap.get(norm(s.title))?.ch?.[s.diff]; return (nc && Math.abs(nc - s.const) > .001) ? (upd++, { ...s, const: nc }) : s; });
+
     if (!upd) return alert('すべての登録曲はすでに最新の定数と一致しています。');
-    if (confirm(`${upd} 曲の譜面定数を最新DBの値に更新しますか？`)) { pushH(); st.songs = next; save(); render(); }
+
+    if (confirm(`${upd} 曲の譜面定数を最新DBの値に更新しますか？`)) { pushH(); st.songs = next; render(); }
+
   };
+
+
 
   $('inT').oninput = () => {
+
     const q = norm($('inT').value), el = $('ac'); if (!q || !db.length) return (el.style.display = 'none');
+
     const m = db.filter(s => norm(s.t).includes(q)).slice(0, 30); if (!m.length) return (el.style.display = 'none');
+
     el._m = m;
+
     el.innerHTML = m.map((s, i) => {
+
       const cs = DIFFS.filter(d => s.ch[d] !== undefined).map(d => `<span class="ac-c" data-pd="${d}" style="background:${DBG[d]}">${d.slice(0,3)} ${s.ch[d].toFixed(1)}</span>`).join('');
+
       const th = s.img ? `<img class="ac-th" src="${s.img}" onerror="this.style.visibility='hidden'" />` : `<div class="ac-th"></div>`;
+
       return `<div class="ac-i" data-i="${i}">${th}<div style="min-width:0;flex:1"><div class="ac-tt">${s.isNew?'<span class="b-new">NEW</span>':''}<span style="overflow:hidden;text-overflow:ellipsis">${esc(s.t)}</span></div><div>${cs || '<span style="font-size:.7rem;color:#888">定数なし</span>'}</div></div></div>`;
+
     }).join('');
+
     el.style.display = 'block';
+
   };
+
+
 
   $('ac').onclick = e => { const it = e.target.closest('[data-i]'); if (it && $('ac')._m) applySongToForm($('ac')._m[+it.dataset.i], e.target.closest('[data-pd]')?.dataset.pd); };
+
   document.onclick = e => { if (!e.target.closest('#inT') && !e.target.closest('#ac')) $('ac').style.display = 'none'; };
+
   document.querySelectorAll('[data-sd]').forEach(b => b.onclick = () => { $('inS').value = Math.max(0, Math.min(1010000, (+$('inS').value||0) + +b.dataset.sd)); live(); });
+
   document.querySelectorAll('[data-ss]').forEach(b => b.onclick = () => { const v = +b.dataset.ss; $('inS').value = v; if (v === 1010000) setL('AJC'); live(); });
+
   document.querySelectorAll('[data-cd]').forEach(b => b.onclick = () => { $('inC').value = Math.max(1, Math.min(16, Math.round(((+$('inC').value||1) + +b.dataset.cd)*10)/10)).toFixed(1); live(); });
+
   $('dGrp').onclick = e => e.target.dataset.d && setD(e.target.dataset.d);
+
   $('lGrp').onclick = e => e.target.dataset.l && setL(e.target.dataset.l);
+
   $('inC').oninput = $('inS').oninput = live;
 
+
+
   $('inJ').onchange = e => {
+
     const f = e.target.files[0]; if (!f) return; const r = new FileReader();
-    r.onload = ev => { const im = new Image(); im.onload = () => { const cv = document.createElement('canvas'); cv.width = cv.height = 180; const m = Math.min(im.width, im.height); cv.getContext('2d').drawImage(im,(im.width-m)/2,(im.height-m)/2,m,m,0,0,180,180); jkt = cv.toDataURL('image/jpeg',.82); setTh(jkt); }; im.src = ev.target.result; };
+
+    r.onload = ev => { const im = new Image(); im.onload = () => { const cv = document.createElement('canvas'); cv.width = cv.height = 140; const m = Math.min(im.width, im.height); cv.getContext('2d').drawImage(im,(im.width-m)/2,(im.height-m)/2,m,m,0,0,140,140); jkt = cv.toDataURL('image/jpeg',.80); setTh(jkt); }; im.src = ev.target.result; };
+
     r.readAsDataURL(f);
+
   };
+
   $('bClrJ').onclick = () => { $('inJ').value = ''; jkt = ''; setTh(''); };
 
+
+
   function rst() { edId = sel = null; $('inT').value = ''; $('inC').value = '14.5'; $('inS').value = '1007500'; $('inN').checked = false; $('inJ').value = ''; jkt = ''; setTh(''); setD('MASTER'); setL('NONE'); $('fTtl').textContent = '譜面を登録・更新'; $('bSav').textContent = 'この譜面を登録する'; $('bRst').style.display = 'none'; live(); }
+
   $('bRst').onclick = rst;
 
+
+
   $('bSav').onclick = () => {
+
     const title = $('inT').value.trim(); if (!title) return alert('楽曲名を入力してください。');
+
     const cVal = Math.max(1, Math.min(16, Math.round((+$('inC').value||1)*10)/10));
+
     const sVal = Math.max(0, Math.min(1010000, parseInt($('inS').value,10)||0));
+
     const dup = st.songs.find(s => s.id !== edId && norm(s.title) === norm(title) && s.diff === diff);
 
+
+
     let targetId = edId;
+
     if (dup) {
+
       if (!confirm(`「${dup.title}」(${diff}) はすでに登録されています（現在: ${dup.score.toLocaleString()}点）。\n重複して追加はできません。この登録データのスコア・設定を上書き更新しますか？`)) return;
+
       targetId = dup.id;
+
     }
 
+
+
     pushH();
+
     const obj = {
+
       id: targetId || 's_' + Date.now() + Math.random().toString(36).slice(2,5),
+
       title: dup ? dup.title : title,
+
       diff,
+
       const: cVal,
+
       score: sVal,
+
       lamp,
+
       isNew: $('inN').checked,
+
       jacket: jkt || (targetId ? st.songs.find(s => s.id === targetId)?.jacket || '' : '')
+
     };
+
     st.songs = targetId
+
       ? dedupeSongs(st.songs.filter(s => s.id !== edId || s.id === targetId).map(s => s.id === targetId ? obj : s))
+
       : [...st.songs, obj];
-    save(); rst(); render();
+
+    rst(); render();
+
   };
 
+
+
   $('statMode').onclick = e => { const m = e.target.dataset.smode; if (!m) return; statMode = m; document.querySelectorAll('#statMode .cb').forEach(b => b.classList.toggle('on', b.dataset.smode === m)); $('mineStatCtrl').style.display = m === 'mine' ? 'flex' : 'none'; $('globalStatCtrl').style.display = m === 'global' ? 'flex' : 'none'; if (m === 'global' && !globalCache) loadGlobalStats(); else render(); };
+
   $('statScope').onclick = e => { const sc = e.target.dataset.sc; if (!sc) return; statScope = sc; document.querySelectorAll('#statScope .cb').forEach(b => b.classList.toggle('on', b.dataset.sc === sc)); render(); };
+
+
 
   const statCard = (c, badge, avgSc, rateLabel, avgRt) => `<div class="stat-card"><div class="stat-top"><span class="stat-c">定数 ${Number(c).toFixed(1)}</span><span class="stat-n">${badge}</span></div><div class="stat-sc">${Number(avgSc).toLocaleString()} <span style="font-size:.76rem;color:#227a4b">(${rank(avgSc).l})</span></div><div class="stat-sub"><span>${rateLabel}</span><strong>${avgRt}</strong></div></div>`;
 
+
+
   function renderStats(targetSongs) {
+
     if (statMode === 'global') {
+
       if (!globalCache) return;
+
       $('globalMeta').textContent = `クラウド登録人数: ${globalCache.userCount || 0}人（全登録譜面の平均）`;
+
       const list = globalCache.stats || [];
+
       $('statGrid').innerHTML = list.length ? list.map(g => statCard(g.c, `計${g.count}件`, g.avgScore, '全体平均レート', calc(g.c, g.avgScore).toFixed(3))).join('') : '<div style="grid-column:1/-1;text-align:center;color:#607066;padding:14px;font-size:.82rem">まだクラウドに統計データがありません。</div>';
+
       return;
+
     }
+
     $('statMeta').textContent = `集計対象：${statScope === 'top' ? '対象枠（BEST30＋NEW20）' : '登録済み全曲'}（${targetSongs.length}曲）`;
+
     if (!targetSongs.length) return ($('statGrid').innerHTML = '<div style="grid-column:1/-1;text-align:center;color:#607066;padding:14px;font-size:.82rem">譜面を登録すると定数ごとの平均スコアが表示されます。</div>');
+
     const groups = new Map();
+
     targetSongs.forEach(s => { const k = s.const.toFixed(1), g = groups.get(k) || { c: s.const, n: 0, sc: 0, rt: 0 }; g.n++; g.sc += s.score; g.rt += s.rt; groups.set(k, g); });
+
     $('statGrid').innerHTML = [...groups.values()].sort((a,b) => b.c - a.c).map(g => statCard(g.c, `${g.n}曲`, Math.round(g.sc / g.n), '平均レート', (g.rt / g.n).toFixed(3))).join('');
+
   }
+
+
 
   const tile = (s, i) => {
-    const rk = rank(s.score), ji = s.jacket ? `<img src="${s.jacket}" crossorigin="anonymous" />` : `<div class="tl-p" style="background:linear-gradient(135deg,${DBG[s.diff]},#1f2937)">${esc(s.title)}</div>`;
+
+    const rk = rank(s.score);
+
+    const imgUrl = s.jacket || dbMap.get(norm(s.title))?.img || '';
+
+    const ji = imgUrl
+
+      ? `<img src="${imgUrl}" loading="lazy" onerror="this.style.display='none'" />`
+
+      : `<div class="tl-p" style="background:linear-gradient(135deg,${DBG[s.diff]},#1f2937)">${esc(s.title)}</div>`;
+
     const mp = st.showLamp && s.lamp !== 'NONE' ? `<span class="tl-mp mp-${s.lamp}">${s.lamp}</span>` : '';
+
     return `<div class="tl"><div class="tl-t"><div class="tl-s"><div class="tl-r">#${i}</div><div><span class="tl-l">CONST</span><span class="tl-n">${s.const.toFixed(1)}</span></div><div><span class="tl-l">RATE</span><span class="tl-n" style="color:#ffeaa7">${s.rt.toFixed(3)}</span></div></div><div class="tl-j">${ji}<div class="tl-d bg-${s.diff}"><span>${s.diff[0]}</span></div>${mp}<div class="tl-sb"><span style="color:#fff">${s.score.toLocaleString()}</span><span style="font-size:10px;color:${rk.c}">${rk.l}</span></div></div></div><div class="tl-tt">${esc(s.title)}</div></div>`;
+
   };
+
+
 
   function render() {
+
     const d = new Date(), p2 = n => String(n).padStart(2,'0');
+
     $('vTm').textContent = `${d.getFullYear()}/${p2(d.getMonth()+1)}/${p2(d.getDate())} ${p2(d.getHours())}:${p2(d.getMinutes())}`;
+
     $('vP').textContent = st.playerName.trim() || '未設定';
+
     $('vCr').textContent = st.creditName.trim() ? `by ${st.creditName.trim()}` : '';
 
+
+
     st.songs = dedupeSongs(st.songs);
+
     const all = st.songs.map(s => ({ ...s, rt: calc(s.const, s.score) })).sort((a,b) => (b.rt - a.rt) || (b.score - a.score));
+
     const best = all.filter(s => !s.isNew).slice(0, 30), news = all.filter(s => s.isNew).slice(0, 20);
-    lastAll = all; lastBest = best;
+
+
+
+    // BEST30＋NEW20に入っている曲だけジャケットURLを保持し、圏外は空にして軽量化
+
+    const activeIds = new Set([...best, ...news].map(s => s.id));
+
+    st.songs.forEach(s => {
+
+      if (activeIds.has(s.id)) {
+
+        if (!s.jacket) s.jacket = dbMap.get(norm(s.title))?.img || '';
+
+      } else {
+
+        s.jacket = '';
+
+      }
+
+    });
+
+    save();
+
+
+
+    lastAll = all; lastBest = best; lastNews = news;
+
     const bS = best.reduce((a,b) => a + b.rt, 0), nS = news.reduce((a,b) => a + b.rt, 0), tot = (bS + nS) / 50, top = best[0]?.rt || news[0]?.rt || 0;
 
+
+
     const vT = $('vTot'), ts = tot.toFixed(3);
+
     if (tot >= 16) { vT.className = 'irv'; vT.innerHTML = ts.split('').map((c,i) => `<span style="color:${RBW[i%RBW.length]}">${c}</span>`).join(''); }
+
     else { vT.className = 'irv ' + (tot>=15.25?'rpl':tot>=14.5?'rgd':tot>=13.25?'rs':tot>=12?'rb':tot>=10?'rp':tot>=7?'rr':tot>=4?'ro':'rg'); vT.textContent = ts; }
+
     $('vB').textContent = (best.length ? bS/30 : 0).toFixed(3);
+
     $('vN').textContent = (news.length ? nS/20 : 0).toFixed(3);
+
     $('vM').textContent = (tot > 0 ? Math.max(tot, (bS + nS + Math.max(0, 50 - best.length - news.length)*top)/50) : 0).toFixed(3);
 
+
+
     $('gB').innerHTML = best.length ? best.map((s,i) => tile(s,i+1)).join('') : '<div class="emp">対象曲がありません。</div>';
+
     $('gN').innerHTML = news.length ? news.map((s,i) => tile(s,i+1)).join('') : '<div class="emp">新曲枠の対象曲がありません。</div>';
+
     renderStats(statScope === 'top' ? [...best, ...news] : all);
-    renderRec();
+
+
 
     $('rCnt').textContent = all.length;
+
     $('rBd').innerHTML = all.length ? all.map(s => `<tr><td>${s.isNew?'<span class="bm" style="background:#e67e22">NEW</span>':'BEST'}</td><td style="font-weight:800">${esc(s.title)}</td><td><span class="bm bg-${s.diff}">${s.diff}</span></td><td>${s.const.toFixed(1)}</td><td>${s.score.toLocaleString()}</td><td>${s.lamp==='NONE'?'-':s.lamp}</td><td style="font-weight:800;color:var(--g)">${s.rt.toFixed(3)}</td><td style="white-space:nowrap">${s.isNew?`<button type="button" class="bw" data-mv="${s.id}" style="padding:4px 8px;font-size:.72rem">BESTへ</button> `:''}<button type="button" class="bs" data-ed="${s.id}" style="padding:4px 8px;font-size:.72rem">編集</button> <button type="button" class="bd" data-dl="${s.id}" style="padding:4px 8px;font-size:.72rem">削除</button></td></tr>`).join('') : '<tr><td colspan="8" style="text-align:center;color:#607066;padding:18px">登録された譜面はまだありません。</td></tr>';
+
     requestAnimationFrame(fit);
+
   }
 
+
+
   $('rBd').onclick = e => {
+
     const { ed, dl, mv } = e.target.dataset;
-    if (mv) { pushH(); st.songs = st.songs.map(s => s.id === mv ? { ...s, isNew:false } : s); save(); render(); }
+
+    if (mv) { pushH(); st.songs = st.songs.map(s => s.id === mv ? { ...s, isNew:false } : s); render(); }
+
     else if (ed) { startEdit(st.songs.find(s => s.id === ed)); }
-    else if (dl) { pushH(); st.songs = st.songs.filter(s => s.id !== dl); if (edId === dl) rst(); save(); render(); }
+
+    else if (dl) { pushH(); st.songs = st.songs.filter(s => s.id !== dl); if (edId === dl) rst(); render(); }
+
   };
 
-  $('uBtn').onclick = $('uTop').onclick = () => { if (!hist.length) return; st = JSON.parse(hist.pop()); $('inP').value = st.playerName; $('inCr').value = st.creditName; $('cLmp').checked = st.showLamp; rst(); save(); render(); updU(); };
-  $('bN2B').onclick = () => { const n = st.songs.filter(s => s.isNew).length; if (!n) return alert('新曲枠（NEW）に登録されている曲はありません。'); if (confirm(`新曲枠の ${n} 曲をすべてベスト枠へ移行しますか？`)) { pushH(); st.songs = st.songs.map(s => s.isNew ? { ...s, isNew:false } : s); save(); render(); } };
-  $('bClr').onclick = () => { if (st.songs.length && confirm('すべて削除しますか？')) { pushH(); st.songs = []; rst(); save(); render(); } };
-  $('inP').oninput = e => { st.playerName = e.target.value; save(); render(); };
-  $('inCr').oninput = e => { st.creditName = e.target.value; save(); render(); };
-  $('cLmp').onchange = e => { st.showLamp = e.target.checked; save(); render(); };
+
+
+  $('uBtn').onclick = $('uTop').onclick = () => { if (!hist.length) return; st = JSON.parse(hist.pop()); $('inP').value = st.playerName; $('inCr').value = st.creditName; $('cLmp').checked = st.showLamp; rst(); render(); updU(); };
+
+  $('bN2B').onclick = () => { const n = st.songs.filter(s => s.isNew).length; if (!n) return alert('新曲枠（NEW）に登録されている曲はありません。'); if (confirm(`新曲枠の ${n} 曲をすべてベスト枠へ移行しますか？`)) { pushH(); st.songs = st.songs.map(s => s.isNew ? { ...s, isNew:false } : s); render(); } };
+
+  $('bClr').onclick = () => { if (st.songs.length && confirm('すべて削除しますか？')) { pushH(); st.songs = []; rst(); render(); } };
+
+  $('inP').oninput = e => { st.playerName = e.target.value; $('vP').textContent = st.playerName.trim() || '未設定'; save(); };
+
+  $('inCr').oninput = e => { st.creditName = e.target.value; $('vCr').textContent = st.creditName.trim() ? `by ${st.creditName.trim()}` : ''; save(); };
+
+  $('cLmp').onchange = e => { st.showLamp = e.target.checked; render(); };
+
+
+
+  // ボタンを押したときだけ動く超軽量・高速な純正Canvas JPEG出力
 
   $('bPng').onclick = async () => {
-    const b = $('bPng'), cp = $('cap'), pv = cp.style.transform; b.textContent = '生成中...'; b.disabled = true;
+
+    const b = $('bPng');
+
+    b.disabled = true;
+
     try {
-      cp.style.transform = 'none';
-      const u = (await html2canvas(cp, { scale:2, useCORS:true, backgroundColor:'#e4f1d8' })).toDataURL('image/png');
-      $('iPrv').src = u; $('mod').style.display = 'block';
-      const a = document.createElement('a'); a.download = `chunithm_rating_${Date.now()}.png`; a.href = u; a.click();
-    } catch (e) { alert('画像生成失敗: ' + e.message); }
-    finally { cp.style.transform = pv; fit(); b.textContent = '選択した画像をPNGで保存'; b.disabled = false; }
+
+      const best = lastBest, news = lastNews;
+
+      const topSongs = [...best, ...news];
+
+
+
+      b.textContent = 'ジャケット準備中...';
+
+      const urls = [...new Set(topSongs.map(s => s.jacket || dbMap.get(norm(s.title))?.img || '').filter(u => u && !u.startsWith('data:') && typeof imgCache.get(u) !== 'string'))];
+
+      if (urls.length) {
+
+        let idx = 0;
+
+        await Promise.all(Array.from({ length: Math.min(8, urls.length) }, async () => {
+
+          while (idx < urls.length) await toData(urls[idx++]);
+
+        }));
+
+      }
+
+
+
+      b.textContent = 'JPEG描画中...';
+
+      await new Promise(r => requestAnimationFrame(r));
+
+
+
+      const bRows = Math.max(1, Math.ceil(best.length / 5));
+
+      const nRows = Math.max(1, Math.ceil(news.length / 5));
+
+      const rowH = 114, gap = 6, pad = 8;
+
+      const bBoxH = best.length ? (pad * 2 + bRows * rowH + (bRows - 1) * gap) : 80;
+
+      const nBoxH = news.length ? (pad * 2 + nRows * rowH + (nRows - 1) * gap) : 80;
+
+
+
+      const W = 920;
+
+      const H = 20 + 96 + 34 + bBoxH + 34 + nBoxH + 38;
+
+      const sc = 1.5;
+
+      const cv = document.createElement('canvas');
+
+      cv.width = W * sc;
+
+      cv.height = H * sc;
+
+      const ctx = cv.getContext('2d');
+
+      ctx.scale(sc, sc);
+
+
+
+      ctx.fillStyle = '#e4f1d8';
+
+      ctx.fillRect(0, 0, W, H);
+
+      ctx.save();
+
+      ctx.beginPath();
+
+      ctx.rect(0, 0, W, H);
+
+      ctx.clip();
+
+      ctx.strokeStyle = 'rgba(255,255,255,0.42)';
+
+      ctx.lineWidth = 18;
+
+      for (let x = -H; x < W + H; x += 36) {
+
+        ctx.beginPath();
+
+        ctx.moveTo(x, 0);
+
+        ctx.lineTo(x + H, H);
+
+        ctx.stroke();
+
+      }
+
+      ctx.restore();
+
+      ctx.strokeStyle = '#c3d9b4';
+
+      ctx.lineWidth = 1;
+
+      ctx.strokeRect(0.5, 0.5, W - 1, H - 1);
+
+
+
+      const rRect = (x, y, w, h, r, fill, stroke, lw = 1) => {
+
+        ctx.beginPath();
+
+        if (ctx.roundRect) ctx.roundRect(x, y, w, h, r);
+
+        else ctx.rect(x, y, w, h);
+
+        if (fill) { ctx.fillStyle = fill; ctx.fill(); }
+
+        if (stroke) { ctx.strokeStyle = stroke; ctx.lineWidth = lw; ctx.stroke(); }
+
+      };
+
+
+
+      ctx.textBaseline = 'top';
+
+      ctx.fillStyle = '#227a43';
+
+      ctx.font = '900 25px "M PLUS 1p", sans-serif';
+
+      ctx.fillText('ベスト枠・新曲枠対象楽曲', 22, 20);
+
+      const tW = ctx.measureText('ベスト枠・新曲枠対象楽曲').width;
+
+      if (st.creditName.trim()) {
+
+        ctx.fillStyle = '#2e8b52';
+
+        ctx.font = '800 16px "M PLUS 1p", sans-serif';
+
+        ctx.fillText(`by ${st.creditName.trim()}`, 22 + tW + 10, 28);
+
+      }
+
+      ctx.fillStyle = '#4f6353';
+
+      ctx.font = '800 12px "M PLUS 1p", sans-serif';
+
+      ctx.fillText('PLAYER NAME', 22, 55);
+
+      rRect(22, 74, 390, 40, 6, 'rgba(255,255,255,0.65)');
+
+      ctx.fillStyle = '#3a4a3d';
+
+      ctx.font = '800 18px "M PLUS 1p", sans-serif';
+
+      ctx.textAlign = 'center';
+
+      ctx.textBaseline = 'middle';
+
+      ctx.fillText(st.playerName.trim() || '未設定', 22 + 195, 74 + 20);
+
+
+
+      const rx = W - 22 - 470;
+
+      ctx.textAlign = 'left';
+
+      ctx.textBaseline = 'top';
+
+      ctx.fillStyle = '#4f6353';
+
+      ctx.font = '800 12px "M PLUS 1p", sans-serif';
+
+      ctx.fillText('RATING', rx, 20);
+
+      ctx.textAlign = 'right';
+
+      ctx.font = '700 13px "Oswald", sans-serif';
+
+      ctx.fillText($('vTm').textContent, rx + 470, 20);
+
+
+
+      rRect(rx, 38, 470, 50, 6, 'rgba(255,255,255,0.85)');
+
+      const totStr = $('vTot').textContent;
+
+      const totVal = parseFloat(totStr) || 0;
+
+      ctx.font = '700 36px "Oswald", sans-serif';
+
+      ctx.textAlign = 'center';
+
+      ctx.textBaseline = 'middle';
+
+      if (totVal >= 16) {
+
+        const chars = totStr.split('');
+
+        const totalW = ctx.measureText(totStr).width;
+
+        let cx = rx + 235 - totalW / 2;
+
+        ctx.textAlign = 'left';
+
+        chars.forEach((ch, idx) => {
+
+          ctx.fillStyle = RBW[idx % RBW.length];
+
+          ctx.fillText(ch, cx, 38 + 26);
+
+          cx += ctx.measureText(ch).width;
+
+        });
+
+      } else {
+
+        ctx.fillStyle = totVal >= 15.25 ? '#6366f1' : totVal >= 14.5 ? '#ca8a04' : totVal >= 13.25 ? '#64748b' : totVal >= 12 ? '#a16207' : totVal >= 10 ? '#7e22ce' : totVal >= 7 ? '#dc2626' : totVal >= 4 ? '#ea580c' : '#16a34a';
+
+        ctx.fillText(totStr, rx + 235, 38 + 26);
+
+      }
+
+
+
+      rRect(rx, 92, 470, 22, 5, 'rgba(255,255,255,0.55)');
+
+      ctx.textAlign = 'center';
+
+      ctx.fillStyle = '#2c3a2e';
+
+      ctx.font = '800 12.5px "M PLUS 1p", sans-serif';
+
+      ctx.fillText(`BEST ${$('vB').textContent}    NEW ${$('vN').textContent}    MAX ${$('vM').textContent}`, rx + 235, 92 + 11);
+
+
+
+      const loadedImgs = new Map();
+
+      await Promise.all(topSongs.map(s => new Promise(ok => {
+
+        const rawUrl = s.jacket || dbMap.get(norm(s.title))?.img || '';
+
+        const dataUrl = rawUrl.startsWith('data:') ? rawUrl : imgCache.get(rawUrl);
+
+        if (!dataUrl || !dataUrl.startsWith('data:') || loadedImgs.has(s.id)) return ok();
+
+        const im = new Image();
+
+        im.onload = () => { loadedImgs.set(s.id, im); ok(); };
+
+        im.onerror = () => ok();
+
+        im.src = dataUrl;
+
+      })));
+
+
+
+      const drawSection = (title, list, startY, boxH, emptyMsg) => {
+
+        ctx.textAlign = 'left';
+
+        ctx.textBaseline = 'top';
+
+        ctx.fillStyle = '#222823';
+
+        ctx.font = '900 18px "M PLUS 1p", sans-serif';
+
+        ctx.fillText(title, 22, startY);
+
+
+
+        const gy = startY + 28;
+
+        rRect(22, gy, W - 44, boxH, 4, '#7c7e7c');
+
+
+
+        if (!list.length) {
+
+          ctx.textAlign = 'center';
+
+          ctx.textBaseline = 'middle';
+
+          ctx.fillStyle = '#e6eae6';
+
+          ctx.font = '700 13px "M PLUS 1p", sans-serif';
+
+          ctx.fillText(emptyMsg, W / 2, gy + boxH / 2);
+
+          return;
+
+        }
+
+
+
+        const innerW = W - 44 - pad * 2;
+
+        const tileW = (innerW - gap * 4) / 5;
+
+
+
+        list.forEach((s, idx) => {
+
+          const col = idx % 5, row = (idx / 5) | 0;
+
+          const tx = 22 + pad + col * (tileW + gap);
+
+          const ty = gy + pad + row * (rowH + gap);
+
+
+
+          const grad = ctx.createLinearGradient(0, ty, 0, ty + rowH);
+
+          grad.addColorStop(0, '#989a98');
+
+          grad.addColorStop(1, '#7d7f7d');
+
+          rRect(tx, ty, tileW, rowH, 4, grad, '#636563', 1);
+
+
+
+          const sx = tx + 5 + 26;
+
+          ctx.textAlign = 'center';
+
+          ctx.textBaseline = 'top';
+
+          ctx.fillStyle = '#ffffff';
+
+          ctx.font = '700 14px "Oswald", sans-serif';
+
+          ctx.fillText(`#${idx + 1}`, sx, ty + 5);
+
+
+
+          ctx.fillStyle = '#e2e6e2';
+
+          ctx.font = '800 8.5px "M PLUS 1p", sans-serif';
+
+          ctx.fillText('CONST', sx, ty + 28);
+
+          ctx.fillStyle = '#ffffff';
+
+          ctx.font = '700 13.5px "Oswald", sans-serif';
+
+          ctx.fillText(s.const.toFixed(1), sx, ty + 38);
+
+
+
+          ctx.fillStyle = '#e2e6e2';
+
+          ctx.font = '800 8.5px "M PLUS 1p", sans-serif';
+
+          ctx.fillText('RATE', sx, ty + 62);
+
+          ctx.fillStyle = '#ffeaa7';
+
+          ctx.font = '700 13.5px "Oswald", sans-serif';
+
+          ctx.fillText(s.rt.toFixed(3), sx, ty + 72);
+
+
+
+          const jx = tx + 5 + 52 + 4, jy = ty + 4, jw = tileW - 10 - 56, jh = 86;
+
+          rRect(jx, jy, jw, jh, 3, '#2b2e2c');
+
+          const imObj = loadedImgs.get(s.id);
+
+          ctx.save();
+
+          ctx.beginPath();
+
+          if (ctx.roundRect) ctx.roundRect(jx, jy, jw, jh, 3);
+
+          else ctx.rect(jx, jy, jw, jh);
+
+          ctx.clip();
+
+          if (imObj) {
+
+            ctx.drawImage(imObj, jx, jy, jw, jh);
+
+          } else {
+
+            ctx.fillStyle = DBG[s.diff] || '#334155';
+
+            ctx.fillRect(jx, jy, jw, jh);
+
+            ctx.fillStyle = '#ffffff';
+
+            ctx.font = '800 10px "M PLUS 1p", sans-serif';
+
+            ctx.textAlign = 'center';
+
+            ctx.textBaseline = 'middle';
+
+            ctx.fillText(s.title.slice(0, 10), jx + jw / 2, jy + jh / 2 - 6);
+
+          }
+
+
+
+          ctx.fillStyle = 'rgba(10,12,11,0.9)';
+
+          ctx.fillRect(jx, jy + jh - 16, jw, 16);
+
+          const rk = rank(s.score);
+
+          ctx.textBaseline = 'middle';
+
+          ctx.textAlign = 'left';
+
+          ctx.fillStyle = '#ffffff';
+
+          ctx.font = '700 11px "Oswald", sans-serif';
+
+          ctx.fillText(s.score.toLocaleString(), jx + 4, jy + jh - 8);
+
+          ctx.textAlign = 'right';
+
+          ctx.fillStyle = rk.c;
+
+          ctx.font = '700 10px "Oswald", sans-serif';
+
+          ctx.fillText(rk.l, jx + jw - 4, jy + jh - 8);
+
+
+
+          if (st.showLamp && s.lamp !== 'NONE') {
+
+            const lw = s.lamp === 'AJC' ? 24 : 20;
+
+            rRect(jx + jw - lw - 2, jy + jh - 31, lw, 13, 2, 'rgba(15,18,16,0.9)', s.lamp === 'FC' ? '#7bed9f' : '#ffd32a', 1);
+
+            ctx.textAlign = 'center';
+
+            ctx.fillStyle = s.lamp === 'FC' ? '#7bed9f' : '#ffd32a';
+
+            ctx.font = '900 8.5px "M PLUS 1p", sans-serif';
+
+            ctx.fillText(s.lamp, jx + jw - lw / 2 - 2, jy + jh - 24.5);
+
+          }
+
+          ctx.restore();
+
+
+
+          ctx.save();
+
+          ctx.translate(jx + jw - 10.5, jy + 10.5);
+
+          ctx.rotate(Math.PI / 4);
+
+          rRect(-7.5, -7.5, 15, 15, 3, DBG[s.diff], s.diff === 'ULTIMA' ? '#ff4757' : '#ffffff', 1.5);
+
+          ctx.rotate(-Math.PI / 4);
+
+          ctx.textAlign = 'center';
+
+          ctx.textBaseline = 'middle';
+
+          ctx.fillStyle = '#ffffff';
+
+          ctx.font = '900 8px "M PLUS 1p", sans-serif';
+
+          ctx.fillText(s.diff[0], 0, 0.5);
+
+          ctx.restore();
+
+
+
+          ctx.textAlign = 'center';
+
+          ctx.textBaseline = 'top';
+
+          ctx.fillStyle = '#ffffff';
+
+          ctx.font = '800 11px "M PLUS 1p", sans-serif';
+
+          let dispT = s.title;
+
+          while (dispT.length > 1 && ctx.measureText(dispT).width > tileW - 8) {
+
+            dispT = dispT.slice(0, -1);
+
+          }
+
+          if (dispT !== s.title) dispT += '…';
+
+          ctx.fillText(dispT, tx + tileW / 2, ty + 94);
+
+        });
+
+      };
+
+
+
+      const y1 = 128;
+
+      drawSection('BEST枠（上位30曲）', best, y1, bBoxH, '対象曲がありません。');
+
+      const y2 = y1 + 28 + bBoxH + 10;
+
+      drawSection('NEW枠（上位20曲）', news, y2, nBoxH, '新曲枠の対象曲がありません。');
+
+
+
+      ctx.textAlign = 'center';
+
+      ctx.textBaseline = 'top';
+
+      ctx.fillStyle = '#465749';
+
+      ctx.font = '700 10.5px "M PLUS 1p", sans-serif';
+
+      ctx.fillText('※掲載されている楽曲ジャケット画像等の著作権・各種権利は、各権利者に帰属します。本ツールは非公式のファン制作物です。', W / 2, y2 + 28 + nBoxH + 12);
+
+
+
+      // 高画質JPEG（品質 0.92）で出力・ダウンロード
+
+      const u = cv.toDataURL('image/jpeg', 0.92);
+
+      $('iPrv').src = u;
+
+      $('mod').style.display = 'block';
+
+
+
+      cv.toBlob(blob => {
+
+        if (!blob) return;
+
+        const url = URL.createObjectURL(blob);
+
+        const a = document.createElement('a');
+
+        a.download = `chunithm_rating_${Date.now()}.jpg`;
+
+        a.href = url;
+
+        document.body.appendChild(a);
+
+        a.click();
+
+        a.remove();
+
+        setTimeout(() => URL.revokeObjectURL(url), 5000);
+
+      }, 'image/jpeg', 0.92);
+
+    } catch (e) {
+
+      alert('画像生成失敗: ' + e.message);
+
+    } finally {
+
+      b.textContent = '選択した画像をJPEGで保存';
+
+      b.disabled = false;
+
+    }
+
   };
+
+
 
   $('bClsM').onclick = () => $('mod').style.display = 'none';
+
   $('bExp').onclick = () => { const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([JSON.stringify(st)],{type:'application/json'})); a.download = 'chunithm_rating.json'; a.click(); };
+
   $('bImp').onclick = () => $('jFile').click();
+
   $('jFile').onchange = e => {
+
     const f = e.target.files[0]; if (!f) return; const r = new FileReader();
-    r.onload = ev => { try { const p = JSON.parse(ev.target.result); if (Array.isArray(p.songs)) { pushH(); st = { playerName:p.playerName||'', creditName:p.creditName||'CHUNITHM', showLamp:p.showLamp!==false, songs:dedupeSongs(p.songs) }; $('inP').value=st.playerName; $('inCr').value=st.creditName; $('cLmp').checked=st.showLamp; save(); render(); alert('読み込みました！'); } } catch { alert('JSON読込失敗'); } };
+
+    r.onload = ev => { try { const p = JSON.parse(ev.target.result); if (Array.isArray(p.songs)) { pushH(); st = { playerName:p.playerName||'', creditName:p.creditName||'CHUNITHM', showLamp:p.showLamp!==false, songs:dedupeSongs(p.songs) }; $('inP').value=st.playerName; $('inCr').value=st.creditName; $('cLmp').checked=st.showLamp; render(); alert('読み込みました！'); } } catch { alert('JSON読込失敗'); } };
+
     r.readAsText(f); e.target.value = '';
+
   };
 
-  try { const p = JSON.parse(localStorage.getItem(KEY)); if (Array.isArray(p?.songs)) st = { playerName:p.playerName||'', creditName:p.creditName||'CHUNITHM', showLamp:p.showLamp!==false, songs:dedupeSongs(p.songs) }; } catch {}
+
+
+  try {
+
+    const p = JSON.parse(localStorage.getItem(KEY));
+
+    if (Array.isArray(p?.songs)) {
+
+      // 起動時に過去の重いDataURLをすべてリセットしてメモリ解放
+
+      st = {
+
+        playerName: p.playerName || '',
+
+        creditName: p.creditName || 'CHUNITHM',
+
+        showLamp: p.showLamp !== false,
+
+        songs: dedupeSongs(p.songs).map(s => ({ ...s, jacket: (s.jacket && s.jacket.startsWith('http')) ? s.jacket : '' }))
+
+      };
+
+    }
+
+  } catch {}
+
   try { const a = JSON.parse(localStorage.getItem(AUTH_KEY)); if (a?.id) { auth = a; $('inSyncId').value = a.id; $('inSyncPin').value = a.pin || ''; } } catch {}
+
   $('inP').value = st.playerName; $('inCr').value = st.creditName; $('cLmp').checked = st.showLamp;
+
   updAuthUI(); live(); updU(); render(); loadDB();
+
 });
+
 </script>
+
 </body>
+
 </html>
