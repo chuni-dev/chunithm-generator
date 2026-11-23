@@ -63,7 +63,7 @@ input:focus,textarea:focus{outline:none;border-color:var(--g);box-shadow:0 0 0 3
 .bw{background:#fff8eb;color:#b45309;border:1px solid #fcd34d;font-weight:800}
 .bi{background:#eff6ff;color:#1d4ed8;border:1px solid #bfdbfe;font-weight:800}
 .bd{background:#fff5f5;color:#c0392b;border:1px solid #f5c6cb}
-.bpng{background:#237a4b;color:#fff;border:none;border-radius:10px;padding:13px 32px;font-size:1.05rem;font-weight:800;cursor:pointer;box-shadow:0 4px 12px rgba(35,122,75,.3)}.bpng:disabled{opacity:.65;cursor:wait}
+.bpng{background:#237a4b;color:#fff;border:none;border-radius:10px;padding:13px 32px;font-size:1.05rem;font-weight:800;cursor:pointer;box-shadow:0 4px 12px rgba(35,122,75,.3)}.bpng:disabled{opacity:.6;cursor:not-allowed}
 #mod{display:none;margin-top:12px;padding:14px;background:#eef6f1;border:2px solid #237a4b;border-radius:10px;text-align:center;width:100%}
 #mod img{max-width:100%;border:1px solid #ccc;border-radius:6px;margin-top:8px}
 .fit{width:100%;overflow:hidden;display:flex;justify-content:center;align-items:flex-start}
@@ -175,7 +175,7 @@ input:focus,textarea:focus{outline:none;border-color:var(--g);box-shadow:0 0 0 3
         <div style="font-size:.82rem;font-weight:900;color:#0f172a"><span class="step-badge">STEP 2</span>CHUNITHM-NETでデータ取得</div>
         <div style="font-size:.74rem;color:#475569;line-height:1.5">
           1. CHUNITHM-NETにログインし、<b>ランキング ＞ 楽曲別 ＞ MASTER</b>（またはEXPERT / ULTIMA等）を開く<br>
-          2. 登録したブックマークレットを実行する（※ジャンル別に分けると取りこぼしなく高速です）<br>
+          2. 登録したブックマークレットを実行する<br>
           3. 完了後に画面へ出る<b>「結果をコピー」</b>を押す
         </div>
         <a class="bs" href="https://new.chunithm-net.com/chuni-mobile/html/mobile/ranking/master" target="_blank" rel="noopener noreferrer" style="text-align:center;text-decoration:none;font-weight:800;color:#1d4ed8">CHUNITHM-NET 楽曲別ランキングを開く ↗</a>
@@ -402,55 +402,6 @@ document.addEventListener('DOMContentLoaded', () => {
   const norm = s => String(s||'').toLowerCase().replace(/[！-～]/g, c => String.fromCharCode(c.charCodeAt(0)-0xFEE0)).replace(/[’'“”"・･\-‐‑–—―〜~：:！!？?（）()［］\[\]\s]/g,'');
   const isWE = s => /world.?s.?end|ワールズエンド/i.test(String(s||''));
 
-  // ジャケットDataURLキャッシュ（PNG出力高速化用）
-  const imgCache = new Map();
-  let cacheTimer = null;
-
-  async function toData(url) {
-    if (!url || url.startsWith('data:')) return url || '';
-    if (imgCache.has(url)) return imgCache.get(url);
-    const p = (async () => {
-      for (const src of [`https://wsrv.nl/?url=${encodeURIComponent(url)}&w=150&h=150&fit=cover&output=jpg&q=82`, url]) {
-        const r = await new Promise(ok => {
-          const im = new Image(); im.crossOrigin = 'anonymous';
-          im.onload = () => {
-            try {
-              const cv = document.createElement('canvas'); cv.width = cv.height = 150;
-              cv.getContext('2d').drawImage(im, 0, 0, 150, 150);
-              ok(cv.toDataURL('image/jpeg', .82));
-            } catch { ok(null); }
-          };
-          im.onerror = () => ok(null);
-          im.src = src;
-        });
-        if (r) return r;
-      }
-      return url;
-    })();
-    imgCache.set(url, p);
-    const res = await p;
-    imgCache.set(url, res);
-    return res;
-  }
-
-  // 表示対象50曲のジャケットをバックグラウンドで並列事前キャッシュ
-  async function prewarmTopJackets(songs) {
-    const urls = [...new Set(songs.map(s => s.jacket || dbMap.get(norm(s.title))?.img || '').filter(u => u && !u.startsWith('data:') && typeof imgCache.get(u) !== 'string'))];
-    if (!urls.length) return;
-    let idx = 0;
-    await Promise.all(Array.from({ length: Math.min(8, urls.length) }, async () => {
-      while (idx < urls.length) {
-        const u = urls[idx++];
-        await toData(u);
-      }
-    }));
-    // キャッシュ完了後にタイル画像のsrcをDataURLへ差し替え（描画高速化）
-    document.querySelectorAll('#cap img[data-osrc]').forEach(im => {
-      const c = imgCache.get(im.dataset.osrc);
-      if (typeof c === 'string' && c.startsWith('data:') && im.src !== c) im.src = c;
-    });
-  }
-
   // CHUNITHM-NET ランキング一括取得ブックマークレット生成
   const BOOKMARKLET_SRC = `javascript:(async()=>{if(window.__cnetRunning)return;const forms=[...document.querySelectorAll('form[action*="sendRankingDetail"]')];if(!forms.length)return alert('CHUNITHM-NETの「ランキング ＞ 楽曲別」（MASTERやEXPERT等）を開いた状態で実行してください');window.__cnetRunning=true;const diffMap={'0':'BASIC','1':'ADVANCED','2':'EXPERT','3':'MASTER','4':'ULTIMA'};let stop=false;const results=[];const ui=document.createElement('div');ui.style='position:fixed;top:14px;left:14px;right:14px;max-width:440px;margin:auto;background:#0f172a;color:#fff;padding:16px;border-radius:12px;z-index:999999;box-shadow:0 12px 30px rgba(0,0,0,.6);font-family:sans-serif;border:2px solid #38bdf8';ui.innerHTML='<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px"><strong style="font-size:14px;color:#38bdf8">CHUNITHM-NET マイレコード取得</strong><button id="c_cls" style="background:none;border:none;color:#94a3b8;font-size:16px;cursor:pointer">✕</button></div><div id="c_st" style="font-size:12.5px;margin-bottom:8px">準備中...</div><div style="background:#1e293b;height:8px;border-radius:4px;overflow:hidden;margin-bottom:10px"><div id="c_bar" style="width:0%;height:100%;background:#38bdf8;transition:width .2s"></div></div><div style="display:flex;gap:8px"><button id="c_stop" style="flex:1;background:#ef4444;color:#fff;border:none;padding:8px;border-radius:7px;cursor:pointer;font-weight:bold;font-size:12px">停止してここまでの結果を出力</button><button id="c_copy" style="display:none;flex:1;background:#22c55e;color:#fff;border:none;padding:8px;border-radius:7px;cursor:pointer;font-weight:bold;font-size:13px">📋 結果をコピー</button></div><textarea id="c_out" readonly style="display:none;width:100%;height:110px;margin-top:10px;background:#020617;color:#4ade80;border:1px solid #334155;border-radius:6px;padding:6px;font-size:11px"></textarea>';document.body.appendChild(ui);document.getElementById('c_cls').onclick=()=>{stop=true;ui.remove();window.__cnetRunning=false};document.getElementById('c_stop').onclick=()=>{stop=true};const stEl=document.getElementById('c_st'),barEl=document.getElementById('c_bar'),parser=new DOMParser();for(let i=0;i<forms.length;i++){if(stop)break;const f=forms[i],title=f.querySelector('.music_title')?.textContent.trim()||'',diff=diffMap[f.querySelector('input[name="diff"]')?.value||'3']||'MASTER',body=new URLSearchParams(new FormData(f));stEl.textContent='取得中 ('+(i+1)+'/'+forms.length+'曲): '+title+' [発見:'+results.length+'曲]';barEl.style.width=Math.round(((i+1)/forms.length)*100)+'%';try{const res=await fetch(f.action,{method:'POST',body,credentials:'same-origin'}),html=await res.text(),doc=parser.parseFromString(html,'text/html'),scTxt=doc.querySelector('.rank_playdata_highscore .text_b')?.textContent.trim();if(scTxt){const score=parseInt(scTxt.replace(/,/g,''),10);if(!isNaN(score)&&score>0)results.push({title,diff,score})}}catch(e){}await new Promise(r=>setTimeout(r,600))}window.__cnetRunning=false;stEl.textContent='完了！プレイ済み '+results.length+' 曲を取得しました。下のボタンでコピーしてください。';document.getElementById('c_stop').style.display='none';const out=document.getElementById('c_out'),cpBtn=document.getElementById('c_copy');out.style.display='block';cpBtn.style.display='block';out.value=JSON.stringify(results);out.select();cpBtn.onclick=async()=>{out.select();try{await navigator.clipboard.writeText(out.value);cpBtn.textContent='✅ コピー完了！ジェネレーターへ貼付'}catch(e){document.execCommand('copy');cpBtn.textContent='✅ コピー完了！'}}})();`;
   $('bmCode').value = BOOKMARKLET_SRC;
@@ -525,7 +476,7 @@ document.addEventListener('DOMContentLoaded', () => {
   $('sPre').innerHTML = [['理論値',1010000],['SSS+',1009000],['SSS',1007500],['SS+',1005000],['SS',1000000],['S+',990000],['S',975000]].map(([l,v]) => `<button type="button" class="adj pre" data-ss="${v}">${l}</button>`).join('');
 
   let db = [], dbMap = new Map(), sel = null, edId = null, diff = 'MASTER', lamp = 'NONE', jkt = '', hist = [];
-  let statMode = 'mine', statScope = 'top', ncFilter = 'all', ncGenre = 'all', globalCache = null, lastAll = [], lastBest = [], lastNews = [];
+  let statMode = 'mine', statScope = 'top', ncFilter = 'all', ncGenre = 'all', globalCache = null, lastAll = [], lastBest = [];
   let st = { playerName:'', creditName:'CHUNITHM', showLamp:true, songs:[] };
   let auth = { id:'', pin:'', lastSync:'' };
 
@@ -782,6 +733,15 @@ document.addEventListener('DOMContentLoaded', () => {
   function fit() { const w = $('fit').clientWidth; if (!w) return; const sc = Math.min(1, w / 920), cp = $('cap'); cp.style.transform = `scale(${sc})`; $('sBox').style.width = `${920 * sc}px`; $('sBox').style.height = `${cp.offsetHeight * sc}px`; }
   window.addEventListener('resize', fit);
 
+  async function toData(url) {
+    if (!url || url.startsWith('data:')) return url || '';
+    for (const src of [`https://wsrv.nl/?url=${encodeURIComponent(url)}&w=180&h=180&fit=cover&output=jpg`, url]) {
+      const r = await new Promise(ok => { const im = new Image(); im.crossOrigin = 'anonymous'; im.onload = () => { try { const cv = document.createElement('canvas'); cv.width = cv.height = 180; cv.getContext('2d').drawImage(im,0,0,180,180); ok(cv.toDataURL('image/jpeg',.85)); } catch { ok(null); } }; im.onerror = () => ok(null); im.src = src; });
+      if (r) return r;
+    }
+    return url;
+  }
+
   async function fetchJson(urls) { for (const u of urls) { try { const r = await fetch(u, { cache:'no-store' }); if (r.ok) return await r.json(); } catch {} } return null; }
 
   async function loadDB() {
@@ -844,7 +804,7 @@ document.addEventListener('DOMContentLoaded', () => {
       });
     }
 
-    dbMap = songMap; db = [...songMap.values()]; renderGenreButtons(); renderConstTable(); render();
+    dbMap = songMap; db = [...songMap.values()]; renderGenreButtons(); renderConstTable(); renderRec();
     const newCount = db.filter(x => x.isNew).length;
     if (db.length > 50) { $('dbB').textContent = currentVerRaw ? `DB適用 (${currentVerRaw} / 新曲${newCount}曲)` : `DB適用済 (${db.length}曲 / 新曲${newCount}曲)`; $('dbB').classList.add('ok'); }
     else { $('dbB').textContent = 'DB接続失敗（手動入力可）'; $('dbB').classList.add('err'); }
@@ -881,7 +841,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   $('inJ').onchange = e => {
     const f = e.target.files[0]; if (!f) return; const r = new FileReader();
-    r.onload = ev => { const im = new Image(); im.onload = () => { const cv = document.createElement('canvas'); cv.width = cv.height = 150; const m = Math.min(im.width, im.height); cv.getContext('2d').drawImage(im,(im.width-m)/2,(im.height-m)/2,m,m,0,0,150,150); jkt = cv.toDataURL('image/jpeg',.82); setTh(jkt); }; im.src = ev.target.result; };
+    r.onload = ev => { const im = new Image(); im.onload = () => { const cv = document.createElement('canvas'); cv.width = cv.height = 180; const m = Math.min(im.width, im.height); cv.getContext('2d').drawImage(im,(im.width-m)/2,(im.height-m)/2,m,m,0,0,180,180); jkt = cv.toDataURL('image/jpeg',.82); setTh(jkt); }; im.src = ev.target.result; };
     r.readAsDataURL(f);
   };
   $('bClrJ').onclick = () => { $('inJ').value = ''; jkt = ''; setTh(''); };
@@ -939,12 +899,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   const tile = (s, i) => {
-    const rk = rank(s.score);
-    const rawUrl = s.jacket || dbMap.get(norm(s.title))?.img || '';
-    const cached = typeof imgCache.get(rawUrl) === 'string' ? imgCache.get(rawUrl) : rawUrl;
-    const ji = cached
-      ? `<img src="${cached}" data-osrc="${esc(rawUrl)}" crossorigin="anonymous" onerror="this.style.display='none'" />`
-      : `<div class="tl-p" style="background:linear-gradient(135deg,${DBG[s.diff]},#1f2937)">${esc(s.title)}</div>`;
+    const rk = rank(s.score), ji = s.jacket ? `<img src="${s.jacket}" crossorigin="anonymous" />` : `<div class="tl-p" style="background:linear-gradient(135deg,${DBG[s.diff]},#1f2937)">${esc(s.title)}</div>`;
     const mp = st.showLamp && s.lamp !== 'NONE' ? `<span class="tl-mp mp-${s.lamp}">${s.lamp}</span>` : '';
     return `<div class="tl"><div class="tl-t"><div class="tl-s"><div class="tl-r">#${i}</div><div><span class="tl-l">CONST</span><span class="tl-n">${s.const.toFixed(1)}</span></div><div><span class="tl-l">RATE</span><span class="tl-n" style="color:#ffeaa7">${s.rt.toFixed(3)}</span></div></div><div class="tl-j">${ji}<div class="tl-d bg-${s.diff}"><span>${s.diff[0]}</span></div>${mp}<div class="tl-sb"><span style="color:#fff">${s.score.toLocaleString()}</span><span style="font-size:10px;color:${rk.c}">${rk.l}</span></div></div></div><div class="tl-tt">${esc(s.title)}</div></div>`;
   };
@@ -958,7 +913,7 @@ document.addEventListener('DOMContentLoaded', () => {
     st.songs = dedupeSongs(st.songs);
     const all = st.songs.map(s => ({ ...s, rt: calc(s.const, s.score) })).sort((a,b) => (b.rt - a.rt) || (b.score - a.score));
     const best = all.filter(s => !s.isNew).slice(0, 30), news = all.filter(s => s.isNew).slice(0, 20);
-    lastAll = all; lastBest = best; lastNews = news;
+    lastAll = all; lastBest = best;
     const bS = best.reduce((a,b) => a + b.rt, 0), nS = news.reduce((a,b) => a + b.rt, 0), tot = (bS + nS) / 50, top = best[0]?.rt || news[0]?.rt || 0;
 
     const vT = $('vTot'), ts = tot.toFixed(3);
@@ -972,10 +927,6 @@ document.addEventListener('DOMContentLoaded', () => {
     $('gN').innerHTML = news.length ? news.map((s,i) => tile(s,i+1)).join('') : '<div class="emp">新曲枠の対象曲がありません。</div>';
     renderStats(statScope === 'top' ? [...best, ...news] : all);
     renderRec();
-
-    // 表示対象50曲のジャケットをバックグラウンドで事前キャッシュ
-    clearTimeout(cacheTimer);
-    cacheTimer = setTimeout(() => prewarmTopJackets([...best, ...news]), 80);
 
     $('rCnt').textContent = all.length;
     $('rBd').innerHTML = all.length ? all.map(s => `<tr><td>${s.isNew?'<span class="bm" style="background:#e67e22">NEW</span>':'BEST'}</td><td style="font-weight:800">${esc(s.title)}</td><td><span class="bm bg-${s.diff}">${s.diff}</span></td><td>${s.const.toFixed(1)}</td><td>${s.score.toLocaleString()}</td><td>${s.lamp==='NONE'?'-':s.lamp}</td><td style="font-weight:800;color:var(--g)">${s.rt.toFixed(3)}</td><td style="white-space:nowrap">${s.isNew?`<button type="button" class="bw" data-mv="${s.id}" style="padding:4px 8px;font-size:.72rem">BESTへ</button> `:''}<button type="button" class="bs" data-ed="${s.id}" style="padding:4px 8px;font-size:.72rem">編集</button> <button type="button" class="bd" data-dl="${s.id}" style="padding:4px 8px;font-size:.72rem">削除</button></td></tr>`).join('') : '<tr><td colspan="8" style="text-align:center;color:#607066;padding:18px">登録された譜面はまだありません。</td></tr>';
@@ -996,37 +947,50 @@ document.addEventListener('DOMContentLoaded', () => {
   $('inCr').oninput = e => { st.creditName = e.target.value; save(); render(); };
   $('cLmp').onchange = e => { st.showLamp = e.target.checked; save(); render(); };
 
-  // 高速化されたPNG出力処理
   $('bPng').onclick = async () => {
-    const b = $('bPng');
-    b.disabled = true;
+    const b = $('bPng'), cp = $('cap'), pv = cp.style.transform;
+    b.textContent = '画像変換・生成中...'; b.disabled = true;
     try {
-      b.textContent = 'ジャケット画像準備中...';
-      await prewarmTopJackets([...lastBest, ...lastNews]);
+      let converted = false;
+      for (const s of st.songs) {
+        if (s.jacket && !s.jacket.startsWith('data:')) {
+          const du = await toData(s.jacket);
+          if (du && du.startsWith('data:')) {
+            s.jacket = du;
+            converted = true;
+          } else {
+            s._brokenJkt = s.jacket;
+            s.jacket = '';
+            converted = true;
+          }
+        }
+      }
+      if (converted) { save(); render(); }
 
-      b.textContent = 'PNG描画中...';
-      await new Promise(r => requestAnimationFrame(r));
-
-      // 画面レイアウトを揺らさないようオフスクリーンに原寸クローンを作成して高速描画
-      const clone = $('cap').cloneNode(true);
-      clone.style.cssText = 'position:fixed;left:-9999px;top:0;transform:none;width:920px;min-width:920px;';
-      document.body.appendChild(clone);
-
-      const canvas = await html2canvas(clone, {
-        scale: 1.5,
+      await new Promise(r => setTimeout(r, 100));
+      cp.style.transform = 'none';
+      const canvas = await html2canvas(cp, {
+        scale: 2,
         useCORS: true,
-        backgroundColor: '#e4f1d8',
-        logging: false,
-        imageTimeout: 3000
+        allowTaint: false,
+        backgroundColor: '#e4f1d8'
       });
-      clone.remove();
-
       const u = canvas.toDataURL('image/png');
-      $('iPrv').src = u; $('mod').style.display = 'block';
-      const a = document.createElement('a'); a.download = `chunithm_rating_${Date.now()}.png`; a.href = u; a.click();
+
+      $('iPrv').src = u;
+      $('mod').style.display = 'block';
+      const a = document.createElement('a');
+      a.download = `chunithm_rating_${Date.now()}.png`;
+      a.href = u;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
     } catch (e) {
       alert('画像生成失敗: ' + e.message);
     } finally {
+      st.songs.forEach(s => { if (s._brokenJkt) { s.jacket = s._brokenJkt; delete s._brokenJkt; } });
+      cp.style.transform = pv;
+      fit();
       b.textContent = '選択した画像をPNGで保存';
       b.disabled = false;
     }
