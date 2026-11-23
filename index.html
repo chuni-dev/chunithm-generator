@@ -338,7 +338,7 @@ input:focus,textarea:focus{outline:none;border-color:var(--g);box-shadow:0 0 0 3
       <button type="button" class="bpng" id="bPng">選択した画像をPNGで保存</button>
       <div id="mod">
         <div style="display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:8px">
-          <strong style="font-size:.88rem;color:#1b3828">画像を生成しました（スマホは下の画像を長押し→「写真に保存」）</strong>
+          <strong style="font-size:.88rem;color:#1b3828">画像を生成しました（スマホは「共有 / 画像を保存」または画像を長押し）</strong>
           <div class="btns">
             <button type="button" class="bp" id="bShareImg" style="padding:7px 14px;font-size:.82rem;width:auto">📤 共有 / 画像を保存</button>
             <button type="button" class="bs" id="bClsM">閉じる</button>
@@ -947,4 +947,102 @@ document.addEventListener('DOMContentLoaded', () => {
   $('bN2B').onclick = () => { const n = st.songs.filter(s => s.isNew).length; if (!n) return alert('新曲枠（NEW）に登録されている曲はありません。'); if (confirm(`新曲枠の ${n} 曲をすべてベスト枠へ移行しますか？`)) { pushH(); st.songs = st.songs.map(s => s.isNew ? { ...s, isNew:false } : s); save(); render(); } };
   $('bClr').onclick = () => { if (st.songs.length && confirm('すべて削除しますか？')) { pushH(); st.songs = []; rst(); save(); render(); } };
   $('inP').oninput = e => { st.playerName = e.target.value; save(); render(); };
-  $('
+  $('inCr').oninput = e => { st.creditName = e.target.value; save(); render(); };
+  $('cLmp').onchange = e => { st.showLamp = e.target.checked; save(); render(); };
+
+  $('bPng').onclick = async () => {
+    const b = $('bPng'), cp = $('cap'), pv = cp.style.transform;
+    b.textContent = '画像変換・生成中...'; b.disabled = true;
+    try {
+      let converted = false;
+      for (const s of st.songs) {
+        if (s.jacket && !s.jacket.startsWith('data:')) {
+          const du = await toData(s.jacket);
+          if (du && du.startsWith('data:')) {
+            s.jacket = du;
+            converted = true;
+          } else {
+            s._brokenJkt = s.jacket;
+            s.jacket = '';
+            converted = true;
+          }
+        }
+      }
+      if (converted) { save(); render(); }
+
+      await new Promise(r => setTimeout(r, 120));
+      cp.style.transform = 'none';
+
+      const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+      const sc = isMobile ? (cp.offsetHeight > 1400 ? 1.25 : 1.5) : 2;
+
+      const canvas = await html2canvas(cp, {
+        scale: sc,
+        useCORS: true,
+        allowTaint: false,
+        backgroundColor: '#e4f1d8'
+      });
+
+      const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
+      if (!blob) throw new Error('画像のエンコードに失敗しました');
+
+      lastBlob = blob;
+      if (lastBlobUrl) URL.revokeObjectURL(lastBlobUrl);
+      lastBlobUrl = URL.createObjectURL(blob);
+
+      let previewSrc = lastBlobUrl;
+      try { previewSrc = canvas.toDataURL('image/png'); } catch {}
+
+      $('iPrv').src = previewSrc;
+      $('mod').style.display = 'block';
+      $('mod').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+
+      const a = document.createElement('a');
+      a.download = `chunithm_rating_${Date.now()}.png`;
+      a.href = lastBlobUrl;
+      a.rel = 'noopener';
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+    } catch (e) {
+      alert('画像生成失敗: ' + e.message);
+    } finally {
+      st.songs.forEach(s => { if (s._brokenJkt) { s.jacket = s._brokenJkt; delete s._brokenJkt; } });
+      cp.style.transform = pv;
+      fit();
+      b.textContent = '選択した画像をPNGで保存';
+      b.disabled = false;
+    }
+  };
+
+  $('bShareImg').onclick = async () => {
+    if (!lastBlob) return;
+    const file = new File([lastBlob], `chunithm_rating_${Date.now()}.png`, { type: 'image/png' });
+    if (navigator.canShare && navigator.canShare({ files: [file] })) {
+      try {
+        await navigator.share({ files: [file], title: 'CHUNITHM レート対象曲' });
+        return;
+      } catch (e) {
+        if (e.name === 'AbortError') return;
+      }
+    }
+    if (lastBlobUrl) window.open(lastBlobUrl, '_blank', 'noopener');
+  };
+
+  $('bClsM').onclick = () => $('mod').style.display = 'none';
+  $('bExp').onclick = () => { const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([JSON.stringify(st)],{type:'application/json'})); a.download = 'chunithm_rating.json'; a.click(); };
+  $('bImp').onclick = () => $('jFile').click();
+  $('jFile').onchange = e => {
+    const f = e.target.files[0]; if (!f) return; const r = new FileReader();
+    r.onload = ev => { try { const p = JSON.parse(ev.target.result); if (Array.isArray(p.songs)) { pushH(); st = { playerName:p.playerName||'', creditName:p.creditName||'CHUNITHM', showLamp:p.showLamp!==false, songs:dedupeSongs(p.songs) }; $('inP').value=st.playerName; $('inCr').value=st.creditName; $('cLmp').checked=st.showLamp; save(); render(); alert('読み込みました！'); } } catch { alert('JSON読込失敗'); } };
+    r.readAsText(f); e.target.value = '';
+  };
+
+  try { const p = JSON.parse(localStorage.getItem(KEY)); if (Array.isArray(p?.songs)) st = { playerName:p.playerName||'', creditName:p.creditName||'CHUNITHM', showLamp:p.showLamp!==false, songs:dedupeSongs(p.songs) }; } catch {}
+  try { const a = JSON.parse(localStorage.getItem(AUTH_KEY)); if (a?.id) { auth = a; $('inSyncId').value = a.id; $('inSyncPin').value = a.pin || ''; } } catch {}
+  $('inP').value = st.playerName; $('inCr').value = st.creditName; $('cLmp').checked = st.showLamp;
+  updAuthUI(); live(); updU(); render(); loadDB();
+});
+</script>
+</body>
+</html>
