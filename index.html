@@ -977,11 +977,60 @@ document.addEventListener('DOMContentLoaded', () => {
       });
       const u = canvas.toDataURL('image/png');
 
-      $('iPrv').src = u;
+$('bPng').onclick = async () => {
+    const b = $('bPng'), cp = $('cap'), pv = cp.style.transform;
+    b.textContent = '画像変換・生成中...'; b.disabled = true;
+    try {
+      let converted = false;
+      for (const s of st.songs) {
+        if (s.jacket && !s.jacket.startsWith('data:')) {
+          const du = await toData(s.jacket);
+          if (du && du.startsWith('data:')) {
+            s.jacket = du;
+            converted = true;
+          } else {
+            s._brokenJkt = s.jacket;
+            s.jacket = '';
+            converted = true;
+          }
+        }
+      }
+      if (converted) { save(); render(); }
+
+      await new Promise(r => setTimeout(r, 120));
+      cp.style.transform = 'none';
+
+      // スマホのメモリ制限対策（高さに応じて倍率を自動調整）
+      const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+      const sc = isMobile ? (cp.offsetHeight > 1400 ? 1.25 : 1.5) : 2;
+
+      const canvas = await html2canvas(cp, {
+        scale: sc,
+        useCORS: true,
+        allowTaint: false,
+        backgroundColor: '#e4f1d8'
+      });
+
+      const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
+      if (!blob) throw new Error('画像のエンコードに失敗しました');
+
+      if (lastBlobUrl) URL.revokeObjectURL(lastBlobUrl);
+      lastBlobUrl = URL.createObjectURL(blob);
+      window.__lastPngBlob = blob;
+
+      // iPhoneでの長押し保存が安定するようDataURLも用意（失敗時はBlobURLを使用）
+      let previewSrc = lastBlobUrl;
+      try { previewSrc = canvas.toDataURL('image/png'); } catch {}
+
+      $('iPrv').src = previewSrc;
       $('mod').style.display = 'block';
+      $('mod').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+
+      // PC・Android向け自動ダウンロード試行
       const a = document.createElement('a');
       a.download = `chunithm_rating_${Date.now()}.png`;
-      a.href = u;
+      a.href = lastBlobUrl;
+      a.rel = 'noopener';
       document.body.appendChild(a);
       a.click();
       a.remove();
